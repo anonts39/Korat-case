@@ -798,13 +798,13 @@ function renderPeople() {
         <div class="person-mom-item">ค้าง: ${momHTML(cp,prv.filter(c=>!['done','court'].includes(c.status)).length,true)}</div>
       </div>
       ${isAdminUser ? `<div style="display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
-        <button class="person-edit-btn" data-id="${p.id}" data-name="${p.name}" data-role="${p.role||''}" style="flex:1;padding:6px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:'Sarabun',sans-serif;font-size:0.78rem;cursor:pointer;">เปลี่ยน</button>
-        <button class="person-del-btn" data-id="${p.id}" data-name="${p.name}" style="flex:1;padding:6px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:'Sarabun',sans-serif;font-size:0.78rem;cursor:pointer;">ลบ</button>
+        <button class="person-edit-btn" data-id="${p.id}" data-name="${p.name}" data-role="${p.role||''}" style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:'Sarabun',sans-serif;font-size:0.8rem;cursor:pointer;position:relative;z-index:10;">เปลี่ยน</button>
+        <button class="person-del-btn" data-id="${p.id}" data-name="${p.name}" style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--red);background:transparent;color:var(--red);font-family:'Sarabun',sans-serif;font-size:0.8rem;cursor:pointer;position:relative;z-index:10;">ลบ</button>
       </div>` : ''}`;
 
     // Card click = filter (but not on buttons)
     el.addEventListener('click', function(e) {
-      if (e.target.classList.contains('person-edit-btn') || e.target.classList.contains('person-del-btn')) return;
+      if (e.target.tagName === 'BUTTON') return;
       filterPerson = filterPerson === p.id ? null : p.id;
       renderAll();
     });
