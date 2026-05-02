@@ -368,8 +368,14 @@ td{padding:11px 14px;font-size:0.85rem;}
     </div>
     <div class="form-group">
       <label class="form-label">🔲 รหัส QR เดิมในสำนวน (ถ้ามี)</label>
-      <input class="form-input" id="fExtQR" placeholder="เช่น 001234, 110/2569 หรือรหัสอื่นๆ ที่อยู่ใน QR เดิม">
-      <div style="font-size:0.72rem;color:var(--text3);margin-top:4px;">💡 ถ้า QR เดิมเป็นเบอร์โทร เช่น 2-560-4830 ให้ใส่เบอร์นี้ได้เลย</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input class="form-input" id="fExtQR" placeholder="เช่น 001234, 110/2569 หรือเบอร์โทร" style="flex:1;">
+        <label style="padding:9px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);font-size:0.78rem;cursor:pointer;white-space:nowrap;background:transparent;font-family:'Sarabun',sans-serif;">
+          📷 สแกน QR
+          <input type="file" id="formQRInput" accept="image/*" capture="environment" style="display:none;" onchange="scanFormQR(this)">
+        </label>
+      </div>
+      <div style="font-size:0.72rem;color:var(--text3);margin-top:4px;">💡 กด "สแกน QR" เพื่อถ่ายรูป QR บนปกสำนวน ระบบจะกรอกรหัสให้อัตโนมัติ</div>
     </div>
     </div>
     <div class="form-group">
@@ -1325,6 +1331,68 @@ window.closeTimeline = function() {
 document.getElementById('timelineModalOverlay').addEventListener('click', e => {
   if (e.target === document.getElementById('timelineModalOverlay')) window.closeTimeline();
 });
+
+
+// ===== SCAN QR FOR FORM =====
+window.scanFormQR = function(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const statusEl = input.closest('.form-group').querySelector('div[style*="0.72rem"]');
+  if (statusEl) statusEl.textContent = '🔍 กำลังอ่าน QR Code...';
+
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      canvas.width  = img.width;
+      canvas.height = img.height;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+
+      function setQRResult(code) {
+        document.getElementById('fExtQR').value = code;
+        if (statusEl) statusEl.innerHTML = `✅ สแกนได้: <strong>${code}</strong>`;
+        input.value = '';
+      }
+      function failQR() {
+        if (statusEl) statusEl.textContent = '❌ ไม่พบ QR กรุณาพิมพ์เองในช่องด้านบน';
+        input.value = '';
+      }
+
+      // Try BarcodeDetector (Chrome)
+      if ('BarcodeDetector' in window) {
+        new BarcodeDetector({ formats: ['qr_code'] }).detect(canvas)
+          .then(codes => codes.length ? setQRResult(codes[0].rawValue) : tryZXingForm(canvas, setQRResult, failQR))
+          .catch(() => tryZXingForm(canvas, setQRResult, failQR));
+      } else {
+        tryZXingForm(canvas, setQRResult, failQR);
+      }
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+function tryZXingForm(canvas, onSuccess, onFail) {
+  if (window.ZXing) { decodeWithZXingForm(canvas, onSuccess, onFail); return; }
+  const s = document.createElement('script');
+  s.src = 'https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js';
+  s.onload = () => decodeWithZXingForm(canvas, onSuccess, onFail);
+  s.onerror = onFail;
+  document.head.appendChild(s);
+}
+
+function decodeWithZXingForm(canvas, onSuccess, onFail) {
+  try {
+    const img = document.createElement('img');
+    img.src = canvas.toDataURL();
+    img.onload = () => {
+      new ZXing.BrowserQRCodeReader().decodeFromImageElement(img)
+        .then(r => onSuccess(r.getText()))
+        .catch(onFail);
+    };
+  } catch(e) { onFail(); }
+}
 
 document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('modalOverlay')) window.closeModal(); });
 document.getElementById('personModalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('personModalOverlay')) window.closePersonModal(); });
