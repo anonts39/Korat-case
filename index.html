@@ -761,32 +761,30 @@ window.toggleCatFilter = function(cat) {
 function renderPeople() {
   const grid = document.getElementById('peopleGrid');
   grid.innerHTML = '';
-  // สมาชิกไม่เห็น section นี้ — Admin เท่านั้นที่เห็น
   if (!isAdminUser) {
     document.querySelector('.people-section').style.display = 'none';
     return;
   }
   document.querySelector('.people-section').style.display = 'block';
+
   people.forEach((p, idx) => {
     const [col, bg] = COLORS[idx % COLORS.length];
     const cur = inMonth(selYM).filter(c => c.assignee === p.id);
     const prv = inMonth(prevYM(selYM)).filter(c => c.assignee === p.id);
-    const ct = cur.length, cp = cur.filter(c=>c.status==='pending').length;
-    const cg = cur.filter(c=>c.status==='progress').length, cd = cur.filter(c=>c.status==='done').length;
-    const co = cur.filter(c => c.status!=='done' && dlStatus(c.deadline,c.status)==='overdue').length;
+    const ct = cur.length;
+    const cp = cur.filter(c => !['done','court'].includes(c.status)).length;
+    const cg = cur.filter(c => c.status === 'progress').length;
+    const cd = cur.filter(c => c.status === 'done').length;
+    const co = cur.filter(c => c.status !== 'done' && c.status !== 'court' && dlStatus(c.deadline,c.status) === 'overdue').length;
     const init = p.name.replace('นาย','').replace('นางสาว','').replace('นาง','').trim().charAt(0);
+
     const el = document.createElement('div');
     el.className = `person-card${filterPerson===p.id?' selected':''}`;
-    el.onclick = () => { filterPerson = filterPerson === p.id ? null : p.id; renderAll(); };
+
     el.innerHTML = `
       <div class="person-header">
         <div class="avatar" style="background:${bg};color:${col}">${init}</div>
         <div style="flex:1"><div class="person-name">${p.name}</div><div class="person-role">${p.role||''}</div></div>
-        ${isAdminUser ? `
-          <div style="display:flex;gap:4px;flex-shrink:0;">
-            <button onclick="event.stopPropagation();editPerson('${p.id}','${p.name}','${p.role||''}')" style="padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:0.72rem;cursor:pointer;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">เปลี่ยน</button>
-            <button onclick="event.stopPropagation();deletePerson('${p.id}','${p.name}')" style="padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:0.72rem;cursor:pointer;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">ลบ</button>
-          </div>` : ''}
       </div>
       <div class="person-stats">
         <div class="stat-box"><div class="stat-val" style="color:var(--blue)">${ct}</div><div class="stat-lbl">ทั้งหมด</div></div>
@@ -797,19 +795,47 @@ function renderPeople() {
       </div>
       <div class="person-mom">
         <div class="person-mom-item">ทั้งหมด: ${momHTML(ct,prv.length,false)}</div>
-        <div class="person-mom-item">ค้าง: ${momHTML(cp,prv.filter(c=>c.status==='pending').length,true)}</div>
-      </div>`;
+        <div class="person-mom-item">ค้าง: ${momHTML(cp,prv.filter(c=>!['done','court'].includes(c.status)).length,true)}</div>
+      </div>
+      ${isAdminUser ? `<div style="display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+        <button class="person-edit-btn" data-id="${p.id}" data-name="${p.name}" data-role="${p.role||''}" style="flex:1;padding:6px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:'Sarabun',sans-serif;font-size:0.78rem;cursor:pointer;">เปลี่ยน</button>
+        <button class="person-del-btn" data-id="${p.id}" data-name="${p.name}" style="flex:1;padding:6px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:'Sarabun',sans-serif;font-size:0.78rem;cursor:pointer;">ลบ</button>
+      </div>` : ''}`;
+
+    // Card click = filter (but not on buttons)
+    el.addEventListener('click', function(e) {
+      if (e.target.classList.contains('person-edit-btn') || e.target.classList.contains('person-del-btn')) return;
+      filterPerson = filterPerson === p.id ? null : p.id;
+      renderAll();
+    });
+
     grid.appendChild(el);
   });
+
+  // Attach button events after DOM is ready
+  grid.querySelectorAll('.person-edit-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      editPerson(this.dataset.id, this.dataset.name, this.dataset.role);
+    });
+  });
+  grid.querySelectorAll('.person-del-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      deletePerson(this.dataset.id, this.dataset.name);
+    });
+  });
+
   if (isAdminUser) {
     const add = document.createElement('div');
     add.className = 'person-card';
-    add.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:8px;color:var(--text3);border-style:dashed;min-height:140px;';
-    add.onclick = () => document.getElementById('personModalOverlay').classList.add('show');
+    add.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:8px;color:var(--text3);border-style:dashed;min-height:140px;cursor:pointer;';
     add.innerHTML = '<span style="font-size:1.4rem">＋</span><span style="font-size:0.85rem">เพิ่มบุคลากร</span>';
+    add.addEventListener('click', () => document.getElementById('personModalOverlay').classList.add('show'));
     grid.appendChild(add);
   }
 }
+
 
 // ===== TABLE =====
 window.toggleOverdueFilter = function(btn) { filterOverdue = !filterOverdue; btn.classList.toggle('active', filterOverdue); renderTable(); };
