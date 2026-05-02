@@ -781,7 +781,8 @@ function renderPeople() {
     el.innerHTML = `
       <div class="person-header">
         <div class="avatar" style="background:${bg};color:${col}">${init}</div>
-        <div><div class="person-name">${p.name}</div><div class="person-role">${p.role||''}</div></div>
+        <div style="flex:1"><div class="person-name">${p.name}</div><div class="person-role">${p.role||''}</div></div>
+        ${isAdminUser ? `<button onclick="event.stopPropagation();deletePerson('${p.id}','${p.name}')" style="padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:0.72rem;cursor:pointer;flex-shrink:0;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">ลบ</button>` : ''}
       </div>
       <div class="person-stats">
         <div class="stat-box"><div class="stat-val" style="color:var(--blue)">${ct}</div><div class="stat-lbl">ทั้งหมด</div></div>
@@ -1619,6 +1620,18 @@ window.pasteQRCode = async function() {
     // Clipboard not allowed - show manual paste hint
     status.textContent = '💡 กดค้างที่ช่องด้านบน → เลือก "Paste" ได้เลยครับ';
     document.getElementById('fExtQR').focus();
+  }
+};
+
+// ===== DELETE PERSON =====
+window.deletePerson = async function(id, name) {
+  if (!confirm(`ลบ "${name}" ออกจากระบบ?\n\nหมายเหตุ: คดีที่ผูกกับบุคลากรคนนี้จะยังคงอยู่ แต่ช่องผู้รับผิดชอบจะว่าง`)) return;
+  try {
+    await deleteDoc(doc(db, 'people', id));
+    await loadPeople();
+    renderAll();
+  } catch(e) {
+    alert('ลบไม่ได้: ' + e.message);
   }
 };
 document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('modalOverlay')) window.closeModal(); });
