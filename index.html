@@ -308,7 +308,7 @@ td{padding:11px 14px;font-size:0.85rem;}
       <button class="filter-btn active" onclick="setFilter('active',this)">ทั้งหมด (ค้าง)</button>
       <button class="filter-btn" onclick="setFilter('progress',this)">🔵 ดำเนินการ</button>
       <button class="filter-btn" onclick="setFilter('screening',this)">🔍 รอกลั่นกรอง</button>
-      <button class="filter-btn" onclick="setFilter('review',this)">⚖️ รอพิจารณา</button>
+      <button class="filter-btn" onclick="setFilter('review',this)">⚖️ อจ.พิจารณา</button>
       <button class="filter-btn" onclick="setFilter('done',this)">✅ เสร็จสิ้น</button>
       <button class="filter-btn" onclick="setFilter('court',this)">🏛 ศาล</button>
       <button class="filter-btn" onclick="setFilter('all',this)">📋 ทุกสถานะ</button>
@@ -372,7 +372,7 @@ td{padding:11px 14px;font-size:0.85rem;}
           <option value="pending">⏳ รอดำเนินการ</option>
           <option value="progress">🔵 ดำเนินการ</option>
           <option value="screening">🔍 รอกลั่นกรอง</option>
-          <option value="review">⚖️ รอพิจารณา</option>
+          <option value="review">⚖️ อจ.พิจารณา</option>
           <option value="done">✅ เสร็จสิ้น</option>
           <option value="court">🏛 ศาล</option>
         </select></div>
@@ -846,7 +846,7 @@ function renderTable() {
     pending:   ['⏳ รอดำเนินการ', 'pending'],
     progress:  ['🔵 ดำเนินการ',   'progress'],
     screening: ['🔍 รอกลั่นกรอง', 'screening'],
-    review:    ['⚖️ รอพิจารณา',   'review'],
+    review:    ['⚖️ อจ.พิจารณา',   'review'],
     done:      ['✅ เสร็จสิ้น',    'done'],
     court:     ['🏛 ศาล',          'court']
   };
@@ -1219,7 +1219,7 @@ window.openTimeline = async function(id) {
   currentTimelineCase = c;
 
   // Case info
-  const statusMap = { pending:'🔴 รอดำเนินการ', progress:'🔵 ดำเนินการ', screening:'🔍 รอกลั่นกรอง', review:'⚖️ รอพิจารณา', done:'✅ เสร็จสิ้น', court:'🏛 ศาล' };
+  const statusMap = { pending:'🔴 รอดำเนินการ', progress:'🔵 ดำเนินการ', screening:'🔍 รอกลั่นกรอง', review:'⚖️ อจ.พิจารณา', done:'✅ เสร็จสิ้น', court:'🏛 ศาล' };
   document.getElementById('tlCaseInfo').innerHTML = `
     <div class="timeline-case-id">${c.caseId}</div>
     <div class="timeline-case-name">${c.name}</div>
@@ -1293,7 +1293,7 @@ async function renderTimeline(caseId) {
 const DEPT_STATUS_MAP = {
   'อัยการเจ้าของเรื่อง':      { status: 'progress',  label: 'ดำเนินการ' },
   'อัยการผู้กลั่นกรองงาน':    { status: 'screening', label: '🔍 รอกลั่นกรอง' },
-  'อัยการจังหวัด':             { status: 'review',    label: '⚖️ รอพิจารณา' },
+  'อัยการจังหวัด':             { status: 'review',    label: '⚖️ อจ.พิจารณา' },
   'งานคดี':                    { status: 'progress',  label: 'บันทึกคดี' },
 };
 
