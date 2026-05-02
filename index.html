@@ -285,7 +285,7 @@ td{padding:11px 14px;font-size:0.85rem;}
   </div>
   <div class="summary-grid">
     <div class="summary-card total"><div class="card-label">คดีทั้งหมด</div><div class="card-number blue" id="totalCases">0</div><div class="mom-row" id="momRowTotal"></div><div class="card-sub" id="totalCasesSub">คดีที่ยังค้างในเดือนนี้</div></div>
-    <div class="summary-card pending"><div class="card-label">คดีค้าง (รอ+ดำเนินการ)</div><div class="card-number red" id="totalPending">0</div><div class="mom-row" id="momRowPending"></div><div class="card-sub" id="pendingPct">0%</div><div class="prog-bar-wrap"><div class="prog-bar" id="pendingBar" style="width:0%"></div></div></div>
+    <div class="summary-card pending"><div class="card-label">คดีค้าง (ยังไม่เสร็จ)</div><div class="card-number red" id="totalPending">0</div><div class="mom-row" id="momRowPending"></div><div class="card-sub" id="pendingPct">0%</div><div class="prog-bar-wrap"><div class="prog-bar" id="pendingBar" style="width:0%"></div></div></div>
     <div class="summary-card done"><div class="card-label">เสร็จสิ้น</div><div class="card-number green" id="totalDone">0</div><div class="mom-row" id="momRowDone"></div><div class="card-sub" id="donePct">0%</div></div>
     <div class="summary-card overdue"><div class="card-label">เกินกำหนด</div><div class="card-number yellow" id="totalOverdue">0</div><div class="mom-row" id="momRowOverdue"></div><div class="card-sub">คดีที่เลย deadline</div></div>
   </div>
@@ -821,7 +821,9 @@ function renderTable() {
   const sort   = document.getElementById('sortSelect').value;
   let filtered = cases.filter(c =>
     ymOf(c.date) === selYM &&
-    (filterStatus === 'all' || c.status === filterStatus) &&
+    (filterStatus === 'all' ||
+     (filterStatus === 'active' && !['done','court'].includes(c.status)) ||
+     (filterStatus !== 'all' && filterStatus !== 'active' && c.status === filterStatus)) &&
     (filterPerson === null || c.assignee === filterPerson) &&
     (filterCategory === null || (c.category || 'ไม่ระบุ') === filterCategory) &&
     (!filterOverdue || (c.status !== 'done' && dlStatus(c.deadline,c.status) === 'overdue')) &&
