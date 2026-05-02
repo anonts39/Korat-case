@@ -782,7 +782,11 @@ function renderPeople() {
       <div class="person-header">
         <div class="avatar" style="background:${bg};color:${col}">${init}</div>
         <div style="flex:1"><div class="person-name">${p.name}</div><div class="person-role">${p.role||''}</div></div>
-        ${isAdminUser ? `<button onclick="event.stopPropagation();deletePerson('${p.id}','${p.name}')" style="padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:0.72rem;cursor:pointer;flex-shrink:0;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">ลบ</button>` : ''}
+        ${isAdminUser ? `
+          <div style="display:flex;gap:4px;flex-shrink:0;">
+            <button onclick="event.stopPropagation();editPerson('${p.id}','${p.name}','${p.role||''}')" style="padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:0.72rem;cursor:pointer;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">เปลี่ยน</button>
+            <button onclick="event.stopPropagation();deletePerson('${p.id}','${p.name}')" style="padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:0.72rem;cursor:pointer;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">ลบ</button>
+          </div>` : ''}
       </div>
       <div class="person-stats">
         <div class="stat-box"><div class="stat-val" style="color:var(--blue)">${ct}</div><div class="stat-lbl">ทั้งหมด</div></div>
