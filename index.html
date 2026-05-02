@@ -369,13 +369,22 @@ td{padding:11px 14px;font-size:0.85rem;}
     <div class="form-group">
       <label class="form-label">🔲 รหัส QR เดิมในสำนวน (ถ้ามี)</label>
       <div style="display:flex;gap:8px;align-items:center;">
-        <input class="form-input" id="fExtQR" placeholder="เช่น 001234, 110/2569 หรือเบอร์โทร" style="flex:1;">
-        <label style="padding:9px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);font-size:0.78rem;cursor:pointer;white-space:nowrap;background:transparent;font-family:'Sarabun',sans-serif;">
-          📷 สแกน QR
-          <input type="file" id="formQRInput" accept="image/*" capture="environment" style="display:none;" onchange="scanFormQR(this)">
-        </label>
+        <input class="form-input" id="fExtQR" placeholder="วางรหัสที่สแกนได้ที่นี่" style="flex:1;">
+        <button type="button" onclick="showQRHowTo()" style="padding:9px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);font-size:0.78rem;cursor:pointer;white-space:nowrap;background:transparent;font-family:'Sarabun',sans-serif;">
+          📷 วิธีสแกน
+        </button>
       </div>
-      <div style="font-size:0.72rem;color:var(--text3);margin-top:4px;">💡 กด "สแกน QR" เพื่อถ่ายรูป QR บนปกสำนวน ระบบจะกรอกรหัสให้อัตโนมัติ</div>
+      <div id="qrHowToBox" style="display:none;margin-top:8px;background:#1a1f2e;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:0.78rem;line-height:1.8;color:var(--text2);">
+        <strong style="color:var(--accent);">📱 วิธีสแกน QR บนปกสำนวน:</strong><br>
+        1️⃣ ปิดหน้าต่างนี้ชั่วคราว (กด Cancel)<br>
+        2️⃣ เปิดกล้อง iPad → จ่อที่ QR Code บนสำนวน<br>
+        3️⃣ กด banner ที่ขึ้นมาด้านบนจอ<br>
+        4️⃣ คัดลอกข้อความหรือเบอร์โทรที่ได้<br>
+        5️⃣ กลับมาเปิดฟอร์มนี้ → วางในช่องด้านบน<br>
+        <div style="margin-top:8px;padding:8px;background:#0d1117;border-radius:6px;">
+          💡 <strong>หรือ:</strong> ใช้แอป <strong>กล้อง</strong> สแกน → กด <strong>คัดลอก</strong> → วางในช่องได้เลย
+        </div>
+      </div>
     </div>
     </div>
     <div class="form-group">
@@ -1111,7 +1120,7 @@ window.closeScanner = function() {
   if (scannerStream) { scannerStream.getTracks().forEach(t => t.stop()); scannerStream = null; }
   if (scannerInterval) { clearInterval(scannerInterval); scannerInterval = null; }
   document.getElementById('scannerModalOverlay').classList.remove('show');
-  document.getElementById('scannerResult').textContent = 'กดปุ่มด้านล่างเพื่อเปิดกล้อง แล้วถ่ายรูป QR Code บนสำนวน';
+  document.getElementById('scannerResult').textContent = 'ใช้กล้อง iPad สแกน QR Code บนปกสำนวนได้เลย';
 };
 
 function handleScannedCode(code) {
@@ -1301,51 +1310,32 @@ document.getElementById('timelineModalOverlay').addEventListener('click', e => {
 
 
 // ===== SCAN QR FOR FORM =====
-// ===== UNIFIED QR DECODER (Safari compatible) =====
+// ===== QR DECODER (Chrome/BarcodeDetector) =====
 async function decodeQRFromFile(file, onSuccess, onFail) {
-  const bitmap = await createImageBitmap(file).catch(() => null);
-  if (!bitmap) { onFail('อ่านรูปไม่ได้'); return; }
-
-  // Method 1: BarcodeDetector API (iOS 17+, Chrome)
-  if ('BarcodeDetector' in window) {
-    try {
-      const detector = new BarcodeDetector({ formats: ['qr_code'] });
-      const codes = await detector.detect(bitmap);
-      if (codes.length > 0) { onSuccess(codes[0].rawValue); return; }
-    } catch(e) {}
+  // Check BarcodeDetector support (Chrome, Edge, Android)
+  if (!('BarcodeDetector' in window)) {
+    onFail('เบราว์เซอร์นี้ไม่รองรับ กรุณาใช้ Chrome');
+    return;
   }
-
-  // Method 2: Canvas + BarcodeDetector with HTMLImageElement
-  const canvas = document.createElement('canvas');
-  canvas.width = bitmap.width; canvas.height = bitmap.height;
-  canvas.getContext('2d').drawImage(bitmap, 0, 0);
-
-  if ('BarcodeDetector' in window) {
-    try {
-      const imgEl = new Image();
-      imgEl.src = canvas.toDataURL('image/jpeg', 0.9);
-      await new Promise(r => imgEl.onload = r);
-      const detector = new BarcodeDetector({ formats: ['qr_code'] });
-      const codes = await detector.detect(imgEl);
-      if (codes.length > 0) { onSuccess(codes[0].rawValue); return; }
-    } catch(e) {}
-  }
-
-  // Method 3: Try reading via video element trick
   try {
-    const url = URL.createObjectURL(file);
-    const img2 = new Image();
-    img2.src = url;
-    await new Promise(r => { img2.onload = r; img2.onerror = r; });
-    if ('BarcodeDetector' in window) {
-      const detector = new BarcodeDetector({ formats: ['qr_code'] });
-      const codes = await detector.detect(img2).catch(() => []);
-      URL.revokeObjectURL(url);
-      if (codes.length > 0) { onSuccess(codes[0].rawValue); return; }
-    }
-  } catch(e) {}
+    const detector = new BarcodeDetector({ formats: ['qr_code'] });
+    // Try with ImageBitmap (fastest)
+    const bitmap = await createImageBitmap(file);
+    let codes = await detector.detect(bitmap);
+    if (codes.length > 0) { onSuccess(codes[0].rawValue); return; }
 
-  onFail('ไม่พบ QR Code ในรูป');
+    // Try with img element (more compatible)
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+    codes = await detector.detect(img);
+    URL.revokeObjectURL(url);
+    if (codes.length > 0) { onSuccess(codes[0].rawValue); return; }
+
+    onFail('ไม่พบ QR Code ในรูป ลองถ่ายใหม่ให้ชัดและใกล้ขึ้น');
+  } catch(e) {
+    onFail('เกิดข้อผิดพลาด: ' + e.message);
+  }
 }
 
 window.scanFormQR = async function(input) {
@@ -1365,6 +1355,53 @@ window.scanFormQR = async function(input) {
     }
   );
 };
+
+window.showQRHowTo = function() {
+  const box = document.getElementById('qrHowToBox');
+  box.style.display = box.style.display === 'none' ? 'block' : 'none';
+};
+
+// ===== LIVE CAMERA SCAN (Chrome) =====
+window.startLiveScan = async function() {
+  if (!('BarcodeDetector' in window)) {
+    document.getElementById('scannerResult').textContent = '❌ กรุณาเปิดด้วย Chrome เพื่อใช้ฟีเจอร์นี้';
+    return;
+  }
+  try {
+    scannerStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width:{ideal:1280}, height:{ideal:720} }
+    });
+    const video = document.getElementById('scannerVideo');
+    video.srcObject = scannerStream;
+    await video.play();
+    document.getElementById('scanLiveWrap').style.display = 'block';
+    document.getElementById('scannerResult').textContent = '🔍 จ่อ QR Code ให้อยู่ในกรอบ...';
+    document.getElementById('btnLiveScan').textContent = '⏹ หยุดสแกน';
+    document.getElementById('btnLiveScan').onclick = stopLiveScan;
+
+    const detector = new BarcodeDetector({ formats: ['qr_code'] });
+    scannerInterval = setInterval(async () => {
+      if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+      try {
+        const codes = await detector.detect(video);
+        if (codes.length > 0) {
+          stopLiveScan();
+          handleScannedCode(codes[0].rawValue);
+        }
+      } catch(e) {}
+    }, 400);
+  } catch(e) {
+    document.getElementById('scannerResult').textContent = '❌ ไม่สามารถเปิดกล้องได้: ' + e.message;
+  }
+};
+
+function stopLiveScan() {
+  if (scannerStream) { scannerStream.getTracks().forEach(t => t.stop()); scannerStream = null; }
+  if (scannerInterval) { clearInterval(scannerInterval); scannerInterval = null; }
+  document.getElementById('scanLiveWrap').style.display = 'none';
+  const btn = document.getElementById('btnLiveScan');
+  if (btn) { btn.textContent = '🎥 เปิดกล้องสแกน (Chrome)'; btn.onclick = startLiveScan; }
+}
 document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('modalOverlay')) window.closeModal(); });
 document.getElementById('personModalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('personModalOverlay')) window.closePersonModal(); });
 </script>
@@ -1382,7 +1419,7 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
     <div style="padding:24px 20px;text-align:center;">
       <div style="font-size:3rem;margin-bottom:12px;">📷</div>
       <div id="scannerResult" style="font-size:0.85rem;color:var(--text2);margin-bottom:20px;min-height:40px;line-height:1.5;">
-        กดปุ่มด้านล่างเพื่อเปิดกล้อง แล้วถ่ายรูป QR Code บนสำนวน
+        ใช้กล้อง iPad สแกน QR Code บนปกสำนวนได้เลย
       </div>
       <button class="btn-tl-save" onclick="document.getElementById('qrCameraInput').click()" style="margin-bottom:12px;font-size:0.9rem;padding:12px;">
         📷 ถ่ายรูป QR Code
