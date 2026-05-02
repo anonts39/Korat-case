@@ -664,6 +664,12 @@ window.toggleCatFilter = function(cat) {
 function renderPeople() {
   const grid = document.getElementById('peopleGrid');
   grid.innerHTML = '';
+  // สมาชิกไม่เห็น section นี้ — Admin เท่านั้นที่เห็น
+  if (!isAdminUser) {
+    document.querySelector('.people-section').style.display = 'none';
+    return;
+  }
+  document.querySelector('.people-section').style.display = 'block';
   people.forEach((p, idx) => {
     const [col, bg] = COLORS[idx % COLORS.length];
     const cur = inMonth(selYM).filter(c => c.assignee === p.id);
