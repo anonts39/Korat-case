@@ -422,12 +422,13 @@ td{padding:11px 14px;font-size:0.85rem;}
 
 <div class="modal-overlay" id="personModalOverlay">
   <div class="modal">
-    <div class="modal-title">เพิ่มบุคลากร</div>
+    <div class="modal-title" id="personModalTitle">เพิ่มบุคลากร</div>
+    <input type="hidden" id="pEditId" value="">
     <div class="form-group"><label class="form-label">ชื่อ-นามสกุล</label><input class="form-input" id="pName" placeholder="ชื่อเต็ม"></div>
     <div class="form-group"><label class="form-label">ตำแหน่ง</label><input class="form-input" id="pRole" placeholder="เช่น ทนายความ"></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closePersonModal()">ยกเลิก</button>
-      <button class="btn-save" onclick="addPerson()">เพิ่ม</button>
+      <button class="btn-save" id="personSaveBtn" onclick="savePersonModal()">เพิ่ม</button>
     </div>
   </div>
 </div>
@@ -1056,7 +1057,45 @@ window.closePersonModal = function() {
   document.getElementById('personModalOverlay').classList.remove('show');
   document.getElementById('pName').value = '';
   document.getElementById('pRole').value = '';
+  const editIdEl = document.getElementById('pEditId');
+  if (editIdEl) editIdEl.value = '';
+  const titleEl = document.getElementById('personModalTitle');
+  if (titleEl) titleEl.textContent = 'เพิ่มบุคลากร';
+  const saveBtn = document.getElementById('personSaveBtn');
+  if (saveBtn) saveBtn.textContent = 'เพิ่ม';
 };
+
+window.editPerson = function(id, name, role) {
+  const editIdEl = document.getElementById('pEditId');
+  if (editIdEl) editIdEl.value = id;
+  document.getElementById('pName').value = name;
+  document.getElementById('pRole').value = role || '';
+  const titleEl = document.getElementById('personModalTitle');
+  if (titleEl) titleEl.textContent = 'เปลี่ยนข้อมูล: ' + name;
+  const saveBtn = document.getElementById('personSaveBtn');
+  if (saveBtn) saveBtn.textContent = 'บันทึก';
+  document.getElementById('personModalOverlay').classList.add('show');
+};
+
+window.savePersonModal = async function() {
+  const name = document.getElementById('pName').value.trim();
+  const role = document.getElementById('pRole').value.trim();
+  const editIdEl = document.getElementById('pEditId');
+  const editId = editIdEl ? editIdEl.value : '';
+  if (!name) { alert('กรุณากรอกชื่อ'); return; }
+  try {
+    if (editId) {
+      await updateDoc(doc(db, 'people', editId), { name, role: role||'เจ้าหน้าที่' });
+    } else {
+      await addDoc(collection(db, 'people'), { name, role: role||'เจ้าหน้าที่' });
+    }
+    await loadPeople();
+    window.closePersonModal();
+    renderAll();
+  } catch(e) { alert('บันทึกไม่ได้: ' + e.message); }
+};
+
+window.addPerson = window.savePersonModal;
 window.addPerson = async function() {
   const name = document.getElementById('pName').value.trim();
   const role = document.getElementById('pRole').value.trim();
