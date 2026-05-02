@@ -778,18 +778,14 @@ function renderPeople() {
     const co = cur.filter(c => c.status !== 'done' && c.status !== 'court' && dlStatus(c.deadline,c.status) === 'overdue').length;
     const init = p.name.replace('นาย','').replace('นางสาว','').replace('นาง','').trim().charAt(0);
 
-    // Wrapper div (not clickable)
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'display:flex;flex-direction:column;gap:0;';
+    const el = document.createElement('div');
+    el.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;';
+    if (filterPerson === p.id) { el.style.borderColor = 'var(--accent)'; el.style.background = '#1f1a12'; }
 
-    // Card (clickable for filter)
-    const card = document.createElement('div');
-    card.className = `person-card${filterPerson===p.id?' selected':''}`;
-    card.style.borderBottomLeftRadius = '0';
-    card.style.borderBottomRightRadius = '0';
-    card.style.borderBottom = 'none';
-    card.style.cursor = 'pointer';
-    card.innerHTML = `
+    // Stats area (clickable)
+    const statsArea = document.createElement('div');
+    statsArea.style.cssText = 'padding:14px 16px;cursor:pointer;flex:1;';
+    statsArea.innerHTML = `
       <div class="person-header">
         <div class="avatar" style="background:${bg};color:${col}">${init}</div>
         <div><div class="person-name">${p.name}</div><div class="person-role">${p.role||''}</div></div>
@@ -805,38 +801,50 @@ function renderPeople() {
         <div class="person-mom-item">ทั้งหมด: ${momHTML(ct,prv.length,false)}</div>
         <div class="person-mom-item">ค้าง: ${momHTML(cp,prv.filter(c=>!['done','court'].includes(c.status)).length,true)}</div>
       </div>`;
-    card.addEventListener('click', () => {
+    statsArea.addEventListener('click', () => {
       filterPerson = filterPerson === p.id ? null : p.id;
       renderAll();
     });
 
-    // Buttons row (completely separate from card)
+    // Button row (completely independent)
     const btnRow = document.createElement('div');
-    btnRow.style.cssText = `display:flex;border:1px solid var(--border);border-top:none;border-bottom-left-radius:10px;border-bottom-right-radius:10px;overflow:hidden;background:var(--surface2);`;
+    btnRow.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--border);';
 
     const editBtn = document.createElement('button');
     editBtn.textContent = 'เปลี่ยน';
-    editBtn.style.cssText = 'flex:1;padding:10px;border:none;border-right:1px solid var(--border);background:transparent;color:var(--accent);font-family:"Sarabun",sans-serif;font-size:0.82rem;cursor:pointer;';
-    editBtn.addEventListener('click', () => editPerson(p.id, p.name, p.role||''));
+    editBtn.style.cssText = 'padding:10px 0;border:none;border-right:1px solid var(--border);background:transparent;color:var(--accent);font-family:"Sarabun",sans-serif;font-size:0.82rem;cursor:pointer;-webkit-tap-highlight-color:rgba(240,136,62,0.2);';
+    editBtn.type = 'button';
 
     const delBtn = document.createElement('button');
     delBtn.textContent = 'ลบ';
-    delBtn.style.cssText = 'flex:1;padding:10px;border:none;background:transparent;color:var(--red);font-family:"Sarabun",sans-serif;font-size:0.82rem;cursor:pointer;';
-    delBtn.addEventListener('click', () => deletePerson(p.id, p.name));
+    delBtn.style.cssText = 'padding:10px 0;border:none;background:transparent;color:var(--red);font-family:"Sarabun",sans-serif;font-size:0.82rem;cursor:pointer;-webkit-tap-highlight-color:rgba(248,81,73,0.2);';
+    delBtn.type = 'button';
+
+    // Use touchend for iOS/iPad reliability
+    function addTapHandler(btn, fn) {
+      btn.addEventListener('click', fn);
+      btn.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        fn();
+      });
+    }
+
+    addTapHandler(editBtn, () => editPerson(p.id, p.name, p.role||''));
+    addTapHandler(delBtn, () => deletePerson(p.id, p.name));
 
     btnRow.appendChild(editBtn);
     btnRow.appendChild(delBtn);
-    wrap.appendChild(card);
-    wrap.appendChild(btnRow);
-    grid.appendChild(wrap);
+    el.appendChild(statsArea);
+    el.appendChild(btnRow);
+    grid.appendChild(el);
   });
 
-  // Add person button
   const add = document.createElement('div');
   add.className = 'person-card';
   add.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:8px;color:var(--text3);border-style:dashed;min-height:140px;cursor:pointer;';
   add.innerHTML = '<span style="font-size:1.4rem">＋</span><span style="font-size:0.85rem">เพิ่มบุคลากร</span>';
   add.addEventListener('click', () => document.getElementById('personModalOverlay').classList.add('show'));
+  add.addEventListener('touchend', function(e) { e.preventDefault(); document.getElementById('personModalOverlay').classList.add('show'); });
   grid.appendChild(add);
 }
 
