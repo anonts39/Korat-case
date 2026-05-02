@@ -146,6 +146,7 @@ td{padding:11px 14px;font-size:0.85rem;}
 .badge.pending{background:#2d1a1a;color:var(--red);border:1px solid #4a1a1a;}
 .badge.done{background:#1a2d1a;color:var(--green);border:1px solid #1a4a1a;}
 .badge.progress{background:#1a1f2d;color:var(--blue);border:1px solid #1a2a4a;}
+.badge.court{background:#1a1027;color:var(--purple);border:1px solid #3a1a5a;}
 .action-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;}
 .action-btn:hover{border-color:var(--accent);color:var(--accent);}
 .action-btn.del:hover{border-color:var(--red);color:var(--red);}
@@ -201,6 +202,8 @@ td{padding:11px 14px;font-size:0.85rem;}
 .scanner-actions{padding:14px 20px;display:flex;gap:8px;border-top:1px solid var(–border);}
 .scanner-manual{padding:10px 14px;border-top:1px solid var(–border);}
 
+.tl-action-btn{padding:7px 14px;border-radius:8px;border:1px solid var(–border);background:var(–surface2);color:var(–text2);font-family:‘Sarabun’,sans-serif;font-size:0.78rem;cursor:pointer;transition:all 0.15s;}
+.tl-action-btn.active{border-color:var(–accent);color:var(–accent);background:#1f1a12;}
 /* ── TIMELINE ── */
 .timeline-modal{background:var(–surface);border:1px solid var(–border);border-radius:14px;padding:0;width:520px;max-width:96vw;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;animation:fadeUp 0.2s ease;}
 .timeline-header{padding:16px 20px;border-bottom:1px solid var(–border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
@@ -304,6 +307,7 @@ td{padding:11px 14px;font-size:0.85rem;}
       <button class="filter-btn" onclick="setFilter('pending',this)">ค้าง</button>
       <button class="filter-btn" onclick="setFilter('progress',this)">ดำเนินการ</button>
       <button class="filter-btn" onclick="setFilter('done',this)">เสร็จสิ้น</button>
+      <button class="filter-btn" onclick="setFilter('court',this)">🏛 ศาล</button>
       <button class="filter-btn" id="overdueFilterBtn" onclick="toggleOverdueFilter(this)">🚨 เกินกำหนด</button>
       <select class="sort-select" id="sortSelect" onchange="renderTable()">
         <option value="priority">เรียงตาม: ความสำคัญ</option>
@@ -476,7 +480,7 @@ const inMonth = m => cases.filter(c => ymOf(c.date) === m);
 const allYMs  = () => [...new Set(cases.map(c => ymOf(c.date)).filter(Boolean))].sort();
 
 function dlStatus(dl, st) {
-  if (st === 'done') return 'done';
+  if (st === 'done' || st === 'court') return 'done';
   if (!dl) return 'none';
   const d = new Date(dl); d.setHours(0,0,0,0);
   const diff = Math.round((d - NOW) / 86400000);
@@ -485,7 +489,7 @@ function dlStatus(dl, st) {
   return 'ok';
 }
 function dlDays(dl, st) {
-  if (st === 'done' || !dl) return null;
+  if (st === 'done' || st === 'court' || !dl) return null;
   const d = new Date(dl); d.setHours(0,0,0,0);
   return Math.round((d - NOW) / 86400000);
 }
@@ -595,7 +599,7 @@ function buildMonthSelect() {
 function buildAlerts() {
   const alerts = [];
   cases.forEach(c => {
-    if (c.status === 'done') return;
+    if (c.status === 'done' || c.status === 'court') return;
     const st = dlStatus(c.deadline, c.status);
     if (st === 'overdue') alerts.push({ type:'critical', title:c.name, sub:`เกิน deadline ${Math.abs(dlDays(c.deadline,c.status))} วัน | ${PRI_LABEL[c.priority]}`, id:c.id });
     else if (st === 'due-soon') alerts.push({ type:'warning', title:c.name, sub:`ถึงกำหนดใน ${dlDays(c.deadline,c.status)} วัน | ${PRI_LABEL[c.priority]}`, id:c.id });
@@ -824,7 +828,7 @@ function renderTable() {
   if (!filtered.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
 
-  const sMap = { pending:['ค้าง','pending'], progress:['ดำเนินการ','progress'], done:['เสร็จสิ้น','done'] };
+  const sMap = { pending:['ค้าง','pending'], progress:['ดำเนินการ','progress'], done:['เสร็จสิ้น','done'], court:['🏛 ศาล','court'] };
   tbody.innerHTML = filtered.map(c => {
     const per = people.find(x => x.id === c.assignee);
     const [lbl, cls] = sMap[c.status];
@@ -1194,7 +1198,7 @@ window.openTimeline = async function(id) {
   currentTimelineCase = c;
 
   // Case info
-  const statusMap = { pending:'🔴 ค้าง', progress:'🔵 ดำเนินการ', done:'🟢 เสร็จสิ้น' };
+  const statusMap = { pending:'🔴 ค้าง', progress:'🔵 ดำเนินการ', done:'🟢 เสร็จสิ้น', court:'🏛 ศาล' };
   document.getElementById('tlCaseInfo').innerHTML = `
     <div class="timeline-case-id">${c.caseId}</div>
     <div class="timeline-case-name">${c.name}</div>
@@ -1245,9 +1249,11 @@ async function renderTimeline(caseId) {
           ${!isLast ? '<div class="tl-connector"></div>' : ''}
         </div>
         <div class="tl-content">
+          ${item.action ? `<div style="font-size:0.72rem;font-weight:600;color:var(--accent);margin-bottom:2px;">${item.action}</div>` : ''}
           <div class="tl-dept">${item.dept||'—'}</div>
           <div class="tl-who">${item.person||'—'}</div>
-          <div class="tl-time">${dateStr} ${timeStr} • บันทึกโดย ${item.by||'—'}</div>
+          ${item.statusLabel ? `<div style="display:inline-flex;padding:1px 8px;border-radius:20px;font-size:0.68rem;background:var(--surface2);color:var(--blue);border:1px solid var(--border);margin:2px 0;">${item.statusLabel}</div>` : ''}
+          <div class="tl-time">${dateStr} ${timeStr} • โดย ${item.by||'—'}</div>
           ${item.note ? `<div class="tl-note-text">💬 ${item.note}</div>` : ''}
         </div>
       </div>`;
@@ -1257,45 +1263,138 @@ async function renderTimeline(caseId) {
   }
 }
 
-window.saveTracking = async function() {
-  const dept   = document.getElementById('tlDept').value;
-  const person = document.getElementById('tlPerson').value;
-  const note   = document.getElementById('tlNote').value.trim();
-  if (!dept && !person) { alert('กรุณาเลือกแผนกหรือเจ้าหน้าที่'); return; }
+// ===== DEPT → STATUS MAPPING =====
+const DEPT_STATUS_MAP = {
+  'อัยการเจ้าของเรื่อง':      { status: 'progress', label: 'ดำเนินการ' },
+  'อัยการผู้กลั่นกรองงาน':    { status: 'progress', label: 'รอกลั่นกรอง' },
+  'อัยการจังหวัด':             { status: 'progress', label: 'รอพิจารณา' },
+  'งานคดี':                    { status: 'progress', label: 'บันทึกคดี' },
+};
 
-  const btn = document.querySelector('.btn-tl-save');
-  btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
+const RETURN_STATUS_MAP = {
+  'investigate':    { status: 'done',  label: '✅ คืนสำนวน' },
+  'noprosecute':    { status: 'done',  label: '🚫 ไม่ฟ้อง' },
+  'court':          { status: 'court', label: '🏛 ดำเนินการทางศาล (ศาล)' },
+};
+
+let currentTlAction = 'send';
+let currentReturnAction = '';
+
+window.setTlAction = function(action, btn) {
+  currentTlAction = action;
+  document.querySelectorAll('.tl-action-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tlSendPanel').style.display   = action === 'send'   ? 'block' : 'none';
+  document.getElementById('tlReturnPanel').style.display = action === 'return' ? 'block' : 'none';
+  // populate return person
+  if (action === 'return') {
+    const sel = document.getElementById('tlReturnPerson');
+    sel.innerHTML = '<option value="">-- ผู้รับสำนวนคืน --</option>' +
+      people.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+  }
+};
+
+window.onDeptChange = function(sel) {
+  const dept = sel.value;
+  const map = DEPT_STATUS_MAP[dept];
+  const box = document.getElementById('tlAutoStatus');
+  const txt = document.getElementById('tlAutoStatusText');
+  if (map && dept) {
+    box.style.display = 'block';
+    txt.textContent = map.label;
+  } else {
+    box.style.display = 'none';
+  }
+};
+
+window.selectReturnOpt = function(radio) {
+  currentReturnAction = radio.value;
+  document.querySelectorAll('[id^="returnOpt"]').forEach(l => {
+    l.style.borderColor = 'var(--border)';
+    l.style.background  = 'var(--surface2)';
+  });
+  const colors = { investigate:'var(--green)', noprosecute:'var(--red)', court:'var(--purple)' };
+  radio.closest('label').style.borderColor = colors[radio.value] || 'var(--accent)';
+  radio.closest('label').style.background  = '#1f1a12';
+};
+
+window.saveTracking = async function(actionType) {
+  const c = currentTimelineCase;
+  let dept, person, note, newStatus, statusLabel, actionLabel;
+
+  if (actionType === 'send') {
+    dept   = document.getElementById('tlDept').value;
+    person = document.getElementById('tlPerson').value;
+    note   = document.getElementById('tlNote').value.trim();
+    if (!dept) { alert('กรุณาเลือกแผนกที่ส่งสำนวนไป'); return; }
+    const map = DEPT_STATUS_MAP[dept];
+    newStatus   = map?.status || 'progress';
+    statusLabel = map?.label  || 'ดำเนินการ';
+    actionLabel = `📤 ส่งสำนวนไป ${dept}`;
+  } else {
+    if (!currentReturnAction) { alert('กรุณาเลือกการดำเนินการ'); return; }
+    person = document.getElementById('tlReturnPerson').value;
+    note   = document.getElementById('tlReturnNote').value.trim();
+    dept   = 'อัยการเจ้าของเรื่อง';
+    const map = RETURN_STATUS_MAP[currentReturnAction];
+    newStatus   = map.status;
+    statusLabel = map.label;
+    actionLabel = `📥 รับสำนวนคืน — ${statusLabel}`;
+  }
+
+  // Disable all save buttons
+  document.querySelectorAll('.btn-tl-save').forEach(b => { b.disabled = true; b.textContent = 'กำลังบันทึก...'; });
 
   try {
-    const c = currentTimelineCase;
     // Save tracking record
     await addDoc(collection(db, 'tracking'), {
-      caseId:    c.id,
-      caseCode:  c.caseId,
+      caseId:      c.id,
+      caseCode:    c.caseId,
       dept,
       person,
       note,
-      by:        currentUserEmail,
-      timestamp: new Date()
+      action:      actionLabel,
+      statusLabel,
+      by:          currentUserEmail,
+      timestamp:   new Date()
     });
-    // Update case current location
+
+    // Update case status + current location
     await updateDoc(doc(db, 'cases', c.id), {
-      currentDept:   dept   || c.currentDept   || null,
-      currentPerson: person || c.currentPerson || null
+      status:        newStatus,
+      currentDept:   dept   || null,
+      currentPerson: person || null,
+      lastAction:    actionLabel,
+      lastUpdated:   new Date().toISOString()
     });
-    // Refresh
+
+    // Reset
     await loadCases();
     currentTimelineCase = cases.find(x => x.id === c.id);
-    document.getElementById('tlNote').value = '';
+    document.getElementById('tlNote') && (document.getElementById('tlNote').value = '');
+    document.getElementById('tlReturnNote') && (document.getElementById('tlReturnNote').value = '');
+    currentReturnAction = '';
+    document.querySelectorAll('[name="returnAction"]').forEach(r => r.checked = false);
+    document.querySelectorAll('[id^="returnOpt"]').forEach(l => { l.style.borderColor='var(--border)'; l.style.background='var(--surface2)'; });
+
     await renderTimeline(c.id);
-    // Update case info header
     window.openTimeline(c.id);
-    renderAll();
-    alert('✅ บันทึกสำเร็จ');
+    renderAll(); buildAlerts();
+
+    // Show success
+    const statusEl = document.getElementById('tlCaseInfo');
+    const flash = document.createElement('div');
+    flash.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1a2d1a;border:1px solid var(--green);color:var(--green);padding:10px 24px;border-radius:8px;font-size:0.88rem;z-index:9999;font-family:"Sarabun",sans-serif;';
+    flash.textContent = `✅ บันทึกสำเร็จ — สถานะ: ${statusLabel}`;
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 2500);
+
   } catch(e) {
     alert('เกิดข้อผิดพลาด: ' + e.message);
   } finally {
-    btn.textContent = '✅ บันทึกการรับสำนวน'; btn.disabled = false;
+    document.querySelectorAll('.btn-tl-save').forEach(b => { b.disabled = false; });
+    document.querySelector('#tlSendPanel .btn-tl-save') && (document.querySelector('#tlSendPanel .btn-tl-save').textContent = '📤 บันทึกการส่งสำนวน');
+    document.querySelector('#tlReturnPanel .btn-tl-save') && (document.querySelector('#tlReturnPanel .btn-tl-save').textContent = '📥 บันทึกการรับคืนสำนวน');
   }
 };
 
@@ -1546,22 +1645,71 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
       <div class="timeline-list" id="tlList"></div>
     </div>
     <div class="timeline-update" id="tlUpdateForm">
-      <div class="timeline-update-title">📝 อัปเดตสถานะปัจจุบัน</div>
-      <div class="tl-form-grid">
-        <select class="tl-select" id="tlDept">
-          <option value="">-- แผนก --</option>
-          <option value="อัยการเจ้าของเรื่อง">อัยการเจ้าของเรื่อง</option>
-          <option value="อัยการผู้กลั่นกรองงาน">อัยการผู้กลั่นกรองงาน</option>
-          <option value="อัยการจังหวัด">อัยการจังหวัด</option>
-          <option value="งานคดี">งานคดี</option>
-        </select>
-        <select class="tl-select" id="tlPerson">
-          <option value="">-- เจ้าหน้าที่ --</option>
-        </select>
-      </div>
-      <input class="tl-input" id="tlNote" placeholder="หมายเหตุ (ไม่บังคับ)" style="margin-bottom:0;">
-      <button class="btn-tl-save" onclick="saveTracking()">✅ บันทึกการรับสำนวน</button>
+      <div class="timeline-update-title">📝 บันทึกการรับ/ส่งสำนวน</div>
+
+```
+  <!-- Action type -->
+  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+    <button class="tl-action-btn active" id="btnActionSend" onclick="setTlAction('send',this)">📤 ส่งสำนวนไปแผนก</button>
+    <button class="tl-action-btn" id="btnActionReturn" onclick="setTlAction('return',this)">📥 รับสำนวนคืน</button>
+  </div>
+
+  <!-- Send panel -->
+  <div id="tlSendPanel">
+    <div class="tl-form-grid" style="margin-bottom:8px;">
+      <select class="tl-select" id="tlDept" onchange="onDeptChange(this)">
+        <option value="">-- ส่งไปแผนก --</option>
+        <option value="อัยการเจ้าของเรื่อง">👤 อัยการเจ้าของเรื่อง</option>
+        <option value="อัยการผู้กลั่นกรองงาน">🔍 อัยการผู้กลั่นกรองงาน</option>
+        <option value="อัยการจังหวัด">⚖️ อัยการจังหวัด</option>
+        <option value="งานคดี">📁 งานคดี</option>
+      </select>
+      <select class="tl-select" id="tlPerson">
+        <option value="">-- เจ้าหน้าที่ --</option>
+      </select>
     </div>
+    <div id="tlAutoStatus" style="display:none;font-size:0.75rem;padding:6px 10px;border-radius:6px;background:#1a1f2e;border:1px solid var(--blue);color:var(--blue);margin-bottom:8px;">
+      🔄 สถานะจะเปลี่ยนเป็น: <strong id="tlAutoStatusText"></strong>
+    </div>
+    <input class="tl-input" id="tlNote" placeholder="หมายเหตุ (ไม่บังคับ)" style="margin-bottom:8px;">
+    <button class="btn-tl-save" onclick="saveTracking('send')">📤 บันทึกการส่งสำนวน</button>
+  </div>
+
+  <!-- Return panel -->
+  <div id="tlReturnPanel" style="display:none;">
+    <div style="font-size:0.8rem;color:var(--text2);margin-bottom:8px;font-weight:600;">📥 สำนวนถูกส่งคืนมา — เลือกการดำเนินการ:</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;">
+      <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:var(--surface2);" id="returnOpt1Label">
+        <input type="radio" name="returnAction" value="investigate" style="margin-top:2px;flex-shrink:0;" onchange="selectReturnOpt(this)">
+        <div>
+          <div style="font-weight:600;font-size:0.85rem;">✅ คืนสำนวน</div>
+          <div style="font-size:0.72rem;color:var(--text3);">สถานะจะเปลี่ยนเป็น "เสร็จสิ้น" — คืนสำนวนให้เจ้าของเรื่อง</div>
+        </div>
+      </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:var(--surface2);" id="returnOpt2Label">
+        <input type="radio" name="returnAction" value="noprosecute" style="margin-top:2px;flex-shrink:0;" onchange="selectReturnOpt(this)">
+        <div>
+          <div style="font-weight:600;font-size:0.85rem;">🚫 ไม่ฟ้อง</div>
+          <div style="font-size:0.72rem;color:var(--text3);">สถานะจะเปลี่ยนเป็น "เสร็จสิ้น" — สั่งไม่ฟ้องคดี</div>
+        </div>
+      </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:var(--surface2);" id="returnOpt3Label">
+        <input type="radio" name="returnAction" value="court" style="margin-top:2px;flex-shrink:0;" onchange="selectReturnOpt(this)">
+        <div>
+          <div style="font-weight:600;font-size:0.85rem;">🏛 ดำเนินการทางศาล</div>
+          <div style="font-size:0.72rem;color:var(--text3);">สถานะจะเปลี่ยนเป็น "ศาล" — พร้อมยื่นฟ้องหรือดำเนินคดีต่อ</div>
+        </div>
+      </label>
+    </div>
+    <select class="tl-select" id="tlReturnPerson" style="margin-bottom:8px;">
+      <option value="">-- ผู้รับสำนวนคืน --</option>
+    </select>
+    <input class="tl-input" id="tlReturnNote" placeholder="หมายเหตุ (ไม่บังคับ)" style="margin-bottom:8px;">
+    <button class="btn-tl-save" onclick="saveTracking('return')">📥 บันทึกการรับคืนสำนวน</button>
+  </div>
+</div>
+```
+
   </div>
 </div>
 
