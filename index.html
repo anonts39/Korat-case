@@ -1064,35 +1064,55 @@ if (location.search.includes('action=add')) {
 let scannerStream = null;
 let scannerInterval = null;
 
+// Load jsQR library for Safari-compatible QR scanning
+function loadJsQR(cb) {
+  if (window.jsQR) { cb(); return; }
+  const s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js';
+  s.onload = cb;
+  s.onerror = () => {
+    document.getElementById('scannerResult').textContent = '⚠️ โหลด library ไม่สำเร็จ กรุณาพิมพ์รหัสด้านล่าง';
+  };
+  document.head.appendChild(s);
+}
+
 window.openScanner = async function() {
   document.getElementById('scannerModalOverlay').classList.add('show');
   document.getElementById('manualCode').value = '';
   document.getElementById('scannerResult').textContent = '🔍 จ่อ QR Code ให้อยู่ในกรอบสี่เหลี่ยม...';
-  try {
-    scannerStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
-    });
-    const video = document.getElementById('scannerVideo');
-    video.srcObject = scannerStream;
-    // Start scanning with BarcodeDetector if available
-    if ('BarcodeDetector' in window) {
-      const detector = new BarcodeDetector({ formats: ['qr_code'] });
-      scannerInterval = setInterval(async () => {
-        try {
-          const barcodes = await detector.detect(video);
-          if (barcodes.length > 0) {
-            const code = barcodes[0].rawValue;
-            clearInterval(scannerInterval);
-            handleScannedCode(code);
-          }
-        } catch(e) {}
-      }, 500);
-    } else {
-      document.getElementById('scannerResult').textContent = '⚠️ เบราว์เซอร์นี้ไม่รองรับสแกนอัตโนมัติ กรุณาพิมพ์รหัสด้านล่าง';
+
+  loadJsQR(async () => {
+    try {
+      scannerStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      const video = document.getElementById('scannerVideo');
+      video.srcObject = scannerStream;
+      await video.play();
+
+      // Create hidden canvas for frame capture
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      scannerInterval = setInterval(() => {
+        if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+        canvas.width  = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: 'dontInvert'
+        });
+        if (code) {
+          clearInterval(scannerInterval);
+          handleScannedCode(code.data);
+        }
+      }, 300);
+
+    } catch(e) {
+      document.getElementById('scannerResult').textContent = '❌ ไม่สามารถเปิดกล้องได้ กรุณาพิมพ์รหัสด้านล่างแทน';
     }
-  } catch(e) {
-    document.getElementById('scannerResult').textContent = '❌ ไม่สามารถเปิดกล้องได้ กรุณาพิมพ์รหัสด้านล่างแทน';
-  }
+  });
 };
 
 window.closeScanner = function() {
