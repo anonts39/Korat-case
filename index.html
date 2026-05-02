@@ -186,6 +186,51 @@ td{padding:11px 14px;font-size:0.85rem;}
 .btn-qr.solid{background:var(–accent);color:#fff;border:none;}
 .btn-qr.solid:hover{opacity:0.85;}
 .action-btn.qr:hover{border-color:var(–purple);color:var(–purple);}
+
+/* ── SCANNER ── */
+.scanner-modal{background:var(–surface);border:1px solid var(–border);border-radius:14px;padding:0;width:400px;max-width:96vw;overflow:hidden;animation:fadeUp 0.2s ease;}
+.scanner-header{padding:16px 20px;border-bottom:1px solid var(–border);display:flex;align-items:center;justify-content:space-between;}
+.scanner-title{font-family:‘Kanit’,sans-serif;font-size:1rem;font-weight:600;color:var(–accent);}
+.scanner-video-wrap{position:relative;background:#000;width:100%;}
+.scanner-video-wrap video{width:100%;max-height:280px;display:block;}
+.scanner-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.scanner-frame{width:200px;height:200px;border:3px solid var(–accent);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,0.4);}
+.scanner-line{position:absolute;width:180px;height:2px;background:var(–accent);animation:scanline 2s ease-in-out infinite;top:50%;left:50%;transform:translate(-50%,-50%);}
+@keyframes scanline{0%,100%{margin-top:-90px}50%{margin-top:90px}}
+.scanner-result{padding:14px 20px;background:var(–surface2);min-height:48px;font-size:0.85rem;color:var(–text2);}
+.scanner-actions{padding:14px 20px;display:flex;gap:8px;border-top:1px solid var(–border);}
+.scanner-manual{padding:10px 14px;border-top:1px solid var(–border);}
+
+/* ── TIMELINE ── */
+.timeline-modal{background:var(–surface);border:1px solid var(–border);border-radius:14px;padding:0;width:520px;max-width:96vw;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;animation:fadeUp 0.2s ease;}
+.timeline-header{padding:16px 20px;border-bottom:1px solid var(–border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.timeline-body{overflow-y:auto;flex:1;padding:20px;}
+.timeline-case-info{background:var(–surface2);border-radius:8px;padding:12px 14px;margin-bottom:18px;}
+.timeline-case-id{font-family:‘Kanit’,sans-serif;font-size:0.8rem;color:var(–text3);}
+.timeline-case-name{font-weight:600;font-size:0.92rem;margin:2px 0 6px;}
+.tl-current{display:flex;gap:8px;flex-wrap:wrap;}
+.tl-badge{padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600;background:#1f1a12;color:var(–accent);border:1px solid var(–accent);}
+.timeline-list{display:flex;flex-direction:column;gap:0;}
+.tl-item{display:flex;gap:12px;position:relative;padding-bottom:16px;}
+.tl-item:last-child{padding-bottom:0;}
+.tl-line{display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:28px;}
+.tl-dot{width:28px;height:28px;border-radius:50%;background:var(–surface2);border:2px solid var(–border);display:flex;align-items:center;justify-content:center;font-size:0.8rem;flex-shrink:0;z-index:1;}
+.tl-dot.active{background:#1f1a12;border-color:var(–accent);}
+.tl-connector{flex:1;width:2px;background:var(–border);margin:2px 0;}
+.tl-content{flex:1;padding-top:4px;}
+.tl-who{font-weight:600;font-size:0.85rem;color:var(–text);}
+.tl-dept{font-size:0.75rem;color:var(–accent);margin-bottom:2px;}
+.tl-time{font-size:0.72rem;color:var(–text3);}
+.tl-note-text{font-size:0.78rem;color:var(–text2);margin-top:3px;background:var(–surface2);border-radius:4px;padding:4px 8px;}
+.timeline-update{padding:16px 20px;border-top:1px solid var(–border);background:var(–surface);flex-shrink:0;}
+.timeline-update-title{font-size:0.8rem;color:var(–text2);font-weight:600;margin-bottom:10px;}
+.tl-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+.tl-select{width:100%;padding:8px 10px;background:var(–bg);border:1px solid var(–border);border-radius:8px;color:var(–text);font-family:‘Sarabun’,sans-serif;font-size:0.82rem;outline:none;}
+.tl-select:focus{border-color:var(–accent);}
+.tl-input{width:100%;padding:8px 10px;background:var(–bg);border:1px solid var(–border);border-radius:8px;color:var(–text);font-family:‘Sarabun’,sans-serif;font-size:0.82rem;outline:none;}
+.tl-input::placeholder{color:var(–text3);}
+.btn-tl-save{width:100%;padding:10px;border-radius:8px;border:none;background:var(–accent);color:#fff;font-family:‘Kanit’,sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer;margin-top:6px;}
+.btn-tl-save:hover{opacity:0.88;}
 </style>
 
 </head>
@@ -202,6 +247,7 @@ td{padding:11px 14px;font-size:0.85rem;}
       <a id="adminLink" href="admin.html" style="display:none;padding:4px 10px;border-radius:6px;border:1px solid var(--accent);color:var(--accent);font-size:0.72rem;text-decoration:none;background:#1f1a12;">👑 Admin</a>
       <button id="logoutBtn" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:0.72rem;cursor:pointer;font-family:'Sarabun',sans-serif;">ออกจากระบบ</button>
     </div>
+    <button class="bell-btn" onclick="openScanner()" title="สแกน QR สำนวน" style="font-size:1rem;">📷</button>
     <button class="bell-btn" onclick="showLoginQR()" title="QR เข้าระบบ" style="font-size:1rem;">📱</button>
     <button class="bell-btn" onclick="toggleAlertPanel()">🔔<div class="bell-dot" id="bellDot" style="display:none"></div></button>
   </div>
@@ -319,6 +365,12 @@ td{padding:11px 14px;font-size:0.85rem;}
     <div class="form-row">
       <div class="form-group"><label class="form-label">📅 Deadline</label><input class="form-input" type="date" id="fDeadline"></div>
       <div class="form-group"><label class="form-label">หมายเหตุ</label><input class="form-input" id="fNote" placeholder="หมายเหตุ"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">🔲 รหัส QR เดิมในสำนวน (ถ้ามี)</label>
+      <input class="form-input" id="fExtQR" placeholder="เช่น 001234, 110/2569 หรือรหัสอื่นๆ ที่อยู่ใน QR เดิม">
+      <div style="font-size:0.72rem;color:var(--text3);margin-top:4px;">💡 ถ้า QR เดิมเป็นเบอร์โทร เช่น 2-560-4830 ให้ใส่เบอร์นี้ได้เลย</div>
+    </div>
     </div>
     <div class="form-group">
       <label class="form-label">🎯 ระดับความสำคัญ</label>
@@ -779,6 +831,7 @@ function renderTable() {
       <td><div style="display:flex;gap:5px">
         <button class="action-btn" onclick="editCase('${c.id}')">แก้ไข</button>
         <button class="action-btn qr" onclick="showCaseQR('${c.id}')">QR</button>
+        <button class="action-btn" onclick="openTimeline('${c.id}')" style="border-color:var(--purple);color:var(--purple);">📋 ติดตาม</button>
         ${canDelete?`<button class="action-btn del" onclick="deleteCase('${c.id}')">ลบ</button>`:''}
       </div></td>
     </tr>`;
@@ -824,7 +877,7 @@ window.confirmCustomCat = async function() {
 window.openModal = function() {
   editingId = null;
   document.getElementById('modalTitle').textContent = 'เพิ่มคดีใหม่';
-  ['fCaseId','fCaseName','fNote','fCategoryCustom'].forEach(id => document.getElementById(id).value = '');
+  ['fCaseId','fCaseName','fNote','fCategoryCustom','fExtQR'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('fCategory').value = '';
   document.getElementById('customCatWrap').style.display = 'none';
   document.getElementById('fAssignee').value = '';
@@ -845,6 +898,7 @@ window.editCase = function(id) {
   document.getElementById('fDate').value     = c.date;
   document.getElementById('fDeadline').value = c.deadline || '';
   document.getElementById('fNote').value     = c.note || '';
+  document.getElementById('fExtQR').value    = c.extQR || '';
   buildCategorySelect();
   document.getElementById('fCategory').value = c.category || '';
   document.getElementById('customCatWrap').style.display = 'none';
@@ -873,7 +927,8 @@ window.saveCase = async function() {
       date:      document.getElementById('fDate').value,
       deadline:  document.getElementById('fDeadline').value  || null,
       priority:  document.getElementById('fPriority').value  || 'medium',
-      note:      document.getElementById('fNote').value.trim()
+      note:      document.getElementById('fNote').value.trim(),
+      extQR:     document.getElementById('fExtQR').value.trim() || null
     };
     if (editingId) {
       await updateDoc(doc(db,'cases',editingId), obj);
@@ -1004,9 +1059,300 @@ if (location.search.includes('action=add')) {
   document.addEventListener('DOMContentLoaded', () => setTimeout(() => window.openModal && window.openModal(), 1000));
 }
 
+
+// ===== SCANNER =====
+let scannerStream = null;
+let scannerInterval = null;
+
+window.openScanner = async function() {
+  document.getElementById('scannerModalOverlay').classList.add('show');
+  document.getElementById('manualCode').value = '';
+  document.getElementById('scannerResult').textContent = '🔍 จ่อ QR Code ให้อยู่ในกรอบสี่เหลี่ยม...';
+  try {
+    scannerStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+    });
+    const video = document.getElementById('scannerVideo');
+    video.srcObject = scannerStream;
+    // Start scanning with BarcodeDetector if available
+    if ('BarcodeDetector' in window) {
+      const detector = new BarcodeDetector({ formats: ['qr_code'] });
+      scannerInterval = setInterval(async () => {
+        try {
+          const barcodes = await detector.detect(video);
+          if (barcodes.length > 0) {
+            const code = barcodes[0].rawValue;
+            clearInterval(scannerInterval);
+            handleScannedCode(code);
+          }
+        } catch(e) {}
+      }, 500);
+    } else {
+      document.getElementById('scannerResult').textContent = '⚠️ เบราว์เซอร์นี้ไม่รองรับสแกนอัตโนมัติ กรุณาพิมพ์รหัสด้านล่าง';
+    }
+  } catch(e) {
+    document.getElementById('scannerResult').textContent = '❌ ไม่สามารถเปิดกล้องได้ กรุณาพิมพ์รหัสด้านล่างแทน';
+  }
+};
+
+window.closeScanner = function() {
+  if (scannerStream) { scannerStream.getTracks().forEach(t => t.stop()); scannerStream = null; }
+  if (scannerInterval) { clearInterval(scannerInterval); scannerInterval = null; }
+  document.getElementById('scannerModalOverlay').classList.remove('show');
+};
+
+function handleScannedCode(code) {
+  document.getElementById('scannerResult').innerHTML = `✅ สแกนได้: <strong>${code}</strong> กำลังค้นหา...`;
+  setTimeout(() => searchByCode(code), 500);
+}
+
+window.searchByCode = function(code) {
+  const q = code || document.getElementById('manualCode').value.trim();
+  if (!q) { alert('กรุณาใส่รหัสหรือเลขคดี'); return; }
+
+  // ค้นหาจาก caseId, extQR, เบอร์โทร หรือ URL ที่มี ?case=
+  let found = null;
+
+  // ถ้าเป็น URL ของระบบ ดึง case id ออกมา
+  if (q.includes('?case=')) {
+    const id = q.split('?case=')[1];
+    found = cases.find(c => c.id === id);
+  }
+
+  // ถ้าเป็น tel: link เช่น tel:2-560-4830 หรือ 2-560-4830
+  const phoneNorm = q.replace(/^tel:/i,'').replace(/[-\s]/g,'');
+
+  // ค้นหาจาก caseId (ตรงทั้งหมด)
+  if (!found) found = cases.find(c => c.caseId && c.caseId.toLowerCase() === q.toLowerCase());
+
+  // ค้นหาจาก extQR ตรงทั้งหมด
+  if (!found) found = cases.find(c => c.extQR && c.extQR.toString() === q.toString());
+
+  // ค้นหาจาก extQR ที่เป็นเบอร์โทร (normalize ตัวเลข)
+  if (!found) found = cases.find(c => {
+    if (!c.extQR) return false;
+    const extNorm = c.extQR.toString().replace(/[-\s]/g,'');
+    return extNorm === phoneNorm;
+  });
+
+  // ค้นหาจากเบอร์โทรใน field phone (ถ้ามี)
+  if (!found) found = cases.find(c => {
+    if (!c.phone) return false;
+    const pNorm = c.phone.toString().replace(/[-\s]/g,'');
+    return pNorm === phoneNorm;
+  });
+
+  // ค้นหาแบบ partial จาก caseId หรือ extQR
+  if (!found) found = cases.find(c =>
+    (c.caseId && c.caseId.toLowerCase().includes(q.toLowerCase())) ||
+    (c.extQR && c.extQR.toString().includes(q)) ||
+    (c.extQR && c.extQR.toString().replace(/[-\s]/g,'').includes(phoneNorm))
+  );
+
+  if (found) {
+    document.getElementById('scannerResult').innerHTML = `✅ พบคดี: <strong>${found.caseId} — ${found.name}</strong>`;
+    setTimeout(() => {
+      window.closeScanner();
+      openTimeline(found.id);
+    }, 800);
+  } else {
+    document.getElementById('scannerResult').innerHTML = `❌ ไม่พบคดีที่มีรหัส: <strong>${q}</strong>`;
+  }
+};
+
+document.getElementById('scannerModalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('scannerModalOverlay')) window.closeScanner();
+});
+
+// ===== TIMELINE / TRACKING =====
+let currentTimelineCase = null;
+
+window.openTimeline = async function(id) {
+  const c = cases.find(x => x.id === id);
+  if (!c) return;
+  currentTimelineCase = c;
+
+  // Case info
+  const statusMap = { pending:'🔴 ค้าง', progress:'🔵 ดำเนินการ', done:'🟢 เสร็จสิ้น' };
+  document.getElementById('tlCaseInfo').innerHTML = `
+    <div class="timeline-case-id">${c.caseId}</div>
+    <div class="timeline-case-name">${c.name}</div>
+    <div class="tl-current">
+      <span class="tl-badge">${statusMap[c.status]||c.status}</span>
+      ${c.currentDept ? `<span class="tl-badge" style="background:#0d1f2d;color:var(--blue);border-color:var(--blue)">📍 ${c.currentDept}</span>` : ''}
+      ${c.currentPerson ? `<span class="tl-badge" style="background:#1a0d2d;color:var(--purple);border-color:var(--purple)">👤 ${c.currentPerson}</span>` : ''}
+    </div>`;
+
+  // Populate person select
+  const tlPerson = document.getElementById('tlPerson');
+  tlPerson.innerHTML = '<option value="">-- เจ้าหน้าที่ --</option>' +
+    people.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+
+  // Set current values
+  if (c.currentDept) document.getElementById('tlDept').value = c.currentDept;
+  if (c.currentPerson) tlPerson.value = c.currentPerson;
+
+  // Load tracking history
+  await renderTimeline(id);
+  document.getElementById('timelineModalOverlay').classList.add('show');
+};
+
+async function renderTimeline(caseId) {
+  const list = document.getElementById('tlList');
+  list.innerHTML = '<div style="color:var(--text3);font-size:0.82rem;padding:8px 0">กำลังโหลด...</div>';
+  try {
+    const snap = await getDocs(
+      query(collection(db, 'tracking'),
+        where('caseId','==',caseId),
+        orderBy('timestamp','asc'))
+    );
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (!items.length) {
+      list.innerHTML = '<div style="color:var(--text3);font-size:0.82rem;padding:8px 0">ยังไม่มีประวัติการเคลื่อนไหว</div>';
+      return;
+    }
+    list.innerHTML = items.map((item, idx) => {
+      const isLast = idx === items.length - 1;
+      const ts = item.timestamp?.toDate ? item.timestamp.toDate() : new Date(item.timestamp);
+      const dateStr = ts.toLocaleDateString('th-TH', { day:'numeric', month:'short', year:'2-digit' });
+      const timeStr = ts.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' });
+      return `<div class="tl-item">
+        <div class="tl-line">
+          <div class="tl-dot ${isLast?'active':''}">
+            ${isLast ? '📍' : '✓'}
+          </div>
+          ${!isLast ? '<div class="tl-connector"></div>' : ''}
+        </div>
+        <div class="tl-content">
+          <div class="tl-dept">${item.dept||'—'}</div>
+          <div class="tl-who">${item.person||'—'}</div>
+          <div class="tl-time">${dateStr} ${timeStr} • บันทึกโดย ${item.by||'—'}</div>
+          ${item.note ? `<div class="tl-note-text">💬 ${item.note}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    list.innerHTML = '<div style="color:var(--red);font-size:0.82rem">เกิดข้อผิดพลาดในการโหลดประวัติ</div>';
+  }
+}
+
+window.saveTracking = async function() {
+  const dept   = document.getElementById('tlDept').value;
+  const person = document.getElementById('tlPerson').value;
+  const note   = document.getElementById('tlNote').value.trim();
+  if (!dept && !person) { alert('กรุณาเลือกแผนกหรือเจ้าหน้าที่'); return; }
+
+  const btn = document.querySelector('.btn-tl-save');
+  btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
+
+  try {
+    const c = currentTimelineCase;
+    // Save tracking record
+    await addDoc(collection(db, 'tracking'), {
+      caseId:    c.id,
+      caseCode:  c.caseId,
+      dept,
+      person,
+      note,
+      by:        currentUserEmail,
+      timestamp: new Date()
+    });
+    // Update case current location
+    await updateDoc(doc(db, 'cases', c.id), {
+      currentDept:   dept   || c.currentDept   || null,
+      currentPerson: person || c.currentPerson || null
+    });
+    // Refresh
+    await loadCases();
+    currentTimelineCase = cases.find(x => x.id === c.id);
+    document.getElementById('tlNote').value = '';
+    await renderTimeline(c.id);
+    // Update case info header
+    window.openTimeline(c.id);
+    renderAll();
+    alert('✅ บันทึกสำเร็จ');
+  } catch(e) {
+    alert('เกิดข้อผิดพลาด: ' + e.message);
+  } finally {
+    btn.textContent = '✅ บันทึกการรับสำนวน'; btn.disabled = false;
+  }
+};
+
+window.closeTimeline = function() {
+  document.getElementById('timelineModalOverlay').classList.remove('show');
+};
+
+document.getElementById('timelineModalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('timelineModalOverlay')) window.closeTimeline();
+});
+
 document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('modalOverlay')) window.closeModal(); });
 document.getElementById('personModalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('personModalOverlay')) window.closePersonModal(); });
 </script>
+
+<!-- Scanner Modal -->
+
+<div class="modal-overlay" id="scannerModalOverlay">
+  <div class="scanner-modal">
+    <div class="scanner-header">
+      <div class="scanner-title">📷 สแกน QR Code สำนวน</div>
+      <button onclick="closeScanner()" style="background:transparent;border:none;color:var(--text3);font-size:1.2rem;cursor:pointer;">✕</button>
+    </div>
+    <div class="scanner-video-wrap">
+      <video id="scannerVideo" autoplay playsinline muted></video>
+      <div class="scanner-overlay">
+        <div style="position:relative;width:200px;height:200px;">
+          <div class="scanner-frame"></div>
+          <div class="scanner-line"></div>
+        </div>
+      </div>
+    </div>
+    <div class="scanner-result" id="scannerResult">🔍 จ่อ QR Code ให้อยู่ในกรอบสี่เหลี่ยม...</div>
+    <div class="scanner-manual">
+      <div style="font-size:0.75rem;color:var(--text3);margin-bottom:6px;">หรือพิมพ์รหัสสำนวนเอง:</div>
+      <div style="display:flex;gap:8px;">
+        <input class="tl-input" id="manualCode" placeholder="เช่น คด.001/2568 หรือ 001234" style="flex:1;">
+        <button class="btn-tl-save" onclick="searchByCode()" style="width:auto;padding:8px 16px;margin-top:0;">ค้นหา</button>
+      </div>
+    </div>
+    <div class="scanner-actions">
+      <button class="btn-qr" onclick="closeScanner()" style="flex:1;">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- Timeline Modal -->
+
+<div class="modal-overlay" id="timelineModalOverlay">
+  <div class="timeline-modal">
+    <div class="timeline-header">
+      <div class="scanner-title">📋 ติดตามสำนวน</div>
+      <button onclick="closeTimeline()" style="background:transparent;border:none;color:var(--text3);font-size:1.2rem;cursor:pointer;">✕</button>
+    </div>
+    <div class="timeline-body">
+      <div class="timeline-case-info" id="tlCaseInfo"></div>
+      <div style="font-family:'Kanit',sans-serif;font-size:0.85rem;color:var(--text2);margin-bottom:12px;">📍 ประวัติการเคลื่อนไหว</div>
+      <div class="timeline-list" id="tlList"></div>
+    </div>
+    <div class="timeline-update" id="tlUpdateForm">
+      <div class="timeline-update-title">📝 อัปเดตสถานะปัจจุบัน</div>
+      <div class="tl-form-grid">
+        <select class="tl-select" id="tlDept">
+          <option value="">-- แผนก --</option>
+          <option value="อัยการเจ้าของเรื่อง">อัยการเจ้าของเรื่อง</option>
+          <option value="อัยการผู้กลั่นกรองงาน">อัยการผู้กลั่นกรองงาน</option>
+          <option value="อัยการจังหวัด">อัยการจังหวัด</option>
+          <option value="งานคดี">งานคดี</option>
+        </select>
+        <select class="tl-select" id="tlPerson">
+          <option value="">-- เจ้าหน้าที่ --</option>
+        </select>
+      </div>
+      <input class="tl-input" id="tlNote" placeholder="หมายเหตุ (ไม่บังคับ)" style="margin-bottom:0;">
+      <button class="btn-tl-save" onclick="saveTracking()">✅ บันทึกการรับสำนวน</button>
+    </div>
+  </div>
+</div>
 
 <!-- QR Code Modal -->
 
