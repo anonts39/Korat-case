@@ -368,25 +368,22 @@ td{padding:11px 14px;font-size:0.85rem;}
     </div>
     <div class="form-group">
       <label class="form-label">🔲 รหัส QR เดิมในสำนวน (ถ้ามี)</label>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
-        <input class="form-input" id="fExtQR" placeholder="รหัสจะปรากฏที่นี่เมื่อสแกนสำเร็จ" style="flex:1;">
-        <button type="button" id="formScanBtn" onclick="openFormScanner()" style="padding:9px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);font-size:0.78rem;cursor:pointer;white-space:nowrap;background:transparent;font-family:'Sarabun',sans-serif;flex-shrink:0;">
-          🎥 สแกน QR
+      <!-- Step guide -->
+      <div style="background:#1a1f2e;border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;font-size:0.8rem;line-height:2;color:var(--text2);">
+        <div style="font-family:'Kanit',sans-serif;font-size:0.85rem;color:var(--accent);margin-bottom:4px;">📱 วิธีสแกน QR บนปกสำนวน</div>
+        <div>1️⃣ เปิดแอป <strong style="color:var(--text)">กล้อง</strong> บน iPad</div>
+        <div>2️⃣ จ่อกล้องที่ QR Code บนปกสำนวน</div>
+        <div>3️⃣ กด <strong style="color:var(--text)">banner</strong> ที่ขึ้นด้านบนจอ</div>
+        <div>4️⃣ กด <strong style="color:var(--text)">คัดลอก</strong> หรือ <strong style="color:var(--text)">Copy</strong></div>
+        <div>5️⃣ กลับมากด <strong style="color:var(--accent)">📋 วาง</strong> ด้านล่างได้เลย</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input class="form-input" id="fExtQR" placeholder="วางรหัสที่สแกนได้ที่นี่..." style="flex:1;font-size:0.9rem;">
+        <button type="button" onclick="pasteQRCode()" style="padding:10px 16px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:0.82rem;cursor:pointer;white-space:nowrap;font-family:'Sarabun',sans-serif;font-weight:600;flex-shrink:0;">
+          📋 วาง
         </button>
       </div>
-      <!-- inline camera view -->
-      <div id="formScanWrap" style="display:none;border-radius:8px;overflow:hidden;position:relative;background:#000;margin-bottom:6px;">
-        <video id="formScanVideo" autoplay playsinline muted style="width:100%;max-height:200px;display:block;"></video>
-        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
-          <div style="width:150px;height:150px;border:2px solid var(--accent);border-radius:8px;box-shadow:0 0 0 9999px rgba(0,0,0,0.5);"></div>
-        </div>
-        <div style="position:absolute;bottom:8px;left:0;right:0;text-align:center;">
-          <span style="background:rgba(0,0,0,0.7);color:#fff;font-size:0.72rem;padding:3px 10px;border-radius:20px;">จ่อ QR ให้อยู่ในกรอบ</span>
-        </div>
-      </div>
-      <div id="formScanStatus" style="font-size:0.72rem;color:var(--text3);">
-        💡 กด "สแกน QR" เพื่อเปิดกล้องสแกน QR บนปกสำนวน (รองรับ Chrome)
-      </div>
+      <div id="formScanStatus" style="font-size:0.72rem;color:var(--text3);margin-top:4px;"></div>
     </div>
     </div>
     <div class="form-group">
@@ -1474,6 +1471,30 @@ const _origCloseModal = window.closeModal;
 window.closeModal = function() {
   stopFormScanner();
   _origCloseModal();
+};
+
+// ===== PASTE QR CODE =====
+window.pasteQRCode = async function() {
+  const status = document.getElementById('formScanStatus');
+  try {
+    const text = await navigator.clipboard.readText();
+    if (text && text.trim()) {
+      // Clean up phone format tel:XXXX → XXXX
+      const clean = text.trim().replace(/^tel:/i,'');
+      document.getElementById('fExtQR').value = clean;
+      document.getElementById('fExtQR').style.borderColor = 'var(--green)';
+      status.innerHTML = `✅ วางแล้ว: <strong>${clean}</strong>`;
+      setTimeout(() => {
+        document.getElementById('fExtQR').style.borderColor = '';
+      }, 2000);
+    } else {
+      status.textContent = '⚠️ ไม่พบข้อความใน Clipboard กรุณาสแกน QR แล้วลองใหม่';
+    }
+  } catch(e) {
+    // Clipboard not allowed - show manual paste hint
+    status.textContent = '💡 กดค้างที่ช่องด้านบน → เลือก "Paste" ได้เลยครับ';
+    document.getElementById('fExtQR').focus();
+  }
 };
 document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('modalOverlay')) window.closeModal(); });
 document.getElementById('personModalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('personModalOverlay')) window.closePersonModal(); });
