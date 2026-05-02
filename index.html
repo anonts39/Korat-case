@@ -147,6 +147,7 @@ td{padding:11px 14px;font-size:0.85rem;}
 .badge.done{background:#1a2d1a;color:var(--green);border:1px solid #1a4a1a;}
 .badge.progress{background:#1a1f2d;color:var(--blue);border:1px solid #1a2a4a;}
 .badge.court{background:#1a1027;color:var(--purple);border:1px solid #3a1a5a;}
+.badge.filing{background:#1a2d1a;color:#55efc4;border:1px solid #1a4a3a;}
 .badge.screening{background:#1a1f2d;color:#00d2d3;border:1px solid #0d3a3b;}
 .badge.review{background:#2d2010;color:var(--yellow);border:1px solid #4a3a10;}
 .action-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;}
@@ -306,9 +307,10 @@ td{padding:11px 14px;font-size:0.85rem;}
     <div class="toolbar">
       <input class="search-input" type="text" placeholder="🔍 ค้นหาคดี..." id="searchInput" oninput="renderTable()">
       <button class="filter-btn active" onclick="setFilter('active',this)">ทั้งหมด (ค้าง)</button>
-      <button class="filter-btn" onclick="setFilter('progress',this)">🔵 ดำเนินการ</button>
+      <button class="filter-btn" onclick="setFilter('progress',this)">🔵 เจ้าของสำนวน</button>
       <button class="filter-btn" onclick="setFilter('screening',this)">🔍 รอกลั่นกรอง</button>
       <button class="filter-btn" onclick="setFilter('review',this)">⚖️ อจ.พิจารณา</button>
+      <button class="filter-btn" onclick="setFilter('filing',this)">📁 งานคดี</button>
       <button class="filter-btn" onclick="setFilter('done',this)">✅ เสร็จสิ้น</button>
       <button class="filter-btn" onclick="setFilter('court',this)">🏛 ศาล</button>
       <button class="filter-btn" onclick="setFilter('all',this)">📋 ทุกสถานะ</button>
@@ -370,9 +372,10 @@ td{padding:11px 14px;font-size:0.85rem;}
       <div class="form-group"><label class="form-label">ผู้รับผิดชอบ</label><select class="form-select" id="fAssignee"><option value="">-- เลือก --</option></select></div>
       <div class="form-group"><label class="form-label">สถานะ</label><select class="form-select" id="fStatus">
           <option value="pending">⏳ รอดำเนินการ</option>
-          <option value="progress">🔵 ดำเนินการ</option>
+          <option value="progress">🔵 เจ้าของสำนวน</option>
           <option value="screening">🔍 รอกลั่นกรอง</option>
           <option value="review">⚖️ อจ.พิจารณา</option>
+          <option value="filing">📁 งานคดี</option>
           <option value="done">✅ เสร็จสิ้น</option>
           <option value="court">🏛 ศาล</option>
         </select></div>
@@ -700,7 +703,7 @@ function renderCompare() {
     const rows = [
       { l:'ทั้งหมด',   v:list.length, c:'var(--blue)' },
       { l:'ค้าง',      v:list.filter(c=>c.status==='pending').length, c:'var(--red)' },
-      { l:'ดำเนินการ', v:list.filter(c=>c.status==='progress').length, c:'var(--blue)' },
+      { l:'เจ้าของสำนวน', v:list.filter(c=>c.status==='progress').length, c:'var(--blue)' },
       { l:'เสร็จสิ้น', v:list.filter(c=>c.status==='done').length, c:'var(--green)' },
       { l:'เกินกำหนด', v:list.filter(c=>c.status!=='done'&&dlStatus(c.deadline,c.status)==='overdue').length, c:'var(--yellow)' },
     ];
@@ -795,7 +798,7 @@ function renderPeople() {
       <div class="person-stats">
         <div class="stat-box"><div class="stat-val" style="color:var(--blue)">${ct}</div><div class="stat-lbl">ทั้งหมด</div></div>
         <div class="stat-box"><div class="stat-val" style="color:var(--red)">${cp}</div><div class="stat-lbl">ค้าง</div></div>
-        <div class="stat-box"><div class="stat-val" style="color:var(--blue)">${cg}</div><div class="stat-lbl">ดำเนินการ</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--blue)">${cg}</div><div class="stat-lbl">เจ้าของ</div></div>
         <div class="stat-box"><div class="stat-val" style="color:var(--green)">${cd}</div><div class="stat-lbl">เสร็จ</div></div>
         <div class="stat-box"><div class="stat-val" style="color:var(--yellow)">${co}</div><div class="stat-lbl">เกินกำหนด</div></div>
       </div>
@@ -904,9 +907,10 @@ function renderTable() {
 
   const sMap = {
     pending:   ['⏳ รอดำเนินการ', 'pending'],
-    progress:  ['🔵 ดำเนินการ',   'progress'],
+    progress:  ['🔵 เจ้าของสำนวน', 'progress'],
     screening: ['🔍 รอกลั่นกรอง', 'screening'],
-    review:    ['⚖️ อจ.พิจารณา',   'review'],
+    review:    ['⚖️ อจ.พิจารณา',  'review'],
+    filing:    ['📁 งานคดี',       'filing'],
     done:      ['✅ เสร็จสิ้น',    'done'],
     court:     ['🏛 ศาล',          'court']
   };
@@ -1317,7 +1321,7 @@ window.openTimeline = async function(id) {
   currentTimelineCase = c;
 
   // Case info
-  const statusMap = { pending:'🔴 รอดำเนินการ', progress:'🔵 ดำเนินการ', screening:'🔍 รอกลั่นกรอง', review:'⚖️ อจ.พิจารณา', done:'✅ เสร็จสิ้น', court:'🏛 ศาล' };
+  const statusMap = { pending:'🔴 รอดำเนินการ', progress:'🔵 เจ้าของสำนวน', screening:'🔍 รอกลั่นกรอง', review:'⚖️ อจ.พิจารณา', done:'✅ เสร็จสิ้น', court:'🏛 ศาล' };
   document.getElementById('tlCaseInfo').innerHTML = `
     <div class="timeline-case-id">${c.caseId}</div>
     <div class="timeline-case-name">${c.name}</div>
@@ -1389,10 +1393,10 @@ async function renderTimeline(caseId) {
 
 // ===== DEPT → STATUS MAPPING =====
 const DEPT_STATUS_MAP = {
-  'อัยการเจ้าของเรื่อง':      { status: 'progress',  label: 'ดำเนินการ' },
+  'อัยการเจ้าของเรื่อง':      { status: 'progress',  label: '🔵 เจ้าของสำนวน' },
   'อัยการผู้กลั่นกรองงาน':    { status: 'screening', label: '🔍 รอกลั่นกรอง' },
   'อัยการจังหวัด':             { status: 'review',    label: '⚖️ อจ.พิจารณา' },
-  'งานคดี':                    { status: 'progress',  label: 'บันทึกคดี' },
+  'งานคดี':                    { status: 'filing',    label: '📁 งานคดี' },
 };
 
 const RETURN_STATUS_MAP = {
