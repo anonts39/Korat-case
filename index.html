@@ -777,40 +777,44 @@ function renderPeople() {
     const cd = cur.filter(c => c.status === 'done').length;
     const co = cur.filter(c => c.status !== 'done' && c.status !== 'court' && dlStatus(c.deadline,c.status) === 'overdue').length;
     const init = p.name.replace('นาย','').replace('นางสาว','').replace('นาง','').trim().charAt(0);
-    const pid = p.id, pname = p.name, prole = (p.role||'').replace(/'/g, "\'");
+    const selected = filterPerson === p.id;
 
-    // Store person data globally for button access
-    window['_p_' + pid] = { id: pid, name: pname, role: p.role||'' };
+    const el = document.createElement('div');
+    el.className = `person-card${selected?' selected':''}`;
+    el.innerHTML = `
+      <div class="person-header">
+        <div class="avatar" style="background:${bg};color:${col}">${init}</div>
+        <div style="flex:1">
+          <div class="person-name">${p.name}</div>
+          <div class="person-role">${p.role||''}</div>
+        </div>
+        <div style="font-size:0.7rem;color:var(--text3);cursor:pointer;padding:4px 8px;border:1px solid var(--border);border-radius:6px;" 
+             onclick="openPersonMenu('${p.id}')">⋯</div>
+      </div>
+      <div class="person-stats">
+        <div class="stat-box"><div class="stat-val" style="color:var(--blue)">${ct}</div><div class="stat-lbl">ทั้งหมด</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--red)">${cp}</div><div class="stat-lbl">ค้าง</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--blue)">${cg}</div><div class="stat-lbl">ดำเนินการ</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--green)">${cd}</div><div class="stat-lbl">เสร็จ</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--yellow)">${co}</div><div class="stat-lbl">เกินกำหนด</div></div>
+      </div>
+      <div class="person-mom">
+        <div class="person-mom-item">ทั้งหมด: ${momHTML(ct,prv.length,false)}</div>
+        <div class="person-mom-item">ค้าง: ${momHTML(cp,prv.filter(c=>!['done','court'].includes(c.status)).length,true)}</div>
+      </div>`;
 
-    const selected = filterPerson === pid;
-    const cardHTML = `
-<div style="background:var(--surface);border:1px solid ${selected?'var(--accent)':'var(--border)'};border-radius:10px;overflow:hidden;${selected?'background:#1f1a12;':''}">
-  <div onclick="(function(){filterPerson=filterPerson==='${pid}'?null:'${pid}';renderAll();})()" style="padding:14px 16px;cursor:pointer;">
-    <div class="person-header">
-      <div class="avatar" style="background:${bg};color:${col}">${init}</div>
-      <div><div class="person-name">${pname}</div><div class="person-role">${p.role||''}</div></div>
-    </div>
-    <div class="person-stats">
-      <div class="stat-box"><div class="stat-val" style="color:var(--blue)">${ct}</div><div class="stat-lbl">ทั้งหมด</div></div>
-      <div class="stat-box"><div class="stat-val" style="color:var(--red)">${cp}</div><div class="stat-lbl">ค้าง</div></div>
-      <div class="stat-box"><div class="stat-val" style="color:var(--blue)">${cg}</div><div class="stat-lbl">ดำเนินการ</div></div>
-      <div class="stat-box"><div class="stat-val" style="color:var(--green)">${cd}</div><div class="stat-lbl">เสร็จ</div></div>
-      <div class="stat-box"><div class="stat-val" style="color:var(--yellow)">${co}</div><div class="stat-lbl">เกินกำหนด</div></div>
-    </div>
-    <div class="person-mom">
-      <div class="person-mom-item">ทั้งหมด: ${momHTML(ct,prv.length,false)}</div>
-      <div class="person-mom-item">ค้าง: ${momHTML(cp,prv.filter(c=>!['done','court'].includes(c.status)).length,true)}</div>
-    </div>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--border);">
-    <a href="javascript:editPerson('${pid}',window['_p_'+'${pid}'].name,window['_p_'+'${pid}'].role)" style="display:block;padding:10px;text-align:center;color:var(--accent);font-family:'Sarabun',sans-serif;font-size:0.82rem;text-decoration:none;border-right:1px solid var(--border);background:var(--surface2);">เปลี่ยน</a>
-    <a href="javascript:deletePerson('${pid}',window['_p_'+'${pid}'].name)" style="display:block;padding:10px;text-align:center;color:var(--red);font-family:'Sarabun',sans-serif;font-size:0.82rem;text-decoration:none;background:var(--surface2);">ลบ</a>
-  </div>
-</div>`;
+    el.onclick = function(e) {
+      if (e.target.closest('[onclick*="openPersonMenu"]')) return;
+      filterPerson = filterPerson === p.id ? null : p.id;
+      renderAll();
+    };
 
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = cardHTML;
-    grid.appendChild(wrapper.firstElementChild);
+    // Store data for menu
+    el.dataset.pid   = p.id;
+    el.dataset.pname = p.name;
+    el.dataset.prole = p.role||'';
+
+    grid.appendChild(el);
   });
 
   const add = document.createElement('div');
@@ -820,6 +824,45 @@ function renderPeople() {
   add.onclick = () => document.getElementById('personModalOverlay').classList.add('show');
   grid.appendChild(add);
 }
+
+// Person menu popup
+window.openPersonMenu = function(pid) {
+  // Find person data from card
+  const card = document.querySelector(`[data-pid="${pid}"]`);
+  if (!card) return;
+  const name = card.dataset.pname;
+  const role = card.dataset.prole;
+
+  // Remove existing menu
+  const old = document.getElementById('personMenuPopup');
+  if (old) old.remove();
+
+  const menu = document.createElement('div');
+  menu.id = 'personMenuPopup';
+  menu.style.cssText = 'position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);';
+  menu.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:280px;overflow:hidden;">
+      <div style="padding:16px 18px;border-bottom:1px solid var(--border);font-family:'Kanit',sans-serif;font-size:0.95rem;color:var(--text);">${name}</div>
+      <div style="padding:8px;">
+        <button onclick="document.getElementById('personMenuPopup').remove();editPerson('${pid}','${name.replace(/'/g,"\'")}','${role.replace(/'/g,"\'")}');" 
+          style="width:100%;padding:12px;margin-bottom:6px;border-radius:8px;border:none;background:var(--surface2);color:var(--accent);font-family:'Sarabun',sans-serif;font-size:0.9rem;cursor:pointer;text-align:left;">
+          ✏️ เปลี่ยนข้อมูล
+        </button>
+        <button onclick="document.getElementById('personMenuPopup').remove();deletePerson('${pid}','${name.replace(/'/g,"\'")}');" 
+          style="width:100%;padding:12px;border-radius:8px;border:none;background:var(--surface2);color:var(--red);font-family:'Sarabun',sans-serif;font-size:0.9rem;cursor:pointer;text-align:left;">
+          🗑 ลบบุคลากร
+        </button>
+      </div>
+      <div style="padding:0 8px 8px;">
+        <button onclick="document.getElementById('personMenuPopup').remove();" 
+          style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:'Sarabun',sans-serif;font-size:0.85rem;cursor:pointer;">
+          ยกเลิก
+        </button>
+      </div>
+    </div>`;
+  menu.onclick = function(e) { if (e.target === menu) menu.remove(); };
+  document.body.appendChild(menu);
+};
 
 
 // ===== TABLE =====
