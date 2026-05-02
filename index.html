@@ -462,11 +462,14 @@ async function loadPeople() {
   people = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 async function loadCases() {
-  const q = isAdminUser
-    ? query(collection(db, 'cases'), orderBy('date', 'desc'))
-    : query(collection(db, 'cases'), where('userId','==',currentUserId), orderBy('date','desc'));
-  const snap = await getDocs(q);
+  let snap;
+  if (isAdminUser) {
+    snap = await getDocs(query(collection(db, 'cases'), orderBy('date', 'desc')));
+  } else {
+    snap = await getDocs(query(collection(db, 'cases'), where('userId','==',currentUserId)));
+  }
   cases = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  cases.sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
 }
 async function loadCustomCategories() {
   try {
