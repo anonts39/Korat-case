@@ -1064,61 +1064,81 @@ if (location.search.includes('action=add')) {
 let scannerStream = null;
 let scannerInterval = null;
 
-// Load jsQR library for Safari-compatible QR scanning
-function loadJsQR(cb) {
-  if (window.jsQR) { cb(); return; }
+// QR Scanner using camera photo capture (Safari compatible)
+window.openScanner = function() {
+  document.getElementById('scannerModalOverlay').classList.add('show');
+  document.getElementById('manualCode').value = '';
+  document.getElementById('scannerResult').innerHTML = '📷 กดปุ่ม <strong>ถ่ายรูป QR</strong> ด้านล่าง แล้วจ่อกล้องที่ QR Code บนสำนวน';
+  // Trigger camera input
+  document.getElementById('qrCameraInput').click();
+};
+
+// Handle photo taken from camera
+document.getElementById('qrCameraInput').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById('scannerResult').textContent = '🔍 กำลังอ่าน QR Code...';
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      canvas.width  = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      // Try BarcodeDetector first (Chrome/Android)
+      if ('BarcodeDetector' in window) {
+        const detector = new BarcodeDetector({ formats: ['qr_code'] });
+        detector.detect(canvas).then(codes => {
+          if (codes.length > 0) { handleScannedCode(codes[0].rawValue); }
+          else { document.getElementById('scannerResult').textContent = '❌ ไม่พบ QR Code ในรูป ลองถ่ายใหม่ให้ชัดขึ้น'; }
+        }).catch(() => tryZXing(canvas));
+      } else {
+        tryZXing(canvas);
+      }
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  // Reset input so same file can be selected again
+  this.value = '';
+});
+
+function tryZXing(canvas) {
+  // Load ZXing-js for Safari
+  if (window.ZXing) { decodeWithZXing(canvas); return; }
   const s = document.createElement('script');
-  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js';
-  s.onload = cb;
+  s.src = 'https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js';
+  s.onload = () => decodeWithZXing(canvas);
   s.onerror = () => {
-    document.getElementById('scannerResult').textContent = '⚠️ โหลด library ไม่สำเร็จ กรุณาพิมพ์รหัสด้านล่าง';
+    document.getElementById('scannerResult').textContent = '⚠️ ไม่สามารถอ่าน QR อัตโนมัติได้ กรุณาพิมพ์รหัสด้านล่าง';
   };
   document.head.appendChild(s);
 }
 
-window.openScanner = async function() {
-  document.getElementById('scannerModalOverlay').classList.add('show');
-  document.getElementById('manualCode').value = '';
-  document.getElementById('scannerResult').textContent = '🔍 จ่อ QR Code ให้อยู่ในกรอบสี่เหลี่ยม...';
-
-  loadJsQR(async () => {
-    try {
-      scannerStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+function decodeWithZXing(canvas) {
+  try {
+    const reader = new ZXing.BrowserQRCodeReader();
+    const imgEl = document.createElement('img');
+    imgEl.src = canvas.toDataURL();
+    imgEl.onload = () => {
+      reader.decodeFromImageElement(imgEl).then(result => {
+        handleScannedCode(result.getText());
+      }).catch(() => {
+        document.getElementById('scannerResult').textContent = '❌ ไม่พบ QR Code ในรูป ลองถ่ายใหม่ให้ชัดขึ้น หรือพิมพ์รหัสด้านล่าง';
       });
-      const video = document.getElementById('scannerVideo');
-      video.srcObject = scannerStream;
-      await video.play();
-
-      // Create hidden canvas for frame capture
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-
-      scannerInterval = setInterval(() => {
-        if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
-        canvas.width  = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: 'dontInvert'
-        });
-        if (code) {
-          clearInterval(scannerInterval);
-          handleScannedCode(code.data);
-        }
-      }, 300);
-
-    } catch(e) {
-      document.getElementById('scannerResult').textContent = '❌ ไม่สามารถเปิดกล้องได้ กรุณาพิมพ์รหัสด้านล่างแทน';
-    }
-  });
-};
+    };
+  } catch(e) {
+    document.getElementById('scannerResult').textContent = '⚠️ กรุณาพิมพ์รหัสสำนวนด้านล่างแทนครับ';
+  }
+}
 
 window.closeScanner = function() {
   if (scannerStream) { scannerStream.getTracks().forEach(t => t.stop()); scannerStream = null; }
   if (scannerInterval) { clearInterval(scannerInterval); scannerInterval = null; }
   document.getElementById('scannerModalOverlay').classList.remove('show');
+  document.getElementById('scannerResult').textContent = 'กดปุ่มด้านล่างเพื่อเปิดกล้อง แล้วถ่ายรูป QR Code บนสำนวน';
 };
 
 function handleScannedCode(code) {
@@ -1318,25 +1338,26 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
       <div class="scanner-title">📷 สแกน QR Code สำนวน</div>
       <button onclick="closeScanner()" style="background:transparent;border:none;color:var(--text3);font-size:1.2rem;cursor:pointer;">✕</button>
     </div>
-    <div class="scanner-video-wrap">
-      <video id="scannerVideo" autoplay playsinline muted></video>
-      <div class="scanner-overlay">
-        <div style="position:relative;width:200px;height:200px;">
-          <div class="scanner-frame"></div>
-          <div class="scanner-line"></div>
-        </div>
+    <!-- Hidden camera input for photo capture -->
+    <input type="file" id="qrCameraInput" accept="image/*" capture="environment" style="display:none;">
+    <div style="padding:24px 20px;text-align:center;">
+      <div style="font-size:3rem;margin-bottom:12px;">📷</div>
+      <div id="scannerResult" style="font-size:0.85rem;color:var(--text2);margin-bottom:20px;min-height:40px;line-height:1.5;">
+        กดปุ่มด้านล่างเพื่อเปิดกล้อง แล้วถ่ายรูป QR Code บนสำนวน
       </div>
+      <button class="btn-tl-save" onclick="document.getElementById('qrCameraInput').click()" style="margin-bottom:12px;font-size:0.9rem;padding:12px;">
+        📷 ถ่ายรูป QR Code
+      </button>
     </div>
-    <div class="scanner-result" id="scannerResult">🔍 จ่อ QR Code ให้อยู่ในกรอบสี่เหลี่ยม...</div>
-    <div class="scanner-manual">
+    <div style="padding:0 20px 16px;border-top:1px solid var(--border);padding-top:14px;">
       <div style="font-size:0.75rem;color:var(--text3);margin-bottom:6px;">หรือพิมพ์รหัสสำนวนเอง:</div>
       <div style="display:flex;gap:8px;">
-        <input class="tl-input" id="manualCode" placeholder="เช่น คด.001/2568 หรือ 001234" style="flex:1;">
+        <input class="tl-input" id="manualCode" placeholder="เช่น คด.001/2568, 110/2569 หรือเบอร์โทร" style="flex:1;">
         <button class="btn-tl-save" onclick="searchByCode()" style="width:auto;padding:8px 16px;margin-top:0;">ค้นหา</button>
       </div>
     </div>
-    <div class="scanner-actions">
-      <button class="btn-qr" onclick="closeScanner()" style="flex:1;">ปิด</button>
+    <div style="padding:12px 20px;border-top:1px solid var(--border);">
+      <button class="btn-qr" onclick="closeScanner()" style="width:100%;">ปิด</button>
     </div>
   </div>
 </div>
