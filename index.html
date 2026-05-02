@@ -1079,66 +1079,33 @@ window.openScanner = function() {
   document.getElementById('qrCameraInput').click();
 };
 
-// Handle photo taken from camera
-document.getElementById('qrCameraInput').addEventListener('change', function(e) {
+// Handle photo taken from camera (scanner modal)
+document.getElementById('qrCameraInput').addEventListener('change', async function(e) {
   const file = e.target.files[0];
   if (!file) return;
   document.getElementById('scannerResult').textContent = '🔍 กำลังอ่าน QR Code...';
-  const reader = new FileReader();
-  reader.onload = function(ev) {
-    const img = new Image();
-    img.onload = function() {
-      const canvas = document.createElement('canvas');
-      canvas.width  = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      // Try BarcodeDetector first (Chrome/Android)
-      if ('BarcodeDetector' in window) {
-        const detector = new BarcodeDetector({ formats: ['qr_code'] });
-        detector.detect(canvas).then(codes => {
-          if (codes.length > 0) { handleScannedCode(codes[0].rawValue); }
-          else { document.getElementById('scannerResult').textContent = '❌ ไม่พบ QR Code ในรูป ลองถ่ายใหม่ให้ชัดขึ้น'; }
-        }).catch(() => tryZXing(canvas));
-      } else {
-        tryZXing(canvas);
-      }
-    };
-    img.src = ev.target.result;
-  };
-  reader.readAsDataURL(file);
-  // Reset input so same file can be selected again
   this.value = '';
+  await decodeQRFromFile(file,
+    (code) => handleScannedCode(code),
+    () => { document.getElementById('scannerResult').textContent = '❌ ไม่พบ QR Code ในรูป ลองถ่ายใหม่ให้ชัดขึ้น หรือพิมพ์รหัสด้านล่าง'; }
+  );
 });
 
 function tryZXing(canvas) {
-  // Load ZXing-js for Safari
-  if (window.ZXing) { decodeWithZXing(canvas); return; }
-  const s = document.createElement('script');
-  s.src = 'https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js';
-  s.onload = () => decodeWithZXing(canvas);
-  s.onerror = () => {
-    document.getElementById('scannerResult').textContent = '⚠️ ไม่สามารถอ่าน QR อัตโนมัติได้ กรุณาพิมพ์รหัสด้านล่าง';
-  };
-  document.head.appendChild(s);
+  // Convert canvas to blob and use unified decoder
+  canvas.toBlob(blob => {
+    if (!blob) {
+      document.getElementById('scannerResult').textContent = '⚠️ กรุณาพิมพ์รหัสสำนวนด้านล่างแทนครับ';
+      return;
+    }
+    decodeQRFromFile(blob,
+      (code) => handleScannedCode(code),
+      () => { document.getElementById('scannerResult').textContent = '❌ ไม่พบ QR Code ในรูป ลองถ่ายใหม่ให้ชัดขึ้น หรือพิมพ์รหัสด้านล่าง'; }
+    );
+  }, 'image/jpeg', 0.95);
 }
 
-function decodeWithZXing(canvas) {
-  try {
-    const reader = new ZXing.BrowserQRCodeReader();
-    const imgEl = document.createElement('img');
-    imgEl.src = canvas.toDataURL();
-    imgEl.onload = () => {
-      reader.decodeFromImageElement(imgEl).then(result => {
-        handleScannedCode(result.getText());
-      }).catch(() => {
-        document.getElementById('scannerResult').textContent = '❌ ไม่พบ QR Code ในรูป ลองถ่ายใหม่ให้ชัดขึ้น หรือพิมพ์รหัสด้านล่าง';
-      });
-    };
-  } catch(e) {
-    document.getElementById('scannerResult').textContent = '⚠️ กรุณาพิมพ์รหัสสำนวนด้านล่างแทนครับ';
-  }
-}
+function decodeWithZXing(canvas) { tryZXing(canvas); }
 
 window.closeScanner = function() {
   if (scannerStream) { scannerStream.getTracks().forEach(t => t.stop()); scannerStream = null; }
@@ -1334,66 +1301,70 @@ document.getElementById('timelineModalOverlay').addEventListener('click', e => {
 
 
 // ===== SCAN QR FOR FORM =====
-window.scanFormQR = function(input) {
+// ===== UNIFIED QR DECODER (Safari compatible) =====
+async function decodeQRFromFile(file, onSuccess, onFail) {
+  const bitmap = await createImageBitmap(file).catch(() => null);
+  if (!bitmap) { onFail('อ่านรูปไม่ได้'); return; }
+
+  // Method 1: BarcodeDetector API (iOS 17+, Chrome)
+  if ('BarcodeDetector' in window) {
+    try {
+      const detector = new BarcodeDetector({ formats: ['qr_code'] });
+      const codes = await detector.detect(bitmap);
+      if (codes.length > 0) { onSuccess(codes[0].rawValue); return; }
+    } catch(e) {}
+  }
+
+  // Method 2: Canvas + BarcodeDetector with HTMLImageElement
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width; canvas.height = bitmap.height;
+  canvas.getContext('2d').drawImage(bitmap, 0, 0);
+
+  if ('BarcodeDetector' in window) {
+    try {
+      const imgEl = new Image();
+      imgEl.src = canvas.toDataURL('image/jpeg', 0.9);
+      await new Promise(r => imgEl.onload = r);
+      const detector = new BarcodeDetector({ formats: ['qr_code'] });
+      const codes = await detector.detect(imgEl);
+      if (codes.length > 0) { onSuccess(codes[0].rawValue); return; }
+    } catch(e) {}
+  }
+
+  // Method 3: Try reading via video element trick
+  try {
+    const url = URL.createObjectURL(file);
+    const img2 = new Image();
+    img2.src = url;
+    await new Promise(r => { img2.onload = r; img2.onerror = r; });
+    if ('BarcodeDetector' in window) {
+      const detector = new BarcodeDetector({ formats: ['qr_code'] });
+      const codes = await detector.detect(img2).catch(() => []);
+      URL.revokeObjectURL(url);
+      if (codes.length > 0) { onSuccess(codes[0].rawValue); return; }
+    }
+  } catch(e) {}
+
+  onFail('ไม่พบ QR Code ในรูป');
+}
+
+window.scanFormQR = async function(input) {
   const file = input.files[0];
   if (!file) return;
   const statusEl = input.closest('.form-group').querySelector('div[style*="0.72rem"]');
   if (statusEl) statusEl.textContent = '🔍 กำลังอ่าน QR Code...';
+  input.value = '';
 
-  const reader = new FileReader();
-  reader.onload = function(ev) {
-    const img = new Image();
-    img.onload = function() {
-      const canvas = document.createElement('canvas');
-      canvas.width  = img.width;
-      canvas.height = img.height;
-      canvas.getContext('2d').drawImage(img, 0, 0);
-
-      function setQRResult(code) {
-        document.getElementById('fExtQR').value = code;
-        if (statusEl) statusEl.innerHTML = `✅ สแกนได้: <strong>${code}</strong>`;
-        input.value = '';
-      }
-      function failQR() {
-        if (statusEl) statusEl.textContent = '❌ ไม่พบ QR กรุณาพิมพ์เองในช่องด้านบน';
-        input.value = '';
-      }
-
-      // Try BarcodeDetector (Chrome)
-      if ('BarcodeDetector' in window) {
-        new BarcodeDetector({ formats: ['qr_code'] }).detect(canvas)
-          .then(codes => codes.length ? setQRResult(codes[0].rawValue) : tryZXingForm(canvas, setQRResult, failQR))
-          .catch(() => tryZXingForm(canvas, setQRResult, failQR));
-      } else {
-        tryZXingForm(canvas, setQRResult, failQR);
-      }
-    };
-    img.src = ev.target.result;
-  };
-  reader.readAsDataURL(file);
+  await decodeQRFromFile(file,
+    (code) => {
+      document.getElementById('fExtQR').value = code;
+      if (statusEl) statusEl.innerHTML = `✅ สแกนได้: <strong>${code}</strong>`;
+    },
+    (err) => {
+      if (statusEl) statusEl.innerHTML = `❌ ${err} — กรุณาพิมพ์รหัสเองในช่องด้านบน`;
+    }
+  );
 };
-
-function tryZXingForm(canvas, onSuccess, onFail) {
-  if (window.ZXing) { decodeWithZXingForm(canvas, onSuccess, onFail); return; }
-  const s = document.createElement('script');
-  s.src = 'https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js';
-  s.onload = () => decodeWithZXingForm(canvas, onSuccess, onFail);
-  s.onerror = onFail;
-  document.head.appendChild(s);
-}
-
-function decodeWithZXingForm(canvas, onSuccess, onFail) {
-  try {
-    const img = document.createElement('img');
-    img.src = canvas.toDataURL();
-    img.onload = () => {
-      new ZXing.BrowserQRCodeReader().decodeFromImageElement(img)
-        .then(r => onSuccess(r.getText()))
-        .catch(onFail);
-    };
-  } catch(e) { onFail(); }
-}
-
 document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('modalOverlay')) window.closeModal(); });
 document.getElementById('personModalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('personModalOverlay')) window.closePersonModal(); });
 </script>
