@@ -777,74 +777,47 @@ function renderPeople() {
     const cd = cur.filter(c => c.status === 'done').length;
     const co = cur.filter(c => c.status !== 'done' && c.status !== 'court' && dlStatus(c.deadline,c.status) === 'overdue').length;
     const init = p.name.replace('นาย','').replace('นางสาว','').replace('นาง','').trim().charAt(0);
+    const pid = p.id, pname = p.name, prole = (p.role||'').replace(/'/g, "\'");
 
-    const el = document.createElement('div');
-    el.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;';
-    if (filterPerson === p.id) { el.style.borderColor = 'var(--accent)'; el.style.background = '#1f1a12'; }
+    // Store person data globally for button access
+    window['_p_' + pid] = { id: pid, name: pname, role: p.role||'' };
 
-    // Stats area (clickable)
-    const statsArea = document.createElement('div');
-    statsArea.style.cssText = 'padding:14px 16px;cursor:pointer;flex:1;';
-    statsArea.innerHTML = `
-      <div class="person-header">
-        <div class="avatar" style="background:${bg};color:${col}">${init}</div>
-        <div><div class="person-name">${p.name}</div><div class="person-role">${p.role||''}</div></div>
-      </div>
-      <div class="person-stats">
-        <div class="stat-box"><div class="stat-val" style="color:var(--blue)">${ct}</div><div class="stat-lbl">ทั้งหมด</div></div>
-        <div class="stat-box"><div class="stat-val" style="color:var(--red)">${cp}</div><div class="stat-lbl">ค้าง</div></div>
-        <div class="stat-box"><div class="stat-val" style="color:var(--blue)">${cg}</div><div class="stat-lbl">ดำเนินการ</div></div>
-        <div class="stat-box"><div class="stat-val" style="color:var(--green)">${cd}</div><div class="stat-lbl">เสร็จ</div></div>
-        <div class="stat-box"><div class="stat-val" style="color:var(--yellow)">${co}</div><div class="stat-lbl">เกินกำหนด</div></div>
-      </div>
-      <div class="person-mom">
-        <div class="person-mom-item">ทั้งหมด: ${momHTML(ct,prv.length,false)}</div>
-        <div class="person-mom-item">ค้าง: ${momHTML(cp,prv.filter(c=>!['done','court'].includes(c.status)).length,true)}</div>
-      </div>`;
-    statsArea.addEventListener('click', () => {
-      filterPerson = filterPerson === p.id ? null : p.id;
-      renderAll();
-    });
+    const selected = filterPerson === pid;
+    const cardHTML = `
+<div style="background:var(--surface);border:1px solid ${selected?'var(--accent)':'var(--border)'};border-radius:10px;overflow:hidden;${selected?'background:#1f1a12;':''}">
+  <div onclick="(function(){filterPerson=filterPerson==='${pid}'?null:'${pid}';renderAll();})()" style="padding:14px 16px;cursor:pointer;">
+    <div class="person-header">
+      <div class="avatar" style="background:${bg};color:${col}">${init}</div>
+      <div><div class="person-name">${pname}</div><div class="person-role">${p.role||''}</div></div>
+    </div>
+    <div class="person-stats">
+      <div class="stat-box"><div class="stat-val" style="color:var(--blue)">${ct}</div><div class="stat-lbl">ทั้งหมด</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--red)">${cp}</div><div class="stat-lbl">ค้าง</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--blue)">${cg}</div><div class="stat-lbl">ดำเนินการ</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--green)">${cd}</div><div class="stat-lbl">เสร็จ</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--yellow)">${co}</div><div class="stat-lbl">เกินกำหนด</div></div>
+    </div>
+    <div class="person-mom">
+      <div class="person-mom-item">ทั้งหมด: ${momHTML(ct,prv.length,false)}</div>
+      <div class="person-mom-item">ค้าง: ${momHTML(cp,prv.filter(c=>!['done','court'].includes(c.status)).length,true)}</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--border);">
+    <a href="javascript:editPerson('${pid}',window['_p_'+'${pid}'].name,window['_p_'+'${pid}'].role)" style="display:block;padding:10px;text-align:center;color:var(--accent);font-family:'Sarabun',sans-serif;font-size:0.82rem;text-decoration:none;border-right:1px solid var(--border);background:var(--surface2);">เปลี่ยน</a>
+    <a href="javascript:deletePerson('${pid}',window['_p_'+'${pid}'].name)" style="display:block;padding:10px;text-align:center;color:var(--red);font-family:'Sarabun',sans-serif;font-size:0.82rem;text-decoration:none;background:var(--surface2);">ลบ</a>
+  </div>
+</div>`;
 
-    // Button row (completely independent)
-    const btnRow = document.createElement('div');
-    btnRow.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--border);';
-
-    const editBtn = document.createElement('button');
-    editBtn.textContent = 'เปลี่ยน';
-    editBtn.style.cssText = 'padding:10px 0;border:none;border-right:1px solid var(--border);background:transparent;color:var(--accent);font-family:"Sarabun",sans-serif;font-size:0.82rem;cursor:pointer;-webkit-tap-highlight-color:rgba(240,136,62,0.2);';
-    editBtn.type = 'button';
-
-    const delBtn = document.createElement('button');
-    delBtn.textContent = 'ลบ';
-    delBtn.style.cssText = 'padding:10px 0;border:none;background:transparent;color:var(--red);font-family:"Sarabun",sans-serif;font-size:0.82rem;cursor:pointer;-webkit-tap-highlight-color:rgba(248,81,73,0.2);';
-    delBtn.type = 'button';
-
-    // Use touchend for iOS/iPad reliability
-    function addTapHandler(btn, fn) {
-      btn.addEventListener('click', fn);
-      btn.addEventListener('touchend', function(e) {
-        e.preventDefault();
-        fn();
-      });
-    }
-
-    addTapHandler(editBtn, () => editPerson(p.id, p.name, p.role||''));
-    addTapHandler(delBtn, () => deletePerson(p.id, p.name));
-
-    btnRow.appendChild(editBtn);
-    btnRow.appendChild(delBtn);
-    el.appendChild(statsArea);
-    el.appendChild(btnRow);
-    grid.appendChild(el);
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = cardHTML;
+    grid.appendChild(wrapper.firstElementChild);
   });
 
   const add = document.createElement('div');
   add.className = 'person-card';
   add.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:8px;color:var(--text3);border-style:dashed;min-height:140px;cursor:pointer;';
   add.innerHTML = '<span style="font-size:1.4rem">＋</span><span style="font-size:0.85rem">เพิ่มบุคลากร</span>';
-  add.addEventListener('click', () => document.getElementById('personModalOverlay').classList.add('show'));
-  add.addEventListener('touchend', function(e) { e.preventDefault(); document.getElementById('personModalOverlay').classList.add('show'); });
+  add.onclick = () => document.getElementById('personModalOverlay').classList.add('show');
   grid.appendChild(add);
 }
 
