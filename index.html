@@ -282,8 +282,8 @@ td{padding:11px 14px;font-size:0.85rem;}
     <div class="alert-strip-list" id="alertStripList"></div>
   </div>
   <div class="summary-grid">
-    <div class="summary-card total"><div class="card-label">คดีทั้งหมด</div><div class="card-number blue" id="totalCases">0</div><div class="mom-row" id="momRowTotal"></div><div class="card-sub">คดีในเดือนนี้</div></div>
-    <div class="summary-card pending"><div class="card-label">คดีค้าง</div><div class="card-number red" id="totalPending">0</div><div class="mom-row" id="momRowPending"></div><div class="card-sub" id="pendingPct">0%</div><div class="prog-bar-wrap"><div class="prog-bar" id="pendingBar" style="width:0%"></div></div></div>
+    <div class="summary-card total"><div class="card-label">คดีทั้งหมด</div><div class="card-number blue" id="totalCases">0</div><div class="mom-row" id="momRowTotal"></div><div class="card-sub" id="totalCasesSub">คดีที่ยังค้างในเดือนนี้</div></div>
+    <div class="summary-card pending"><div class="card-label">คดีค้าง (รอ+ดำเนินการ)</div><div class="card-number red" id="totalPending">0</div><div class="mom-row" id="momRowPending"></div><div class="card-sub" id="pendingPct">0%</div><div class="prog-bar-wrap"><div class="prog-bar" id="pendingBar" style="width:0%"></div></div></div>
     <div class="summary-card done"><div class="card-label">เสร็จสิ้น</div><div class="card-number green" id="totalDone">0</div><div class="mom-row" id="momRowDone"></div><div class="card-sub" id="donePct">0%</div></div>
     <div class="summary-card overdue"><div class="card-label">เกินกำหนด</div><div class="card-number yellow" id="totalOverdue">0</div><div class="mom-row" id="momRowOverdue"></div><div class="card-sub">คดีที่เลย deadline</div></div>
   </div>
@@ -303,11 +303,12 @@ td{padding:11px 14px;font-size:0.85rem;}
     <div class="section-title">📁 รายการคดี</div>
     <div class="toolbar">
       <input class="search-input" type="text" placeholder="🔍 ค้นหาคดี..." id="searchInput" oninput="renderTable()">
-      <button class="filter-btn active" onclick="setFilter('all',this)">ทั้งหมด</button>
-      <button class="filter-btn" onclick="setFilter('pending',this)">ค้าง</button>
-      <button class="filter-btn" onclick="setFilter('progress',this)">ดำเนินการ</button>
-      <button class="filter-btn" onclick="setFilter('done',this)">เสร็จสิ้น</button>
+      <button class="filter-btn active" onclick="setFilter('active',this)">ทั้งหมด (ค้าง)</button>
+      <button class="filter-btn" onclick="setFilter('pending',this)">⏳ รอดำเนินการ</button>
+      <button class="filter-btn" onclick="setFilter('progress',this)">🔵 ดำเนินการ</button>
+      <button class="filter-btn" onclick="setFilter('done',this)">✅ เสร็จสิ้น</button>
       <button class="filter-btn" onclick="setFilter('court',this)">🏛 ศาล</button>
+      <button class="filter-btn" onclick="setFilter('all',this)">📋 ทุกสถานะ</button>
       <button class="filter-btn" id="overdueFilterBtn" onclick="toggleOverdueFilter(this)">🚨 เกินกำหนด</button>
       <select class="sort-select" id="sortSelect" onchange="renderTable()">
         <option value="priority">เรียงตาม: ความสำคัญ</option>
@@ -459,7 +460,7 @@ const NOW = new Date(); NOW.setHours(0,0,0,0);
 // ===== STATE =====
 let people = [], cases = [], customCategories = [];
 let currentUserId = '', currentUserEmail = '', isAdminUser = false;
-let editingId = null, filterStatus = 'all', filterPerson = null;
+let editingId = null, filterStatus = 'active', filterPerson = null;
 let filterOverdue = false, filterCategory = null, selYM = '';
 let catColorMap = {};
 
@@ -664,7 +665,7 @@ function renderSummary() {
   const co = c.filter(x => x.status!=='done' && dlStatus(x.deadline,x.status)==='overdue').length;
   const pt = p.length, pp = p.filter(x=>x.status==='pending').length, pd = p.filter(x=>x.status==='done').length;
   const po = p.filter(x => x.status!=='done' && dlStatus(x.deadline,x.status)==='overdue').length;
-  document.getElementById('totalCases').textContent   = ct;
+  document.getElementById('totalCases').textContent   = ct; // คดีที่ยังค้างอยู่
   document.getElementById('totalPending').textContent = cp;
   document.getElementById('totalDone').textContent    = cd;
   document.getElementById('totalOverdue').textContent = co;
