@@ -2357,6 +2357,116 @@ window.rvwSubmit = async function() {
 document.getElementById('reviewModalOverlay').addEventListener('click', e => {
   if (e.target === document.getElementById('reviewModalOverlay')) closeReviewModal();
 });
+
+// ===== OWNER MODAL =====
+let ownCurrentCase = null, ownCurrentAction = '';
+
+window.openOwnerModal = function() {
+  ownCurrentCase = null; ownCurrentAction = '';
+  document.getElementById('ownQR').value = '';
+  document.getElementById('ownStatus').textContent = '';
+  document.getElementById('ownNote').value = '';
+  document.getElementById('ownCaseInfo').style.display = 'none';
+  document.getElementById('ownNoCase').style.display = 'block';
+  document.getElementById('ownSubmitBtn').disabled = true;
+  ['ownOptReceive','ownOptScreening','ownOptReview'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el){el.style.borderColor='var(--border)';el.style.background='var(--surface2)';}
+  });
+  document.getElementById('ownerModalOverlay').classList.add('show');
+  setTimeout(() => document.getElementById('ownQR').focus(), 300);
+};
+
+window.closeOwnerModal = function() {
+  document.getElementById('ownerModalOverlay').classList.remove('show');
+};
+
+window.ownSearch = function() {
+  const val = document.getElementById('ownQR').value.trim();
+  if (!val) return;
+  const code = val.replace(/^tel:/i,'');
+  const phoneNorm = code.replace(/[-\s]/g,'');
+  const sMap = {pending:'🔍 สอบสวนเพิ่มเติม',progress:'🔵 เจ้าของสำนวน',screening:'🔍 รอกลั่นกรอง',review:'⚖️ อจ.พิจารณา',filing:'📁 งานพิมพ์สำนวน',done:'✅ เสร็จสิ้น',court:'🏛 ศาล'};
+  let found = cases.find(c=>c.id===code) ||
+    cases.find(c=>c.caseId&&c.caseId.toLowerCase()===code.toLowerCase()) ||
+    cases.find(c=>c.extQR&&c.extQR.toString().replace(/[-\s]/g,'')===phoneNorm) ||
+    cases.find(c=>c.caseId&&c.caseId.toLowerCase().includes(code.toLowerCase()));
+  const status = document.getElementById('ownStatus');
+  if (!found) {
+    status.innerHTML = `❌ ไม่พบสำนวนรหัส: <strong>${code}</strong>`;
+    status.style.color = 'var(--red)'; return;
+  }
+  ownCurrentCase = found;
+  status.innerHTML = `✅ พบสำนวน: <strong>${found.caseId}</strong>`;
+  status.style.color = 'var(--green)';
+  document.getElementById('ownCaseIdLabel').textContent = found.caseId;
+  document.getElementById('ownCaseNameLabel').textContent = found.name;
+  document.getElementById('ownCaseBadges').innerHTML =
+    `<span class="badge ${found.status}">${sMap[found.status]||found.status}</span>` +
+    (found.currentDept?`<span style="padding:3px 10px;border-radius:20px;font-size:0.72rem;background:var(--surface2);color:var(--text3);border:1px solid var(--border);">📍 ${found.currentDept}</span>`:'');
+  document.getElementById('ownCaseInfo').style.display = 'block';
+  document.getElementById('ownNoCase').style.display = 'none';
+};
+
+window.ownPaste = async function() {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (text&&text.trim()) { document.getElementById('ownQR').value=text.trim().replace(/^tel:/i,''); ownSearch(); }
+  } catch(e) { document.getElementById('ownQR').focus(); }
+};
+
+window.ownSelectAction = function(action, el) {
+  ownCurrentAction = action;
+  ['ownOptReceive','ownOptScreening','ownOptReview'].forEach(id => {
+    const e=document.getElementById(id);
+    if(e){e.style.borderColor='var(--border)';e.style.background='var(--surface2)';}
+  });
+  const colors={receive:'var(--green)',screening:'var(--yellow)',review:'var(--accent)'};
+  el.style.borderColor = colors[action]||'var(--accent)';
+  el.style.background = '#1f1a12';
+  document.getElementById('ownSubmitBtn').disabled = false;
+};
+
+window.ownSubmit = async function() {
+  if (!ownCurrentCase||!ownCurrentAction) return;
+  const note = document.getElementById('ownNote').value.trim();
+  const btn = document.getElementById('ownSubmitBtn');
+  btn.disabled=true; btn.textContent='กำลังบันทึก...';
+  let newStatus,dept,actionLabel,statusLabel;
+  if (ownCurrentAction==='receive') {
+    newStatus='progress'; dept='อัยการเจ้าของเรื่อง';
+    actionLabel='📥 รับสำนวน — เจ้าของสำนวน'; statusLabel='🔵 เจ้าของสำนวน';
+  } else if (ownCurrentAction==='screening') {
+    newStatus='screening'; dept='อัยการผู้กลั่นกรองงาน';
+    actionLabel='🔍 ส่งผู้กลั่นกรองงาน'; statusLabel='🔍 รอกลั่นกรอง';
+  } else {
+    newStatus='review'; dept='อัยการจังหวัด';
+    actionLabel='⚖️ ส่ง อจ.พิจารณา'; statusLabel='⚖️ อจ.พิจารณา';
+  }
+  try {
+    await addDoc(collection(db,'tracking'),{
+      caseId:ownCurrentCase.id, caseCode:ownCurrentCase.caseId,
+      dept, person:currentUserEmail, note,
+      action:actionLabel, statusLabel, by:currentUserEmail, timestamp:new Date()
+    });
+    await updateDoc(doc(db,'cases',ownCurrentCase.id),{
+      status:newStatus, currentDept:dept, currentPerson:currentUserEmail,
+      lastAction:actionLabel, lastUpdated:new Date().toISOString()
+    });
+    await loadCases(); renderAll(); buildAlerts();
+    closeOwnerModal();
+    const flash=document.createElement('div');
+    flash.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1a2d1a;border:1px solid var(--green);color:var(--green);padding:12px 28px;border-radius:8px;font-size:0.9rem;z-index:9999;font-family:"Sarabun",sans-serif;';
+    flash.textContent=`✅ บันทึกสำเร็จ — ${statusLabel}`;
+    document.body.appendChild(flash);
+    setTimeout(()=>flash.remove(),2500);
+  } catch(e) { alert('เกิดข้อผิดพลาด: '+e.message); }
+  finally { btn.disabled=false; btn.textContent='✅ ยืนยัน'; }
+};
+
+document.getElementById('ownerModalOverlay').addEventListener('click', e => {
+  if (e.target===document.getElementById('ownerModalOverlay')) closeOwnerModal();
+});
 document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('modalOverlay')) window.closeModal(); });
 document.getElementById('personModalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('personModalOverlay')) window.closePersonModal(); });
 </script>
@@ -2657,6 +2767,69 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
 </div>
 
 <button class="btn-cancel" onclick="closeReviewModal()" style="width:100%;margin-top:8px;">ปิด</button>
+```
+
+  </div>
+</div>
+
+<!-- ===== OWNER MODAL (เจ้าของสำนวน) ===== -->
+
+<div class="modal-overlay" id="ownerModalOverlay">
+  <div class="modal" style="width:560px;">
+    <div class="modal-title" style="color:var(--blue);">🔵 เจ้าของสำนวน — สแกนสำนวน</div>
+    <div style="background:#0d1117;border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;">
+      <div style="font-size:0.78rem;color:var(--blue);font-weight:600;margin-bottom:8px;">📡 สแกน QR บนปกสำนวน</div>
+      <div style="display:flex;gap:8px;">
+        <input id="ownQR" placeholder="ยิง QR หรือพิมพ์รหัสสำนวน แล้วกด Enter..."
+               style="flex:1;padding:9px 12px;background:var(--surface2);border:2px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.88rem;outline:none;"
+               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+               onkeydown="if(event.key==='Enter'){event.preventDefault();ownSearch();}">
+        <button onclick="ownPaste()" style="padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:'Sarabun',sans-serif;font-size:0.82rem;cursor:pointer;">📋 วาง</button>
+        <button onclick="ownSearch()" style="padding:9px 14px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-family:'Sarabun',sans-serif;font-size:0.82rem;cursor:pointer;font-weight:600;">ค้นหา</button>
+      </div>
+      <div id="ownStatus" style="font-size:0.75rem;margin-top:6px;min-height:18px;"></div>
+    </div>
+
+```
+<div id="ownCaseInfo" style="display:none;">
+  <div style="background:var(--surface2);border-radius:8px;padding:12px 14px;margin-bottom:14px;">
+    <div style="font-family:'Kanit',sans-serif;font-size:0.8rem;color:var(--text3);" id="ownCaseIdLabel"></div>
+    <div style="font-weight:600;font-size:0.95rem;margin:3px 0 6px;" id="ownCaseNameLabel"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;" id="ownCaseBadges"></div>
+  </div>
+  <div style="font-size:0.8rem;color:var(--text2);font-weight:600;margin-bottom:10px;">เลือกการดำเนินการ:</div>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
+    <div id="ownOptReceive" onclick="ownSelectAction('receive',this)"
+         style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;">
+      <span style="font-size:1.4rem;">📥</span>
+      <div><div style="font-weight:600;font-size:0.88rem;">รับสำนวน</div>
+      <div style="font-size:0.72rem;color:var(--text3);">สถานะ: เจ้าของสำนวน</div></div>
+    </div>
+    <div id="ownOptScreening" onclick="ownSelectAction('screening',this)"
+         style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;">
+      <span style="font-size:1.4rem;">🔍</span>
+      <div><div style="font-weight:600;font-size:0.88rem;">ส่งผู้กลั่นกรองงาน</div>
+      <div style="font-size:0.72rem;color:var(--text3);">สถานะ: รอกลั่นกรอง</div></div>
+    </div>
+    <div id="ownOptReview" onclick="ownSelectAction('review',this)"
+         style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;">
+      <span style="font-size:1.4rem;">⚖️</span>
+      <div><div style="font-weight:600;font-size:0.88rem;">ส่ง อจ.พิจารณา</div>
+      <div style="font-size:0.72rem;color:var(--text3);">สถานะ: อจ.พิจารณา</div></div>
+    </div>
+  </div>
+  <input class="tl-input" id="ownNote" placeholder="หมายเหตุ (ไม่บังคับ)" style="margin-bottom:12px;">
+  <div class="modal-actions">
+    <button class="btn-cancel" onclick="closeOwnerModal()">ยกเลิก</button>
+    <button class="btn-save" id="ownSubmitBtn" onclick="ownSubmit()" style="background:var(--blue);" disabled>✅ ยืนยัน</button>
+  </div>
+</div>
+
+<div id="ownNoCase" style="text-align:center;padding:20px 0;">
+  <div style="font-size:2.5rem;margin-bottom:8px;">🔵</div>
+  <div style="font-size:0.85rem;color:var(--text3);">สแกนหรือพิมพ์รหัสสำนวนด้านบนเพื่อเริ่มต้น</div>
+</div>
+<button class="btn-cancel" onclick="closeOwnerModal()" style="width:100%;margin-top:8px;">ปิด</button>
 ```
 
   </div>
