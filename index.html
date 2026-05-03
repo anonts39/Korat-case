@@ -978,9 +978,9 @@ function renderTable() {
     const inSelectedMonth = ymOf(c.date) === selYM;
     const statusMatch =
       filterStatus === 'all'    ? true :
-      filterStatus === 'active'   ? (inSelectedMonth && !['done','court'].includes(c.status)) :
-      filterStatus === 'progress' ? (inSelectedMonth && ['progress','pending'].includes(c.status)) :
-                                    (inSelectedMonth && c.status === filterStatus);
+      filterStatus === 'active'   ? (!['done','court'].includes(c.status)) :
+      filterStatus === 'progress' ? (['progress','pending'].includes(c.status)) :
+                                    (c.status === filterStatus);
     return statusMatch &&
       (filterPerson === null || c.assignee === filterPerson ||
        (() => { const fp = people.find(x=>x.id===filterPerson); return fp && c.currentPerson===fp.name && !['done','court'].includes(c.status); })()) &&
