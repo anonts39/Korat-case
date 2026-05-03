@@ -368,9 +368,9 @@ td{padding:11px 14px;font-size:0.85rem;}
         <option value="">-- เลือกประเภทคดี --</option>
         <option value="แพ่ง">⚖️ แพ่ง</option>
         <option value="อาญา">🔒 อาญา</option>
-        <option value="แรงงาน">👷 แรงงาน</option>
-        <option value="ปกครอง">🏛 ปกครอง</option>
-        <option value="ภาษี">💰 ภาษี</option>
+        <option value="ส.1">📋 ส.1</option>
+        <option value="ส.2">📋 ส.2</option>
+        <option value="ส.3">📋 ส.3</option>
         <option value="ครอบครัว">👨‍👩‍👧 ครอบครัว</option>
         <option value="ทรัพย์สินทางปัญญา">💡 ทรัพย์สินทางปัญญา</option>
         <option value="ที่ดิน">🏠 ที่ดิน</option>
@@ -485,7 +485,7 @@ const TH_S = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','ม�
 const TH_F = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 const PRI_ORDER = { critical:0, high:1, medium:2, low:3 };
 const PRI_LABEL = { critical:'🔴 วิกฤต', high:'🟠 สูง', medium:'🔵 ปานกลาง', low:'🟢 ต่ำ' };
-const CAT_EMOJI = { แพ่ง:'⚖️', อาญา:'🔒', แรงงาน:'👷', ปกครอง:'🏛', ภาษี:'💰', ครอบครัว:'👨‍👩‍👧', ทรัพย์สินทางปัญญา:'💡', ที่ดิน:'🏠' };
+const CAT_EMOJI = { แพ่ง:'⚖️', อาญา:'🔒', แรงงาน:'📋', ปกครอง:'📋', ภาษี:'📋', ครอบครัว:'👨‍👩‍👧', ทรัพย์สินทางปัญญา:'💡', ที่ดิน:'🏠' };
 const CAT_PALETTE = ['#58a6ff','#3fb950','#f0883e','#bc8cff','#ff6b81','#00d2d3','#e3b341','#ff9f43','#a29bfe','#55efc4'];
 const NOW = new Date(); NOW.setHours(0,0,0,0);
 
@@ -599,7 +599,7 @@ async function loadCustomCategories() {
   buildCategorySelect();
 }
 
-const DEFAULT_CATS = ['แพ่ง','อาญา','แรงงาน','ปกครอง','ภาษี','ครอบครัว','ทรัพย์สินทางปัญญา','ที่ดิน'];
+const DEFAULT_CATS = ['แพ่ง','อาญา','ส.1','ส.2','ส.3','ครอบครัว','ทรัพย์สินทางปัญญา','ที่ดิน'];
 
 function buildCategorySelect() {
   const sel = document.getElementById('fCategory');
@@ -2402,9 +2402,9 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
       <option value="">-- เลือกประเภท --</option>
       <option value="แพ่ง">⚖️ แพ่ง</option>
       <option value="อาญา">🔒 อาญา</option>
-      <option value="แรงงาน">👷 แรงงาน</option>
-      <option value="ปกครอง">🏛 ปกครอง</option>
-      <option value="ภาษี">💰 ภาษี</option>
+      <option value="ส.1">📋 ส.1</option>
+      <option value="ส.2">📋 ส.2</option>
+      <option value="ส.3">📋 ส.3</option>
       <option value="ครอบครัว">👨‍👩‍👧 ครอบครัว</option>
       <option value="ทรัพย์สินทางปัญญา">💡 ทรัพย์สินทางปัญญา</option>
       <option value="ที่ดิน">🏠 ที่ดิน</option>
@@ -2430,6 +2430,11 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
     <div class="pri-opt" onclick="selectPri('low',this)">🟢 ต่ำ</div>
   </div>
   <input type="hidden" id="rcvPriority" value="medium">
+</div>
+<div class="form-group">
+  <label class="form-label">🔗 สำนวนที่เกี่ยวข้อง (โอนมาจาก / รวมกับ)</label>
+  <input class="form-input" id="rcvRelated" placeholder="เช่น 1178/2569, 1201/2569 คั่นด้วยจุลภาค">
+  <div style="font-size:0.72rem;color:var(--text3);margin-top:4px;">💡 ใส่เลขสำนวนที่โอนมาจากหรือรวมกับ</div>
 </div>
 <div style="background:#1a2d1a;border:1px solid var(--green);border-radius:8px;padding:8px 12px;font-size:0.78rem;color:var(--green);margin-bottom:14px;">
   🔵 สำนวนจะเข้าระบบในสถานะ <strong>เจ้าของสำนวน</strong> ทันที
