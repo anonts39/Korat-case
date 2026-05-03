@@ -1525,6 +1525,12 @@ window.saveTracking = async function(actionType) {
     const map = RETURN_STATUS_MAP[currentReturnAction];
     newStatus   = map.status;
     statusLabel = map.label;
+    // เพิ่ม sub-type สำหรับ ไม่ฟ้อง
+    if (currentReturnAction === 'noprosecute') {
+      const npType = document.querySelector('[name="noprosecuteType"]:checked');
+      const npLabel = npType?.value === 'partial' ? 'บางส่วน' : 'ทั้งหมด';
+      statusLabel = `🚫 ไม่ฟ้อง (${npLabel})`;
+    }
     actionLabel = `📥 รับสำนวนคืน — ${statusLabel}`;
   }
 
@@ -1941,6 +1947,7 @@ window.openReceiveModal = function() {
   document.getElementById('rcvCaseName').value = '';
   document.getElementById('rcvCategory').value = '';
   document.getElementById('rcvNote').value = '';
+  document.getElementById('rcvRelated') && (document.getElementById('rcvRelated').value = '');
   document.getElementById('rcvDeadline').value = '';
   document.getElementById('rcvDate').value = new Date().toISOString().split('T')[0];
   document.getElementById('rcvPriority').value = 'medium';
@@ -2310,9 +2317,17 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
       </label>
       <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:var(--surface2);" id="returnOpt3Label">
         <input type="radio" name="returnAction" value="noprosecute" style="margin-top:2px;flex-shrink:0;" onchange="selectReturnOpt(this)">
-        <div>
+        <div style="flex:1;">
           <div style="font-weight:600;font-size:0.85rem;">🚫 ไม่ฟ้อง</div>
-          <div style="font-size:0.72rem;color:var(--text3);">สถานะจะเปลี่ยนเป็น "เสร็จสิ้น"</div>
+          <div style="font-size:0.72rem;color:var(--text3);margin-bottom:6px;">สถานะจะเปลี่ยนเป็น "เสร็จสิ้น"</div>
+          <div id="noprosecuteSubOpts" style="display:none;display:flex;gap:8px;margin-top:6px;">
+            <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-size:0.78rem;">
+              <input type="radio" name="noprosecuteType" value="all" style="flex-shrink:0;"> ทั้งหมด
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-size:0.78rem;">
+              <input type="radio" name="noprosecuteType" value="partial" style="flex-shrink:0;"> บางส่วน
+            </label>
+          </div>
         </div>
       </label>
       <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:var(--surface2);" id="returnOpt4Label">
