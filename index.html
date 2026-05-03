@@ -398,6 +398,11 @@ td{padding:11px 14px;font-size:0.85rem;}
       <div class="form-group"><label class="form-label">หมายเหตุ</label><input class="form-input" id="fNote" placeholder="หมายเหตุ"></div>
     </div>
     <div class="form-group">
+      <label class="form-label">🔗 สำนวนที่เกี่ยวข้อง (โอนมาจาก / รวมกับ)</label>
+      <input class="form-input" id="fRelated" placeholder="เช่น 1178/2569, 1201/2569 คั่นด้วยจุลภาค">
+      <div style="font-size:0.72rem;color:var(--text3);margin-top:4px;">💡 กรอกเลขสำนวนที่โอนมาจาก หรือรวมกับ — สามารถกดคลิกเพื่อเปิดสำนวนนั้นได้เลย</div>
+    </div>
+    <div class="form-group">
       <label class="form-label">🔲 รหัส QR เดิมในสำนวน (ถ้ามี)</label>
       <!-- Step guide -->
       <div style="background:#1a1f2e;border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;font-size:0.8rem;line-height:2;color:var(--text2);">
@@ -956,7 +961,15 @@ function renderTable() {
     const canDelete  = isAdminUser || c.userId === currentUserId;
     return `<tr class="${rowCls}" id="case-row-${c.id}">
       <td><div class="case-id">${c.caseId}</div></td>
-      <td><div class="case-name">${c.name}</div>${ownerLabel}${noteLabel}</td>
+      <td>
+        <div class="case-name">${c.name}</div>
+        ${ownerLabel}${noteLabel}
+        ${(c.relatedCases&&c.relatedCases.length) ? `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;">
+          ${c.relatedCases.map(r=>`<span onclick="quickScanSearch('${r}')" 
+            style="cursor:pointer;padding:1px 8px;border-radius:20px;font-size:0.68rem;background:#1a1f2d;color:var(--blue);border:1px solid var(--blue);text-decoration:none;"
+            title="กดเพื่อเปิดสำนวน ${r}">🔗 ${r}</span>`).join('')}
+        </div>` : ''}
+      </td>
       <td>${catBadge(c.category)}</td>
       <td><span class="pri ${c.priority||'medium'}">${PRI_LABEL[c.priority||'medium']}</span></td>
       <td style="font-size:0.82rem">${per?per.name:'-'}</td>
@@ -1012,7 +1025,7 @@ window.confirmCustomCat = async function() {
 window.openModal = function() {
   editingId = null;
   document.getElementById('modalTitle').textContent = 'เพิ่มคดีใหม่';
-  ['fCaseId','fCaseName','fNote','fCategoryCustom','fExtQR'].forEach(id => document.getElementById(id).value = '');
+  ['fCaseId','fCaseName','fNote','fCategoryCustom','fExtQR','fRelated'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('fCategory').value = '';
   document.getElementById('customCatWrap').style.display = 'none';
   document.getElementById('fAssignee').value = '';
@@ -1034,6 +1047,7 @@ window.editCase = function(id) {
   document.getElementById('fDeadline').value = c.deadline || '';
   document.getElementById('fNote').value     = c.note || '';
   document.getElementById('fExtQR').value    = c.extQR || '';
+  document.getElementById('fRelated').value  = (c.relatedCases||[]).join(', ');
   buildCategorySelect();
   document.getElementById('fCategory').value = c.category || '';
   document.getElementById('customCatWrap').style.display = 'none';
@@ -1354,6 +1368,16 @@ window.openTimeline = async function(id) {
 
   // Case info
   const statusMap = { pending:'🔍 สอบสวนเพิ่มเติม', progress:'🔵 เจ้าของสำนวน', screening:'🔍 รอกลั่นกรอง', review:'⚖️ อจ.พิจารณา', done:'✅ เสร็จสิ้น', court:'🏛 ศาล' };
+  const relatedHTML = (c.relatedCases&&c.relatedCases.length) ?
+    `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+      <div style="font-size:0.72rem;color:var(--text3);margin-bottom:4px;">🔗 สำนวนที่เกี่ยวข้อง:</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${c.relatedCases.map(r=>`<span onclick="closeTimeline();setTimeout(()=>quickScanSearch('${r}'),300);"
+          style="cursor:pointer;padding:3px 10px;border-radius:20px;font-size:0.75rem;background:#1a1f2d;color:var(--blue);border:1px solid var(--blue);">
+          🔗 ${r}</span>`).join('')}
+      </div>
+    </div>` : '';
+
   document.getElementById('tlCaseInfo').innerHTML = `
     <div class="timeline-case-id">${c.caseId}</div>
     <div class="timeline-case-name">${c.name}</div>
@@ -1361,7 +1385,8 @@ window.openTimeline = async function(id) {
       <span class="tl-badge">${statusMap[c.status]||c.status}</span>
       ${c.currentDept ? `<span class="tl-badge" style="background:#0d1f2d;color:var(--blue);border-color:var(--blue)">📍 ${c.currentDept}</span>` : ''}
       ${c.currentPerson ? `<span class="tl-badge" style="background:#1a0d2d;color:var(--purple);border-color:var(--purple)">👤 ${c.currentPerson}</span>` : ''}
-    </div>`;
+    </div>
+    ${relatedHTML}`;
 
   // Populate person select
   const tlPerson = document.getElementById('tlPerson');
