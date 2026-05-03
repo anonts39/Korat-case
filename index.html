@@ -886,16 +886,19 @@ window.setFilter = function(s, btn) {
 function renderTable() {
   const search = document.getElementById('searchInput').value.toLowerCase();
   const sort   = document.getElementById('sortSelect').value;
-  let filtered = cases.filter(c =>
-    ymOf(c.date) === selYM &&
-    (filterStatus === 'all' ||
-     (filterStatus === 'active' && !['done','court'].includes(c.status)) ||
-     (filterStatus !== 'all' && filterStatus !== 'active' && c.status === filterStatus)) &&
-    (filterPerson === null || c.assignee === filterPerson) &&
-    (filterCategory === null || (c.category || 'ไม่ระบุ') === filterCategory) &&
-    (!filterOverdue || (c.status !== 'done' && dlStatus(c.deadline,c.status) === 'overdue')) &&
-    (!search || c.name.toLowerCase().includes(search) || c.caseId.toLowerCase().includes(search) || (c.category||'').toLowerCase().includes(search))
-  );
+  // 'all' = ทุกสถานะทุกเดือน, 'active' = ค้างในเดือนที่เลือก, อื่นๆ = กรองตามเดือน+สถานะ
+  let filtered = cases.filter(c => {
+    const inSelectedMonth = ymOf(c.date) === selYM;
+    const statusMatch =
+      filterStatus === 'all'    ? true :
+      filterStatus === 'active' ? (inSelectedMonth && !['done','court'].includes(c.status)) :
+                                  (inSelectedMonth && c.status === filterStatus);
+    return statusMatch &&
+      (filterPerson === null || c.assignee === filterPerson) &&
+      (filterCategory === null || (c.category || 'ไม่ระบุ') === filterCategory) &&
+      (!filterOverdue || (!['done','court'].includes(c.status) && dlStatus(c.deadline,c.status) === 'overdue')) &&
+      (!search || c.name.toLowerCase().includes(search) || c.caseId.toLowerCase().includes(search) || (c.category||'').toLowerCase().includes(search));
+  });
   filtered.sort((a,b) => {
     if (sort === 'priority') return (PRI_ORDER[a.priority]??9) - (PRI_ORDER[b.priority]??9);
     if (sort === 'category') return (a.category||'ไม่ระบุ').localeCompare(b.category||'ไม่ระบุ','th');
