@@ -495,8 +495,8 @@ const inMonth = m => cases.filter(c => ymOf(c.date) === m);
 const allYMs  = () => [...new Set(cases.map(c => ymOf(c.date)).filter(Boolean))].sort();
 
 function dlStatus(dl, st) {
-  if (st === 'done' || st === 'court') return 'done';
-  // screening/review still track deadline
+  if (['done','court'].includes(st)) return 'done';
+  // all other statuses track deadline
   if (!dl) return 'none';
   const d = new Date(dl); d.setHours(0,0,0,0);
   const diff = Math.round((d - NOW) / 86400000);
@@ -676,10 +676,15 @@ function renderAll() {
 // ===== SUMMARY =====
 function renderSummary() {
   const c = inMonth(selYM), p = inMonth(prevYM(selYM));
-  const ct = c.length, cp = c.filter(x=>x.status==='pending').length, cd = c.filter(x=>x.status==='done').length;
-  const co = c.filter(x => x.status!=='done' && dlStatus(x.deadline,x.status)==='overdue').length;
-  const pt = p.length, pp = p.filter(x=>x.status==='pending').length, pd = p.filter(x=>x.status==='done').length;
-  const po = p.filter(x => x.status!=='done' && dlStatus(x.deadline,x.status)==='overdue').length;
+  const DONE_STATUSES = ['done','court'];
+  const ct = c.length;
+  const cp = c.filter(x => !DONE_STATUSES.includes(x.status)).length; // ค้าง = ทุกที่ไม่ใช่ done/court
+  const cd = c.filter(x => x.status==='done').length;
+  const co = c.filter(x => !DONE_STATUSES.includes(x.status) && dlStatus(x.deadline,x.status)==='overdue').length;
+  const pt = p.length;
+  const pp = p.filter(x => !DONE_STATUSES.includes(x.status)).length;
+  const pd = p.filter(x => x.status==='done').length;
+  const po = p.filter(x => !DONE_STATUSES.includes(x.status) && dlStatus(x.deadline,x.status)==='overdue').length;
   document.getElementById('totalCases').textContent   = ct; // คดีที่ยังค้างอยู่
   document.getElementById('totalPending').textContent = cp;
   document.getElementById('totalDone').textContent    = cd;
