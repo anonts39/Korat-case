@@ -504,7 +504,7 @@ const NOW = new Date(); NOW.setHours(0,0,0,0);
 
 // ===== STATE =====
 let people = [], cases = [], customCategories = [];
-let currentUserId = '', currentUserEmail = '', isAdminUser = false;
+let currentUserId = '', currentUserEmail = '', currentUserName = '', currentPersonId = null, isAdminUser = false;
 let editingId = null, filterStatus = 'active', filterPerson = null;
 let filterOverdue = false, filterCategory = null, selYM = '';
 let catColorMap = {};
@@ -584,6 +584,20 @@ onAuthStateChanged(auth, async (user) => {
   await loadPeople();
   await loadCases();
   await loadCustomCategories();
+
+  // Match current user UID with people
+  const _matched = people.find(p => p.uid === currentUserId);
+  if (_matched) {
+    currentUserName = _matched.name;
+    currentPersonId = _matched.id;
+    document.getElementById('userEmail').textContent = _matched.name;
+    console.log('✅ Matched:', _matched.name);
+  } else {
+    currentUserName = currentUserEmail;
+    currentPersonId = null;
+    console.log('⚠️ No match for UID:', currentUserId);
+  }
+
   document.getElementById('loadingOverlay').style.display = 'none';
   init();
 });
