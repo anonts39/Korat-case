@@ -2276,11 +2276,12 @@ window.closeReviewModal = function() {
   document.getElementById('reviewModalOverlay').classList.remove('show');
 };
 
-window.rvwSearch = function() {
+window.rvwSearch = async function() {
   const val = document.getElementById('rvwQR').value.trim();
   if (!val) return;
   const code = val.replace(/^tel:/i,'');
   const phoneNorm = code.replace(/[-\s]/g,'');
+  if (!cases.length) await loadCases();
 
   let found = cases.find(c => c.id === code) ||
     cases.find(c => c.caseId && c.caseId.toLowerCase() === code.toLowerCase()) ||
@@ -2404,19 +2405,23 @@ window.closeOwnerModal = function() {
   document.getElementById('ownerModalOverlay').classList.remove('show');
 };
 
-window.ownSearch = function() {
+window.ownSearch = async function() {
   const val = document.getElementById('ownQR').value.trim();
   if (!val) return;
   const code = val.replace(/^tel:/i,'');
   const phoneNorm = code.replace(/[-\s]/g,'');
   const sMap = {pending:'🔍 สอบสวนเพิ่มเติม',progress:'🔵 เจ้าของสำนวน',screening:'🔍 รอกลั่นกรอง',review:'⚖️ อจ.พิจารณา',filing:'📁 งานพิมพ์สำนวน',done:'✅ เสร็จสิ้น',court:'🏛 ศาล'};
+
+  // Reload cases to get latest data
+  if (!cases.length) await loadCases();
+
   let found = cases.find(c=>c.id===code) ||
     cases.find(c=>c.caseId&&c.caseId.toLowerCase()===code.toLowerCase()) ||
     cases.find(c=>c.extQR&&c.extQR.toString().replace(/[-\s]/g,'')===phoneNorm) ||
     cases.find(c=>c.caseId&&c.caseId.toLowerCase().includes(code.toLowerCase()));
   const status = document.getElementById('ownStatus');
   if (!found) {
-    status.innerHTML = `❌ ไม่พบสำนวนรหัส: <strong>${code}</strong>`;
+    status.innerHTML = `❌ ไม่พบสำนวนรหัส: <strong>${code}</strong> (คดีทั้งหมด ${cases.length} รายการ)`;
     status.style.color = 'var(--red)'; return;
   }
   ownCurrentCase = found;
