@@ -371,7 +371,7 @@ td{padding:11px 14px;font-size:0.85rem;}
     <div class="form-row">
       <div class="form-group"><label class="form-label">ผู้รับผิดชอบ</label><select class="form-select" id="fAssignee"><option value="">-- เลือก --</option></select></div>
       <div class="form-group"><label class="form-label">สถานะ</label><select class="form-select" id="fStatus">
-          <option value="pending">⏳ รอดำเนินการ</option>
+          <option value="pending">🔍 สอบสวนเพิ่มเติม</option>
           <option value="progress">🔵 เจ้าของสำนวน</option>
           <option value="screening">🔍 รอกลั่นกรอง</option>
           <option value="review">⚖️ อจ.พิจารณา</option>
@@ -897,8 +897,9 @@ function renderTable() {
     const inSelectedMonth = ymOf(c.date) === selYM;
     const statusMatch =
       filterStatus === 'all'    ? true :
-      filterStatus === 'active' ? (inSelectedMonth && !['done','court'].includes(c.status)) :
-                                  (inSelectedMonth && c.status === filterStatus);
+      filterStatus === 'active'   ? (inSelectedMonth && !['done','court'].includes(c.status)) :
+      filterStatus === 'progress' ? (inSelectedMonth && ['progress','pending'].includes(c.status)) :
+                                    (inSelectedMonth && c.status === filterStatus);
     return statusMatch &&
       (filterPerson === null || c.assignee === filterPerson ||
        (() => { const fp = people.find(x=>x.id===filterPerson); return fp && c.currentPerson===fp.name && !['done','court'].includes(c.status); })()) &&
@@ -921,7 +922,7 @@ function renderTable() {
   empty.style.display = 'none';
 
   const sMap = {
-    pending:   ['⏳ รอดำเนินการ', 'pending'],
+    pending:   ['🔍 สอบสวนเพิ่มเติม', 'pending'],
     progress:  ['🔵 เจ้าของสำนวน', 'progress'],
     screening: ['🔍 รอกลั่นกรอง', 'screening'],
     review:    ['⚖️ อจ.พิจารณา',  'review'],
@@ -1336,7 +1337,7 @@ window.openTimeline = async function(id) {
   currentTimelineCase = c;
 
   // Case info
-  const statusMap = { pending:'🔴 รอดำเนินการ', progress:'🔵 เจ้าของสำนวน', screening:'🔍 รอกลั่นกรอง', review:'⚖️ อจ.พิจารณา', done:'✅ เสร็จสิ้น', court:'🏛 ศาล' };
+  const statusMap = { pending:'🔍 สอบสวนเพิ่มเติม', progress:'🔵 เจ้าของสำนวน', screening:'🔍 รอกลั่นกรอง', review:'⚖️ อจ.พิจารณา', done:'✅ เสร็จสิ้น', court:'🏛 ศาล' };
   document.getElementById('tlCaseInfo').innerHTML = `
     <div class="timeline-case-id">${c.caseId}</div>
     <div class="timeline-case-name">${c.name}</div>
