@@ -679,6 +679,7 @@ function buildAlerts() {
     else if (st === 'due-soon') alerts.push({ type:'warning', title:c.name, sub:`ถึงกำหนดใน ${dlDays(c.deadline,c.status)} วัน | ${PRI_LABEL[c.priority]}`, id:c.id });
   });
   cases.filter(c => c.status !== 'done' && c.priority === 'critical' && !c.deadline)
+    .filter(c => isAdminUser || !currentPersonId || c.assignee === currentPersonId)
     .forEach(c => alerts.push({ type:'info', title:c.name, sub:'ระดับวิกฤต — ยังไม่มี deadline', id:c.id }));
 
   const dot = document.getElementById('bellDot');
@@ -691,10 +692,12 @@ function buildAlerts() {
     : '<div style="padding:20px 18px;color:var(--text3);font-size:0.85rem">✅ ไม่มีการแจ้งเตือน</div>';
 
   const strip = document.getElementById('alertStrip');
+  // กรองคดีตามสิทธิ์
+  const myCases = isAdminUser ? cases : cases.filter(c => !currentPersonId || c.assignee === currentPersonId);
   const chips = [
-    ...cases.filter(c => c.status!=='done' && dlStatus(c.deadline,c.status)==='overdue')
+    ...myCases.filter(c => c.status!=='done' && dlStatus(c.deadline,c.status)==='overdue')
       .map(c => `<span class="overdue-chip" onclick="scrollToCase('${c.id}')">🚨 ${c.caseId}</span>`),
-    ...cases.filter(c => c.status!=='done' && dlStatus(c.deadline,c.status)==='due-soon')
+    ...myCases.filter(c => c.status!=='done' && dlStatus(c.deadline,c.status)==='due-soon')
       .map(c => `<span class="warn-chip" onclick="scrollToCase('${c.id}')">⚠️ ${c.caseId}</span>`)
   ];
   if (chips.length) { strip.classList.add('visible'); document.getElementById('alertStripList').innerHTML = chips.join(''); }
