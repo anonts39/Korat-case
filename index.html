@@ -2306,17 +2306,18 @@ window.openReviewModal = function() {
   document.getElementById('rvwCaseInfo').style.display = 'none';
   document.getElementById('rvwNoCase').style.display = 'block';
   document.getElementById('rvwSubmitBtn').disabled = true;
-  // Update title based on role
+
+  // Update title + icon based on role
   const person = people.find(p => p.id === currentPersonId);
   const role = (person?.role || '').toLowerCase();
-  const isReviewer = role.includes('อจ') || role.includes('จังหวัด');
+  const isReviewer = isAdminUser || role.includes('อจ') || role.includes('จังหวัด');
   const titleEl = document.getElementById('reviewModalTitle');
   if (titleEl) {
-    if (!isAdminUser && !isReviewer && currentPersonId) {
-      titleEl.textContent = '🔵 ' + (person?.name || 'เจ้าของสำนวน') + ' — สแกนสำนวน';
+    if (!isReviewer && currentPersonId && person) {
+      titleEl.innerHTML = `🔵 ${person.name} — สแกนสำนวน`;
       titleEl.style.color = 'var(--blue)';
     } else {
-      titleEl.textContent = '⚖️ อจ.พิจารณา — สแกนสำนวน';
+      titleEl.innerHTML = '⚖️ อจ.พิจารณา — สแกนสำนวน';
       titleEl.style.color = 'var(--accent)';
     }
   }
