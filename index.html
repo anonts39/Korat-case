@@ -878,9 +878,10 @@ window.openPersonMenu = function(pid) {
 window.toggleOverdueFilter = function(btn) { filterOverdue = !filterOverdue; btn.classList.toggle('active', filterOverdue); renderTable(); };
 window.setFilter = function(s, btn) {
   filterStatus = s;
+  if (s === 'all') { filterPerson = null; filterCategory = null; } // reset all filters
   document.querySelectorAll('.filter-btn').forEach(b => { if (b.id !== 'overdueFilterBtn') b.classList.remove('active'); });
   btn.classList.add('active');
-  renderTable();
+  renderAll();
 };
 
 function renderTable() {
@@ -924,7 +925,7 @@ function renderTable() {
   };
   tbody.innerHTML = filtered.map(c => {
     const per = people.find(x => x.id === c.assignee);
-    const [lbl, cls] = sMap[c.status];
+    const [lbl, cls] = sMap[c.status] || [c.status||'ไม่ทราบ', 'pending'];
     const dls = dlStatus(c.deadline, c.status);
     const rowCls = dls==='overdue' ? 'row-overdue' : dls==='due-soon' ? 'row-due-soon' : '';
     const ownerLabel = isAdminUser && c.userEmail ? `<div style="font-size:0.68rem;color:var(--purple)">👤 ${c.userEmail}</div>` : '';
