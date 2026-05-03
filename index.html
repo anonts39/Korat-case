@@ -934,7 +934,7 @@ function renderTable() {
     const canDelete  = isAdminUser || c.userId === currentUserId;
     return `<tr class="${rowCls}" id="case-row-${c.id}">
       <td><div class="case-id">${c.caseId}</div></td>
-      <td><div class="case-name">${c.name}</div>${ownerLabel}${noteLabel}${pendingReason}</td>
+      <td><div class="case-name">${c.name}</div>${ownerLabel}${noteLabel}</td>
       <td>${catBadge(c.category)}</td>
       <td><span class="pri ${c.priority||'medium'}">${PRI_LABEL[c.priority||'medium']}</span></td>
       <td style="font-size:0.82rem">${per?per.name:'-'}</td>
