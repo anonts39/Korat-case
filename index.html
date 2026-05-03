@@ -833,8 +833,8 @@ function renderPeople() {
           <div class="person-name">${p.name}</div>
           <div class="person-role">${p.role||''}</div>
         </div>
-        <div style="font-size:0.7rem;color:var(--text3);cursor:pointer;padding:4px 8px;border:1px solid var(--border);border-radius:6px;"
-             onclick="openPersonMenu('${p.id}')">⋯</div>
+        <button type="button" data-menu-pid="${p.id}"
+          style="font-size:0.85rem;color:var(--text3);cursor:pointer;padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);font-family:'Sarabun',sans-serif;line-height:1;z-index:10;position:relative;">⋯</button>
       </div>
       <div class="person-stats">
         <div class="stat-box"><div class="stat-val" style="color:var(--blue)">${ct}</div><div class="stat-lbl">ทั้งหมด</div></div>
@@ -907,7 +907,18 @@ function renderPeople() {
     });
 
     grid.appendChild(el);
+
+
   });
+
+  // Event delegation for menu buttons
+  grid.onclick = function(e) {
+    const btn = e.target.closest('[data-menu-pid]');
+    if (btn) {
+      e.stopPropagation();
+      openPersonMenu(btn.dataset.menuPid);
+    }
+  };
 
   // Add person button
   const add = document.createElement('div');
