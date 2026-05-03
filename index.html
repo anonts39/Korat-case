@@ -253,6 +253,8 @@ td{padding:11px 14px;font-size:0.85rem;}
       <a id="adminLink" href="admin.html" style="display:none;padding:4px 10px;border-radius:6px;border:1px solid var(--accent);color:var(--accent);font-size:0.72rem;text-decoration:none;background:#1f1a12;">👑 Admin</a>
       <button id="logoutBtn" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:0.72rem;cursor:pointer;font-family:'Sarabun',sans-serif;">ออกจากระบบ</button>
     </div>
+    <button class="bell-btn" onclick="openReceiveModal()" title="รับสำนวนใหม่" style="font-size:1rem;">📥</button>
+    <button class="bell-btn" onclick="openReviewModal()" title="อจ.พิจารณา" style="font-size:1rem;">⚖️</button>
     <button class="bell-btn" onclick="openScanner()" title="สแกน QR สำนวน" style="font-size:1rem;">📷</button>
     <button class="bell-btn" onclick="showLoginQR()" title="QR เข้าระบบ" style="font-size:1rem;">📱</button>
     <button class="bell-btn" onclick="toggleAlertPanel()">🔔<div class="bell-dot" id="bellDot" style="display:none"></div></button>
@@ -1900,6 +1902,268 @@ window.quickScanSearch = function(q) {
     }
   });
 })();
+
+// ===== RECEIVE MODAL =====
+let rcvCurrentQR = '';
+
+window.openReceiveModal = function() {
+  rcvCurrentQR = '';
+  document.getElementById('rcvQR').value = '';
+  document.getElementById('rcvQRStatus').textContent = '';
+  document.getElementById('rcvCaseId').value = '';
+  document.getElementById('rcvCaseName').value = '';
+  document.getElementById('rcvCategory').value = '';
+  document.getElementById('rcvNote').value = '';
+  document.getElementById('rcvDeadline').value = '';
+  document.getElementById('rcvDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('rcvPriority').value = 'medium';
+  // Populate assignee
+  const sel = document.getElementById('rcvAssignee');
+  sel.innerHTML = '<option value="">-- เลือก --</option>' +
+    people.map(p => `<option value="${p.id}">${p.name}${p.role?' ('+p.role+')':''}</option>`).join('');
+  document.getElementById('receiveModalOverlay').classList.add('show');
+  setTimeout(() => document.getElementById('rcvQR').focus(), 300);
+};
+
+window.closeReceiveModal = function() {
+  document.getElementById('receiveModalOverlay').classList.remove('show');
+};
+
+window.rcvCheckQR = function() {
+  const val = document.getElementById('rcvQR').value.trim();
+  if (!val) return;
+  const code = val.replace(/^tel:/i,'');
+  const phoneNorm = code.replace(/[-\s]/g,'');
+  const status = document.getElementById('rcvQRStatus');
+
+  // Check if already exists
+  const existing = cases.find(c =>
+    (c.extQR && c.extQR.toString().replace(/[-\s]/g,'') === phoneNorm) ||
+    (c.caseId && c.caseId.toLowerCase() === code.toLowerCase())
+  );
+
+  rcvCurrentQR = code;
+  if (existing) {
+    status.innerHTML = `⚠️ มีสำนวนนี้ในระบบแล้ว: <strong>${existing.caseId} — ${existing.name}</strong>`;
+    status.style.color = 'var(--yellow)';
+    // Pre-fill form with existing data
+    document.getElementById('rcvCaseId').value = existing.caseId;
+    document.getElementById('rcvCaseName').value = existing.name;
+  } else {
+    status.innerHTML = `✅ รหัส QR: <strong>${code}</strong> — ยังไม่มีในระบบ พร้อมบันทึก`;
+    status.style.color = 'var(--green)';
+  }
+  document.getElementById('rcvCaseId').focus();
+};
+
+window.rcvPaste = async function() {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (text && text.trim()) {
+      document.getElementById('rcvQR').value = text.trim().replace(/^tel:/i,'');
+      rcvCheckQR();
+    }
+  } catch(e) {
+    document.getElementById('rcvQR').focus();
+  }
+};
+
+window.submitReceive = async function() {
+  const caseId = document.getElementById('rcvCaseId').value.trim();
+  const name   = document.getElementById('rcvCaseName').value.trim();
+  const date   = document.getElementById('rcvDate').value;
+  if (!caseId || !name) { alert('กรุณากรอกเลขคดีและชื่อคดี'); return; }
+  if (!date) { alert('กรุณาเลือกวันที่รับสำนวน'); return; }
+
+  const assigneeId = document.getElementById('rcvAssignee').value;
+  const assigneePerson = people.find(p => p.id === assigneeId);
+
+  try {
+    const newCase = {
+      caseId,
+      name,
+      category:      document.getElementById('rcvCategory').value || null,
+      assignee:      assigneeId || null,
+      status:        'progress',
+      date,
+      deadline:      document.getElementById('rcvDeadline').value || null,
+      priority:      document.getElementById('rcvPriority').value || 'medium',
+      note:          document.getElementById('rcvNote').value.trim(),
+      extQR:         rcvCurrentQR || null,
+      userId:        currentUserId,
+      userEmail:     currentUserEmail,
+      createdAt:     new Date().toISOString(),
+      currentDept:   'อัยการเจ้าของเรื่อง',
+      currentPerson: assigneePerson?.name || null,
+    };
+
+    const docRef = await addDoc(collection(db, 'cases'), newCase);
+
+    // Tracking record
+    await addDoc(collection(db, 'tracking'), {
+      caseId:      docRef.id,
+      caseCode:    caseId,
+      dept:        'อัยการเจ้าของเรื่อง',
+      person:      assigneePerson?.name || '',
+      note:        'รับสำนวนใหม่เข้าระบบ',
+      action:      '📥 รับสำนวนใหม่',
+      statusLabel: '🔵 เจ้าของสำนวน',
+      by:          currentUserEmail,
+      timestamp:   new Date()
+    });
+
+    await loadCases();
+    selYM = ymOf(date);
+    buildMonthSelect();
+    document.getElementById('monthSelect').value = selYM;
+    renderAll(); buildAlerts();
+    closeReceiveModal();
+
+    // Flash success
+    const flash = document.createElement('div');
+    flash.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1a2d1a;border:1px solid var(--green);color:var(--green);padding:12px 28px;border-radius:8px;font-size:0.9rem;z-index:9999;font-family:"Sarabun",sans-serif;';
+    flash.textContent = `✅ บันทึกสำเร็จ! สำนวน ${caseId} เข้าระบบแล้ว`;
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 3000);
+
+  } catch(e) {
+    alert('เกิดข้อผิดพลาด: ' + e.message);
+  }
+};
+
+document.getElementById('receiveModalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('receiveModalOverlay')) closeReceiveModal();
+});
+
+// ===== REVIEW MODAL (อจ.พิจารณา) =====
+let rvwCurrentCase = null;
+let rvwCurrentAction = '';
+
+window.openReviewModal = function() {
+  rvwCurrentCase = null; rvwCurrentAction = '';
+  document.getElementById('rvwQR').value = '';
+  document.getElementById('rvwStatus').textContent = '';
+  document.getElementById('rvwNote').value = '';
+  document.getElementById('rvwCaseInfo').style.display = 'none';
+  document.getElementById('rvwNoCase').style.display = 'block';
+  document.getElementById('rvwSubmitBtn').disabled = true;
+  ['rvwOptReceive','rvwOptFiling','rvwOptReturn'].forEach(id => {
+    const el = document.getElementById(id);
+    el.style.borderColor = id==='rvwOptReceive' ? 'var(--blue)' : 'var(--border)';
+    el.style.background = 'var(--surface2)';
+  });
+  document.getElementById('reviewModalOverlay').classList.add('show');
+  setTimeout(() => document.getElementById('rvwQR').focus(), 300);
+};
+
+window.closeReviewModal = function() {
+  document.getElementById('reviewModalOverlay').classList.remove('show');
+};
+
+window.rvwSearch = function() {
+  const val = document.getElementById('rvwQR').value.trim();
+  if (!val) return;
+  const code = val.replace(/^tel:/i,'');
+  const phoneNorm = code.replace(/[-\s]/g,'');
+
+  let found = cases.find(c => c.id === code) ||
+    cases.find(c => c.caseId && c.caseId.toLowerCase() === code.toLowerCase()) ||
+    cases.find(c => c.extQR && c.extQR.toString().replace(/[-\s]/g,'') === phoneNorm) ||
+    cases.find(c => c.caseId && c.caseId.toLowerCase().includes(code.toLowerCase()));
+
+  const status = document.getElementById('rvwStatus');
+  if (!found) {
+    status.innerHTML = `❌ ไม่พบสำนวนรหัส: <strong>${code}</strong>`;
+    status.style.color = 'var(--red)';
+    return;
+  }
+
+  rvwCurrentCase = found;
+  status.innerHTML = `✅ พบสำนวน: <strong>${found.caseId}</strong>`;
+  status.style.color = 'var(--green)';
+
+  // Show case info
+  const sMap = { pending:'🔍 สอบสวนเพิ่มเติม', progress:'🔵 เจ้าของสำนวน', screening:'🔍 รอกลั่นกรอง', review:'⚖️ อจ.พิจารณา', filing:'📁 งานคดี', done:'✅ เสร็จสิ้น', court:'🏛 ศาล' };
+  document.getElementById('rvwCaseIdLabel').textContent = found.caseId;
+  document.getElementById('rvwCaseNameLabel').textContent = found.name;
+  document.getElementById('rvwCaseBadges').innerHTML =
+    `<span class="badge ${found.status}">${sMap[found.status]||found.status}</span>` +
+    (found.currentDept ? `<span style="padding:3px 10px;border-radius:20px;font-size:0.72rem;background:var(--surface2);color:var(--text3);border:1px solid var(--border);">📍 ${found.currentDept}</span>` : '');
+
+  document.getElementById('rvwCaseInfo').style.display = 'block';
+  document.getElementById('rvwNoCase').style.display = 'none';
+};
+
+window.rvwPaste = async function() {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (text && text.trim()) {
+      document.getElementById('rvwQR').value = text.trim().replace(/^tel:/i,'');
+      rvwSearch();
+    }
+  } catch(e) { document.getElementById('rvwQR').focus(); }
+};
+
+window.rvwSelectAction = function(action, el) {
+  rvwCurrentAction = action;
+  ['rvwOptReceive','rvwOptFiling','rvwOptReturn'].forEach(id => {
+    document.getElementById(id).style.borderColor = 'var(--border)';
+    document.getElementById(id).style.background = 'var(--surface2)';
+  });
+  const colors = { receive:'var(--blue)', filing:'var(--green)', return:'var(--yellow)' };
+  el.style.borderColor = colors[action] || 'var(--accent)';
+  el.style.background = '#1f1a12';
+  document.getElementById('rvwSubmitBtn').disabled = false;
+};
+
+window.rvwSubmit = async function() {
+  if (!rvwCurrentCase || !rvwCurrentAction) return;
+  const note = document.getElementById('rvwNote').value.trim();
+  const btn = document.getElementById('rvwSubmitBtn');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+
+  let newStatus, dept, actionLabel, statusLabel;
+  if (rvwCurrentAction === 'receive') {
+    newStatus = 'review'; dept = 'อัยการจังหวัด';
+    actionLabel = '📥 รับสำนวน — อจ.พิจารณา'; statusLabel = '⚖️ อจ.พิจารณา';
+  } else if (rvwCurrentAction === 'filing') {
+    newStatus = 'filing'; dept = 'งานคดี';
+    actionLabel = '📁 ส่งงานคดี'; statusLabel = '📁 งานคดี';
+  } else {
+    newStatus = 'pending'; dept = 'อัยการเจ้าของเรื่อง';
+    actionLabel = '↩️ คืนเจ้าของสำนวน (สอบสวนเพิ่มเติม)'; statusLabel = '🔍 สอบสวนเพิ่มเติม';
+  }
+
+  try {
+    await addDoc(collection(db, 'tracking'), {
+      caseId: rvwCurrentCase.id, caseCode: rvwCurrentCase.caseId,
+      dept, person: currentUserEmail,
+      note, action: actionLabel, statusLabel,
+      by: currentUserEmail, timestamp: new Date()
+    });
+    await updateDoc(doc(db,'cases',rvwCurrentCase.id), {
+      status: newStatus, currentDept: dept,
+      currentPerson: currentUserEmail,
+      lastAction: actionLabel, lastUpdated: new Date().toISOString()
+    });
+    await loadCases(); renderAll(); buildAlerts();
+    closeReviewModal();
+
+    const flash = document.createElement('div');
+    flash.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1a2d1a;border:1px solid var(--green);color:var(--green);padding:12px 28px;border-radius:8px;font-size:0.9rem;z-index:9999;font-family:"Sarabun",sans-serif;';
+    flash.textContent = `✅ บันทึกสำเร็จ — ${statusLabel}`;
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 2500);
+  } catch(e) {
+    alert('เกิดข้อผิดพลาด: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '✅ ยืนยัน';
+  }
+};
+
+document.getElementById('reviewModalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('reviewModalOverlay')) closeReviewModal();
+});
 document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('modalOverlay')) window.closeModal(); });
 document.getElementById('personModalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('personModalOverlay')) window.closePersonModal(); });
 </script>
@@ -2040,6 +2304,150 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
       <button class="btn-qr" onclick="copyQRUrl()">📋 คัดลอก URL</button>
       <button class="btn-qr solid" onclick="closeQRModal()">ปิด</button>
     </div>
+  </div>
+</div>
+
+<!-- ===== RECEIVE MODAL ===== -->
+
+<div class="modal-overlay" id="receiveModalOverlay">
+  <div class="modal" style="width:580px;">
+    <div class="modal-title" style="color:var(--green);">📥 รับสำนวนใหม่เข้าระบบ</div>
+
+```
+<!-- QR scan zone -->
+<div style="background:#0d1117;border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;">
+  <div style="font-size:0.78rem;color:var(--green);font-weight:600;margin-bottom:8px;">📡 สแกน QR บนปกสำนวน</div>
+  <div style="display:flex;gap:8px;">
+    <input id="rcvQR" placeholder="ยิง QR หรือพิมพ์รหัสสำนวน แล้วกด Enter..."
+           style="flex:1;padding:9px 12px;background:var(--surface2);border:2px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.88rem;outline:none;"
+           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+           onkeydown="if(event.key==='Enter'){event.preventDefault();rcvCheckQR();}">
+    <button onclick="rcvPaste()" style="padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:'Sarabun',sans-serif;font-size:0.82rem;cursor:pointer;">📋 วาง</button>
+    <button onclick="rcvCheckQR()" style="padding:9px 14px;border-radius:8px;border:none;background:var(--green);color:#fff;font-family:'Sarabun',sans-serif;font-size:0.82rem;cursor:pointer;font-weight:600;">ค้นหา</button>
+  </div>
+  <div id="rcvQRStatus" style="font-size:0.75rem;margin-top:6px;min-height:18px;"></div>
+</div>
+
+<!-- Form -->
+<div class="form-row">
+  <div class="form-group"><label class="form-label">เลขคดี *</label><input class="form-input" id="rcvCaseId" placeholder="เช่น คด.001/2569"></div>
+  <div class="form-group"><label class="form-label">วันที่รับสำนวน *</label><input class="form-input" type="date" id="rcvDate"></div>
+</div>
+<div class="form-group"><label class="form-label">ชื่อคดี / รายละเอียด *</label><input class="form-input" id="rcvCaseName" placeholder="ชื่อหรือรายละเอียดคดี"></div>
+<div class="form-row">
+  <div class="form-group">
+    <label class="form-label">ประเภทคดี</label>
+    <select class="form-select" id="rcvCategory">
+      <option value="">-- เลือกประเภท --</option>
+      <option value="แพ่ง">⚖️ แพ่ง</option>
+      <option value="อาญา">🔒 อาญา</option>
+      <option value="แรงงาน">👷 แรงงาน</option>
+      <option value="ปกครอง">🏛 ปกครอง</option>
+      <option value="ภาษี">💰 ภาษี</option>
+      <option value="ครอบครัว">👨‍👩‍👧 ครอบครัว</option>
+      <option value="ทรัพย์สินทางปัญญา">💡 ทรัพย์สินทางปัญญา</option>
+      <option value="ที่ดิน">🏠 ที่ดิน</option>
+    </select>
+  </div>
+  <div class="form-group"><label class="form-label">ผู้รับผิดชอบ (เจ้าของสำนวน)</label><select class="form-select" id="rcvAssignee"><option value="">-- เลือก --</option></select></div>
+</div>
+<div class="form-row">
+  <div class="form-group"><label class="form-label">📅 Deadline</label><input class="form-input" type="date" id="rcvDeadline"></div>
+  <div class="form-group"><label class="form-label">หมายเหตุ</label><input class="form-input" id="rcvNote" placeholder="หมายเหตุ (ไม่บังคับ)"></div>
+</div>
+<div class="form-group">
+  <label class="form-label">🎯 ระดับความสำคัญ</label>
+  <div class="pri-grid">
+    <div class="pri-opt" onclick="selectPri('critical',this)">🔴 วิกฤต</div>
+    <div class="pri-opt" onclick="selectPri('high',this)">🟠 สูง</div>
+    <div class="pri-opt sel-medium" onclick="selectPri('medium',this)">🔵 ปานกลาง</div>
+    <div class="pri-opt" onclick="selectPri('low',this)">🟢 ต่ำ</div>
+  </div>
+  <input type="hidden" id="rcvPriority" value="medium">
+</div>
+<div style="background:#1a2d1a;border:1px solid var(--green);border-radius:8px;padding:8px 12px;font-size:0.78rem;color:var(--green);margin-bottom:14px;">
+  🔵 สำนวนจะเข้าระบบในสถานะ <strong>เจ้าของสำนวน</strong> ทันที
+</div>
+<div class="modal-actions">
+  <button class="btn-cancel" onclick="closeReceiveModal()">ยกเลิก</button>
+  <button class="btn-save" onclick="submitReceive()" style="background:var(--green);">📥 บันทึกรับสำนวน</button>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- ===== REVIEW MODAL (อจ.พิจารณา) ===== -->
+
+<div class="modal-overlay" id="reviewModalOverlay">
+  <div class="modal" style="width:560px;">
+    <div class="modal-title" style="color:var(--yellow);">⚖️ อจ.พิจารณา — สแกนสำนวน</div>
+
+```
+<!-- QR scan zone -->
+<div style="background:#0d1117;border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;">
+  <div style="font-size:0.78rem;color:var(--yellow);font-weight:600;margin-bottom:8px;">📡 สแกน QR บนปกสำนวน</div>
+  <div style="display:flex;gap:8px;">
+    <input id="rvwQR" placeholder="ยิง QR หรือพิมพ์รหัสสำนวน แล้วกด Enter..."
+           style="flex:1;padding:9px 12px;background:var(--surface2);border:2px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.88rem;outline:none;"
+           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+           onkeydown="if(event.key==='Enter'){event.preventDefault();rvwSearch();}">
+    <button onclick="rvwPaste()" style="padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:'Sarabun',sans-serif;font-size:0.82rem;cursor:pointer;">📋 วาง</button>
+    <button onclick="rvwSearch()" style="padding:9px 14px;border-radius:8px;border:none;background:var(--yellow);color:#000;font-family:'Sarabun',sans-serif;font-size:0.82rem;cursor:pointer;font-weight:600;">ค้นหา</button>
+  </div>
+  <div id="rvwStatus" style="font-size:0.75rem;margin-top:6px;min-height:18px;"></div>
+</div>
+
+<!-- Case info (hidden until found) -->
+<div id="rvwCaseInfo" style="display:none;">
+  <div style="background:var(--surface2);border-radius:8px;padding:12px 14px;margin-bottom:14px;">
+    <div style="font-family:'Kanit',sans-serif;font-size:0.8rem;color:var(--text3);" id="rvwCaseIdLabel"></div>
+    <div style="font-weight:600;font-size:0.95rem;margin:3px 0 6px;" id="rvwCaseNameLabel"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;" id="rvwCaseBadges"></div>
+  </div>
+
+  <!-- Action selection -->
+  <div style="font-size:0.8rem;color:var(--text2);font-weight:600;margin-bottom:10px;">เลือกการดำเนินการ:</div>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
+    <div id="rvwOptReceive" onclick="rvwSelectAction('receive',this)"
+         style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:8px;border:2px solid var(--blue);background:var(--surface2);cursor:pointer;">
+      <span style="font-size:1.4rem;">📥</span>
+      <div><div style="font-weight:600;font-size:0.88rem;color:var(--blue);">รับสำนวน</div>
+      <div style="font-size:0.72rem;color:var(--text3);">บันทึกว่า อจ. รับสำนวนแล้ว — สถานะ: อจ.พิจารณา</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div id="rvwOptFiling" onclick="rvwSelectAction('filing',this)"
+           style="padding:12px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;text-align:center;">
+        <div style="font-size:1.3rem;">📁</div>
+        <div style="font-weight:600;font-size:0.85rem;">ส่งงานคดี</div>
+        <div style="font-size:0.7rem;color:var(--text3);">สถานะ: งานคดี</div>
+      </div>
+      <div id="rvwOptReturn" onclick="rvwSelectAction('return',this)"
+           style="padding:12px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;text-align:center;">
+        <div style="font-size:1.3rem;">↩️</div>
+        <div style="font-weight:600;font-size:0.85rem;">คืนเจ้าของสำนวน</div>
+        <div style="font-size:0.7rem;color:var(--text3);">สถานะ: สอบสวนเพิ่มเติม</div>
+      </div>
+    </div>
+  </div>
+
+  <input class="tl-input" id="rvwNote" placeholder="หมายเหตุ (ไม่บังคับ)" style="margin-bottom:12px;">
+
+  <div class="modal-actions">
+    <button class="btn-cancel" onclick="closeReviewModal()">ยกเลิก</button>
+    <button class="btn-save" id="rvwSubmitBtn" onclick="rvwSubmit()" style="background:var(--yellow);color:#000;" disabled>✅ ยืนยัน</button>
+  </div>
+</div>
+
+<!-- Before case found -->
+<div id="rvwNoCase" style="text-align:center;padding:20px 0;">
+  <div style="font-size:2.5rem;margin-bottom:8px;">⚖️</div>
+  <div style="font-size:0.85rem;color:var(--text3);">สแกนหรือพิมพ์รหัสสำนวนด้านบนเพื่อเริ่มต้น</div>
+</div>
+
+<button class="btn-cancel" onclick="closeReviewModal()" style="width:100%;margin-top:8px;">ปิด</button>
+```
+
   </div>
 </div>
 </body>
