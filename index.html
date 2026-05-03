@@ -855,6 +855,15 @@ function renderPeople() {
       renderAll();
     };
 
+    // Only allow drag from handle
+    el.draggable = false; // disable by default
+    const handle = el.querySelector('.drag-handle');
+    if (handle) {
+      handle.addEventListener('mousedown', () => { el.draggable = true; });
+      handle.addEventListener('touchstart', () => { el.draggable = true; }, {passive:true});
+    }
+    document.addEventListener('mouseup', () => { el.draggable = false; });
+
     // Drag & Drop events
     el.addEventListener('dragstart', function(e) {
       e.dataTransfer.setData('text/plain', p.id);
