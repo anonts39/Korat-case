@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚖️ อจ.พิจารณา — สแกนสำนวน</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&family=Kanit:wght@600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Sarabun',sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh;display:flex;flex-direction:column;}
+header{background:#161b22;border-bottom:1px solid #30363d;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;}
+.header-title{font-family:'Kanit',sans-serif;font-size:1.1rem;font-weight:700;color:#f0883e;}
+.header-sub{font-size:0.75rem;color:#6e7681;}
+.btn-logout{padding:6px 14px;border-radius:8px;border:1px solid #30363d;background:transparent;color:#8b949e;font-family:'Sarabun',sans-serif;font-size:0.8rem;cursor:pointer;}
+.main{flex:1;max-width:500px;margin:0 auto;width:100%;padding:24px 16px;}
+.scan-card{background:#161b22;border:1px solid #30363d;border-radius:14px;padding:24px;margin-bottom:16px;text-align:center;}
+.scan-icon{font-size:3rem;margin-bottom:12px;}
+.scan-title{font-family:'Kanit',sans-serif;font-size:1rem;font-weight:600;color:#f0883e;margin-bottom:6px;}
+.scan-sub{font-size:0.82rem;color:#8b949e;margin-bottom:20px;line-height:1.6;}
+.video-wrap{position:relative;background:#000;border-radius:10px;overflow:hidden;margin-bottom:16px;display:none;}
+video{width:100%;max-height:280px;display:block;}
+.scan-frame{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.frame-box{width:200px;height:200px;border:3px solid #f0883e;border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,0.5);}
+.scan-status{font-size:0.85rem;color:#8b949e;margin-bottom:16px;min-height:36px;text-align:center;line-height:1.5;}
+.btn-scan{width:100%;padding:14px;border-radius:10px;border:none;background:#f0883e;color:#fff;font-family:'Kanit',sans-serif;font-size:1rem;font-weight:600;cursor:pointer;margin-bottom:10px;}
+.btn-scan:hover{opacity:0.88;}
+.btn-scan.active{background:#e85d3f;}
+.divider{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:0.75rem;color:#6e7681;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:#30363d;}
+.manual-wrap{display:flex;gap:8px;}
+.manual-input{flex:1;padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-family:'Sarabun',sans-serif;font-size:0.88rem;outline:none;}
+.manual-input:focus{border-color:#f0883e;}
+.manual-input::placeholder{color:#6e7681;}
+.btn-search{padding:10px 18px;border-radius:8px;border:1px solid #f0883e;background:transparent;color:#f0883e;font-family:'Sarabun',sans-serif;font-size:0.85rem;cursor:pointer;}
+
+/* Case result */
+.case-result{display:none;background:#161b22;border:1px solid #30363d;border-radius:14px;padding:20px;margin-bottom:16px;}
+.case-result.show{display:block;}
+.case-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
+.case-id{font-family:‘Kanit’,sans-serif;font-size:0.85rem;color:#8b949e;}
+.case-name{font-weight:600;font-size:1rem;color:#e6edf3;margin:4px 0;}
+.case-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+.badge{padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600;}
+.badge.review{background:#2d2010;color:#e3b341;border:1px solid #4a3a10;}
+.badge.screening{background:#1a1f2d;color:#00d2d3;border:1px solid #0d3a3b;}
+.badge.progress{background:#1a1f2d;color:#58a6ff;border:1px solid #1a2a4a;}
+.badge.filing{background:#1a2d1a;color:#55efc4;border:1px solid #1a4a3a;}
+.badge.pending{background:#2d1a1a;color:#f85149;border:1px solid #4a1a1a;}
+
+.action-title{font-size:0.8rem;color:#8b949e;font-weight:600;margin-bottom:10px;}
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.action-btn{padding:14px 12px;border-radius:10px;border:2px solid #30363d;background:#21262d;color:#e6edf3;font-family:‘Sarabun’,sans-serif;font-size:0.88rem;cursor:pointer;text-align:center;transition:all 0.15s;}
+.action-btn:hover,.action-btn.selected{border-color:#f0883e;background:#1f1a12;color:#f0883e;}
+.action-btn#actionReceive{border-color:#58a6ff;color:#58a6ff;}
+.action-btn#actionReceive.selected{border-color:#f0883e;background:#1f1a12;color:#f0883e;}
+.action-btn .ab-icon{font-size:1.5rem;margin-bottom:6px;display:block;}
+.action-btn .ab-label{font-weight:600;font-size:0.85rem;display:block;}
+.action-btn .ab-sub{font-size:0.7rem;color:#8b949e;margin-top:2px;display:block;}
+.action-btn.selected .ab-sub{color:#8b949e;}
+.note-input{width:100%;padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-family:‘Sarabun’,sans-serif;font-size:0.85rem;outline:none;margin-bottom:10px;}
+.note-input::placeholder{color:#6e7681;}
+.btn-confirm{width:100%;padding:14px;border-radius:10px;border:none;background:#f0883e;color:#fff;font-family:‘Kanit’,sans-serif;font-size:1rem;font-weight:600;cursor:pointer;}
+.btn-confirm:disabled{opacity:0.4;cursor:not-allowed;}
+.btn-confirm:hover:not(:disabled){opacity:0.88;}
+.btn-rescan{width:100%;padding:10px;border-radius:8px;border:1px solid #30363d;background:transparent;color:#8b949e;font-family:‘Sarabun’,sans-serif;font-size:0.85rem;cursor:pointer;margin-top:8px;}
+
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1a2d1a;border:1px solid #3fb950;color:#3fb950;padding:12px 24px;border-radius:8px;font-size:0.88rem;z-index:999;display:none;}
+.toast.show{display:block;}
+</style>
+
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="header-title">⚖️ อจ.พิจารณา</div>
+    <div class="header-sub" id="userLabel">กำลังโหลด...</div>
+  </div>
+  <button class="btn-logout" id="logoutBtn">ออก</button>
+</header>
+
+<div class="main">
+  <!-- Scanner -->
+  <div class="scan-card">
+    <div class="scan-icon">📷</div>
+    <div class="scan-title">สแกน QR Code สำนวน</div>
+    <div class="scan-sub">สแกน QR บนปกสำนวน แล้วเลือกการดำเนินการ</div>
+    <div class="video-wrap" id="videoWrap">
+      <video id="scanVideo" autoplay playsinline muted></video>
+      <div class="scan-frame"><div class="frame-box"></div></div>
+    </div>
+    <div class="scan-status" id="scanStatus">กดปุ่มด้านล่างเพื่อเปิดกล้องสแกน QR</div>
+    <button class="btn-scan" id="btnScan" onclick="toggleScan()">🎥 เปิดกล้องสแกน</button>
+    <div class="divider">หรือพิมพ์/วางรหัส</div>
+    <div class="manual-wrap">
+      <input class="manual-input" id="manualInput" placeholder="เลขคดี หรือรหัส QR..." onkeydown="if(event.key==='Enter')searchCase()">
+      <button class="btn-search" onclick="pasteAndSearch()" style="font-size:0.8rem;">📋 วาง</button>
+      <button class="btn-search" onclick="searchCase()">ค้นหา</button>
+    </div>
+  </div>
+
+  <!-- Case Result -->
+
+  <div class="case-result" id="caseResult">
+    <div class="case-header">
+      <div>
+        <div class="case-id" id="resCaseId"></div>
+        <div class="case-name" id="resCaseName"></div>
+      </div>
+    </div>
+    <div class="case-badges" id="resBadges"></div>
+    <div class="action-title">เลือกการดำเนินการ:</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;">
+      <div class="action-btn" id="actionReceive" onclick="selectAction('receive', this)">
+        <span class="ab-icon">📥</span>
+        <span class="ab-label">รับสำนวน</span>
+        <span class="ab-sub">บันทึกว่า อจ. รับสำนวนแล้ว — สถานะ: อจ.พิจารณา</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="action-btn" id="actionFiling" onclick="selectAction('filing', this)">
+          <span class="ab-icon">📁</span>
+          <span class="ab-label">ส่งงานคดี</span>
+          <span class="ab-sub">สถานะ: งานคดี</span>
+        </div>
+        <div class="action-btn" id="actionReturn" onclick="selectAction('return', this)">
+          <span class="ab-icon">↩️</span>
+          <span class="ab-label">คืนเจ้าของสำนวน</span>
+          <span class="ab-sub">สถานะ: สอบสวนเพิ่มเติม</span>
+        </div>
+      </div>
+    </div>
+    <input class="note-input" id="actionNote" placeholder="หมายเหตุ (ไม่บังคับ)">
+    <button class="btn-confirm" id="btnConfirm" onclick="confirmAction()" disabled>✅ ยืนยัน</button>
+    <button class="btn-rescan" onclick="resetScan()">🔄 สแกนสำนวนอื่น</button>
+    <button class="btn-rescan" onclick="document.getElementById('btnScan').click();document.getElementById('caseResult').classList.remove('show');" style="margin-top:4px;border-color:#58a6ff;color:#58a6ff;">📷 สแกน QR ใหม่</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
+import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where }
+  from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDuyQeVuxcwKd-_fSgTHhmoBo56cZpUI3A",
+  authDomain: "korat-case.firebaseapp.com",
+  projectId: "korat-case",
+  storageBucket: "korat-case.firebasestorage.app",
+  messagingSenderId: "64254577929",
+  appId: "1:64254577929:web:7d38588fb2e40ede6697d8"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+let currentUser = null, cases = [], selectedAction = null, currentCase = null;
+let scanStream = null, scanInterval = null;
+
+// Auto logout 30 min
+let idleTimer = null;
+function resetIdle() {
+  if (idleTimer) clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    signOut(auth).then(() => { alert('ออกจากระบบอัตโนมัติ (ไม่มีการใช้งาน 30 นาที)'); location.href = 'login.html'; });
+  }, 30*60*1000);
+}
+['click','touchstart','keydown'].forEach(e => document.addEventListener(e, resetIdle, {passive:true}));
+resetIdle();
+
+onAuthStateChanged(auth, async user => {
+  if (!user) { location.href = 'login.html'; return; }
+  currentUser = user;
+  document.getElementById('userLabel').textContent = user.email;
+  document.getElementById('logoutBtn').onclick = () => signOut(auth).then(() => location.href = 'login.html');
+  await loadCases();
+});
+
+async function loadCases() {
+  const snap = await getDocs(collection(db, 'cases'));
+  cases = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// ===== SCANNER =====
+window.handleQRPhoto = async function(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const status = document.getElementById('scanStatus');
+  status.textContent = '🔍 กำลังอ่าน QR Code...';
+  input.value = '';
+
+  // Try BarcodeDetector first
+  if ('BarcodeDetector' in window) {
+    try {
+      const detector = new BarcodeDetector({ formats: ['qr_code'] });
+      const bitmap = await createImageBitmap(file);
+      const codes = await detector.detect(bitmap);
+      if (codes.length > 0) { handleCode(codes[0].rawValue); return; }
+      // Try img element
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      await new Promise((r,j) => { img.onload=r; img.onerror=j; img.src=url; });
+      const codes2 = await detector.detect(img);
+      URL.revokeObjectURL(url);
+      if (codes2.length > 0) { handleCode(codes2[0].rawValue); return; }
+    } catch(e) {}
+  }
+
+  // Fallback: read as data URL and try canvas
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width; canvas.height = img.height;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      if ('BarcodeDetector' in window) {
+        new BarcodeDetector({ formats: ['qr_code'] }).detect(canvas)
+          .then(codes => {
+            if (codes.length > 0) handleCode(codes[0].rawValue);
+            else status.textContent = '❌ ไม่พบ QR Code ลองถ่ายใหม่ให้ชัดขึ้น หรือพิมพ์รหัสด้านล่าง';
+          }).catch(() => { status.textContent = '❌ ไม่พบ QR Code กรุณาพิมพ์รหัสด้านล่าง'; });
+      } else {
+        status.textContent = '❌ ไม่พบ QR Code กรุณาพิมพ์รหัสด้านล่าง';
+      }
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.pasteAndSearch = async function() {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (text && text.trim()) {
+      const clean = text.trim().replace(/^tel:/i,'');
+      document.getElementById('manualInput').value = clean;
+      searchCase(clean);
+    }
+  } catch(e) {
+    document.getElementById('manualInput').focus();
+  }
+};
+
+function handleCode(code) {
+  document.getElementById('scanStatus').textContent = `✅ สแกนได้: ${code}`;
+  // Clean tel: prefix
+  const clean = code.replace(/^tel:/i,'').replace(/[-\s]/g,'');
+  document.getElementById('manualInput').value = clean;
+  searchCase(clean);
+}
+
+window.searchCase = function(code) {
+  const q = (code || document.getElementById('manualInput').value).trim();
+  if (!q) return;
+  const phoneNorm = q.replace(/[-\s]/g,'');
+
+  let found = cases.find(c => c.id === q) ||
+    cases.find(c => c.caseId && c.caseId.toLowerCase() === q.toLowerCase()) ||
+    cases.find(c => c.extQR && c.extQR.toString().replace(/[-\s]/g,'') === phoneNorm) ||
+    cases.find(c => c.caseId && c.caseId.toLowerCase().includes(q.toLowerCase()));
+
+  if (!found) {
+    document.getElementById('scanStatus').textContent = `❌ ไม่พบสำนวนรหัส: ${q}`;
+    return;
+  }
+  showCase(found);
+};
+
+function showCase(c) {
+  currentCase = c;
+  selectedAction = null;
+  document.getElementById('resCaseId').textContent = c.caseId;
+  document.getElementById('resCaseName').textContent = c.name;
+
+  const statusMap = { pending:'🔴 รอดำเนินการ pending', progress:'🔵 เจ้าของสำนวน progress',
+    screening:'🔍 รอกลั่นกรอง screening', review:'⚖️ อจ.พิจารณา review',
+    filing:'📁 งานคดี filing', done:'✅ เสร็จสิ้น done', court:'🏛 ศาล court' };
+  const sInfo = (statusMap[c.status]||c.status+' pending').split(' ');
+  const sLabel = sInfo.slice(0,-1).join(' '), sCls = sInfo[sInfo.length-1];
+
+  document.getElementById('resBadges').innerHTML =
+    `<span class="badge ${sCls}">${sLabel}</span>` +
+    (c.currentDept ? `<span style="padding:3px 10px;border-radius:20px;font-size:0.72rem;background:#21262d;color:#8b949e;border:1px solid #30363d;">📍 ${c.currentDept}</span>` : '');
+
+  // Reset actions
+  document.querySelectorAll('.action-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('actionNote').value = '';
+  document.getElementById('btnConfirm').disabled = true;
+  document.getElementById('caseResult').classList.add('show');
+  document.getElementById('caseResult').scrollIntoView({ behavior:'smooth' });
+}
+
+window.selectAction = function(action, el) {
+  selectedAction = action;
+  document.querySelectorAll('.action-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('btnConfirm').disabled = false;
+};
+
+window.confirmAction = async function() {
+  if (!selectedAction || !currentCase) return;
+  const note = document.getElementById('actionNote').value.trim();
+  const btn  = document.getElementById('btnConfirm');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+
+  let newStatus, dept, actionLabel, statusLabel;
+  if (selectedAction === 'receive') {
+    newStatus = 'review'; dept = 'อัยการจังหวัด';
+    actionLabel = '📥 รับสำนวน — อจ.พิจารณา'; statusLabel = '⚖️ อจ.พิจารณา';
+  } else if (selectedAction === 'filing') {
+    newStatus = 'filing'; dept = 'งานคดี';
+    actionLabel = '📁 ส่งงานคดี'; statusLabel = '📁 งานคดี';
+  } else {
+    newStatus = 'pending'; dept = 'อัยการเจ้าของเรื่อง';
+    actionLabel = '↩️ คืนเจ้าของสำนวน (สอบสวนเพิ่มเติม)'; statusLabel = '🔍 สอบสวนเพิ่มเติม (ค้าง)';
+  }
+
+  try {
+    await addDoc(collection(db, 'tracking'), {
+      caseId: currentCase.id, caseCode: currentCase.caseId,
+      dept, person: currentUser.email,
+      note, action: actionLabel, statusLabel,
+      by: currentUser.email, timestamp: new Date()
+    });
+    await updateDoc(doc(db, 'cases', currentCase.id), {
+      status: newStatus, currentDept: dept,
+      currentPerson: currentUser.email, lastAction: actionLabel,
+      lastUpdated: new Date().toISOString()
+    });
+    await loadCases();
+    showToast(`✅ บันทึกสำเร็จ — ${statusLabel}`);
+    setTimeout(() => resetScan(), 2000);
+  } catch(e) {
+    alert('เกิดข้อผิดพลาด: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '✅ ยืนยัน';
+  }
+};
+
+window.resetScan = function() {
+  currentCase = null; selectedAction = null;
+  document.getElementById('caseResult').classList.remove('show');
+  document.getElementById('manualInput').value = '';
+  document.getElementById('scanStatus').textContent = 'กดปุ่มด้านล่างเพื่อเปิดกล้องสแกน QR';
+  document.querySelectorAll('.action-btn').forEach(b => b.classList.remove('selected'));
+};
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+
+</body>
+</html>
