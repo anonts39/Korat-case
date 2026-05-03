@@ -305,7 +305,16 @@ td{padding:11px 14px;font-size:0.85rem;}
   <div class="cases-section">
     <div class="section-title">📁 รายการคดี</div>
     <div class="toolbar">
-      <input class="search-input" type="text" placeholder="🔍 ค้นหาคดี..." id="searchInput" oninput="renderTable()">
+      <input class="search-input" type="text" placeholder="🔍 ค้นหาคดี / ยิง QR..." id="searchInput" 
+             oninput="renderTable()" 
+             onkeydown="if(event.key==='Enter'){event.preventDefault();quickScanSearch(this.value);}"
+             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <input class="search-input" type="text" id="barcodeInput" 
+           placeholder="🔫 ยิง QR / บาร์โค้ด..." 
+           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+           style="width:200px;border-color:var(--purple);color:var(--purple);"
+           onkeydown="if(event.key==='Enter'){scanBarcode(this.value);this.value='';}"
+           oninput="handleBarcodeInput(this)">
       <button class="filter-btn active" onclick="setFilter('active',this)">ทั้งหมด (ค้าง)</button>
       <button class="filter-btn" onclick="setFilter('progress',this)">🔵 เจ้าของสำนวน</button>
       <button class="filter-btn" onclick="setFilter('screening',this)">🔍 รอกลั่นกรอง</button>
@@ -1774,6 +1783,119 @@ function resetIdleTimer() {
   document.addEventListener(evt, resetIdleTimer, { passive: true });
 });
 resetIdleTimer(); // Start timer
+
+// ===== BARCODE / QR SCANNER INPUT =====
+let barcodeTimer = null;
+
+window.handleBarcodeInput = function(input) {
+  // เครื่องยิงพิมพ์เร็วมาก จะกด Enter เองหลังส่งข้อมูล
+  // แต่บางเครื่องไม่กด Enter → ใช้ timer ตรวจจับ
+  if (barcodeTimer) clearTimeout(barcodeTimer);
+  barcodeTimer = setTimeout(() => {
+    const val = input.value.trim();
+    if (val.length >= 4) { // รหัสสั้นสุด 4 ตัว
+      scanBarcode(val);
+      input.value = '';
+    }
+  }, 300); // รอ 300ms หลังพิมพ์ครั้งสุดท้าย
+};
+
+window.scanBarcode = function(code) {
+  if (!code || !code.trim()) return;
+  const q = code.trim().replace(/^tel:/i,'');
+  const phoneNorm = q.replace(/[-\s]/g,'');
+
+  // ค้นหาคดีจาก extQR, caseId หรือรหัสอื่นๆ
+  let found =
+    cases.find(c => c.id === q) ||
+    cases.find(c => c.caseId && c.caseId.toLowerCase() === q.toLowerCase()) ||
+    cases.find(c => c.extQR && c.extQR.toString().replace(/[-\s]/g,'') === phoneNorm) ||
+    cases.find(c => c.caseId && c.caseId.toLowerCase().includes(q.toLowerCase())) ||
+    cases.find(c => c.extQR && c.extQR.toString().includes(q));
+
+  if (found) {
+    // เปิด Timeline ของคดีที่เจอทันที
+    const flash = document.createElement('div');
+    flash.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1a2d1a;border:1px solid var(--green);color:var(--green);padding:10px 24px;border-radius:8px;font-size:0.88rem;z-index:9999;font-family:"Sarabun",sans-serif;';
+    flash.textContent = `✅ พบคดี: ${found.caseId} — ${found.name}`;
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 2000);
+    // Scroll to case and open timeline
+    selYM = ymOf(found.date);
+    document.getElementById('monthSelect').value = selYM;
+    filterStatus = 'all';
+    document.getElementById('searchInput').value = found.caseId;
+    renderAll();
+    setTimeout(() => {
+      const row = document.getElementById(`case-row-${found.id}`);
+      if (row) { row.scrollIntoView({ behavior:'smooth', block:'center' }); row.style.outline = '2px solid var(--accent)'; setTimeout(() => row.style.outline = '', 2000); }
+      openTimeline(found.id);
+    }, 300);
+  } else {
+    const flash = document.createElement('div');
+    flash.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#2d0d0d;border:1px solid var(--red);color:var(--red);padding:10px 24px;border-radius:8px;font-size:0.88rem;z-index:9999;font-family:"Sarabun",sans-serif;';
+    flash.textContent = `❌ ไม่พบสำนวนรหัส: ${q}`;
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 2500);
+  }
+};
+
+// ===== QUICK SCAN SEARCH (Barcode/QR gun) =====
+window.quickScanSearch = function(q) {
+  if (!q || !q.trim()) return;
+  const code = q.trim().replace(/^tel:/i,'');
+
+  // ค้นหาจาก extQR, caseId, phone
+  const phoneNorm = code.replace(/[-\s]/g,'');
+  let found = null;
+
+  if (code.includes('?case=')) {
+    const id = code.split('?case=')[1];
+    found = cases.find(c => c.id === id);
+  }
+  if (!found) found = cases.find(c => c.caseId && c.caseId.toLowerCase() === code.toLowerCase());
+  if (!found) found = cases.find(c => c.extQR && c.extQR.toString().replace(/[-\s]/g,'') === phoneNorm);
+  if (!found) found = cases.find(c => c.caseId && c.caseId.toLowerCase().includes(code.toLowerCase()));
+  if (!found) found = cases.find(c => c.extQR && c.extQR.toString().includes(code));
+
+  if (found) {
+    // เปิด timeline ทันที
+    document.getElementById('searchInput').value = '';
+    renderTable();
+    selYM = ymOf(found.date);
+    document.getElementById('monthSelect').value = selYM;
+    renderAll();
+    setTimeout(() => openTimeline(found.id), 300);
+  } else {
+    // แสดง flash แจ้งว่าไม่พบ
+    const flash = document.createElement('div');
+    flash.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#2d0d0d;border:1px solid var(--red);color:var(--red);padding:10px 24px;border-radius:8px;font-size:0.88rem;z-index:9999;font-family:"Sarabun",sans-serif;';
+    flash.textContent = `❌ ไม่พบสำนวนรหัส: ${code}`;
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 2500);
+    document.getElementById('searchInput').select();
+  }
+};
+
+// Auto-detect barcode scanner rapid input (types very fast then Enter)
+(function() {
+  let scanBuffer = '';
+  let scanTimer = null;
+  document.addEventListener('keydown', function(e) {
+    // Only if no modal is open and no input is focused (except searchInput)
+    const active = document.activeElement;
+    const isSearchInput = active && active.id === 'searchInput';
+    const isModalOpen = document.querySelector('.modal-overlay.show');
+    if (isModalOpen && active.id !== 'searchInput') return;
+
+    if (e.key === 'Enter' && isSearchInput) {
+      const val = document.getElementById('searchInput').value.trim();
+      if (val && val.length > 3) {
+        quickScanSearch(val);
+      }
+    }
+  });
+})();
 document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('modalOverlay')) window.closeModal(); });
 document.getElementById('personModalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('personModalOverlay')) window.closePersonModal(); });
 </script>
