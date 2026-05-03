@@ -1538,8 +1538,11 @@ window.saveTracking = async function(actionType) {
     // เพิ่ม sub-type สำหรับ ไม่ฟ้อง
     if (currentReturnAction === 'noprosecute') {
       const npType = document.querySelector('[name="noprosecuteType"]:checked');
-      const npLabel = npType?.value === 'partial' ? 'บางส่วน' : 'ทั้งหมด';
+      const isPartial = npType?.value === 'partial';
+      const npLabel = isPartial ? 'บางส่วน' : 'ทั้งหมด';
       statusLabel = `🚫 ไม่ฟ้อง (${npLabel})`;
+      // บางส่วน = ยังค้างอยู่ (progress), ทั้งหมด = เสร็จสิ้น (done)
+      if (isPartial) newStatus = 'progress';
     }
     actionLabel = `📥 รับสำนวนคืน — ${statusLabel}`;
   }
@@ -2304,7 +2307,7 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
       🔄 สถานะจะเปลี่ยนเป็น: <strong id="tlAutoStatusText"></strong>
     </div>
     <input class="tl-input" id="tlNote" placeholder="หมายเหตุ (ไม่บังคับ)" style="margin-bottom:8px;">
-    <button class="btn-tl-save" onclick="saveTracking('send')">📤 บันทึกการส่งสำนวน</button>
+    <button class="btn-tl-save" onclick="saveTracking('send')" style="color:#58a6ff;background:transparent;border:2px solid #58a6ff;">📤 บันทึกการส่งสำนวน</button>
   </div>
 
   <!-- Return panel -->
