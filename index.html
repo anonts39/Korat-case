@@ -543,6 +543,38 @@ const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
 
+// ===== LOGIN SCREEN =====
+window.doLogin = async function() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPassword').value;
+  const err   = document.getElementById('loginErr');
+  const btn   = document.getElementById('loginBtn');
+  if (!email || !pass) { err.textContent = '❌ กรุณากรอก email และรหัสผ่าน'; return; }
+  btn.disabled = true; btn.textContent = 'กำลังเข้าสู่ระบบ...';
+  err.textContent = '';
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch(e) {
+    err.textContent = '❌ email หรือรหัสผ่านไม่ถูกต้อง';
+    btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ';
+  }
+};
+
+document.getElementById('loginForgot').addEventListener('click', async function() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const msg   = document.getElementById('loginResetMsg');
+  const err   = document.getElementById('loginErr');
+  if (!email) { err.textContent = '❌ กรุณากรอก email ก่อนครับ'; return; }
+  try {
+    await sendPasswordResetEmail(auth, email);
+    msg.style.color = '#3fb950';
+    msg.textContent = '✅ ส่ง email รีเซ็ตรหัสผ่านแล้ว กรุณาตรวจสอบ inbox ครับ';
+    err.textContent = '';
+  } catch(e) {
+    err.textContent = '❌ ไม่พบ email นี้ในระบบครับ';
+  }
+});
+
 // ===== CONSTANTS =====
 const COLORS = [
   ['#ff9f43','#2d1f0d'],['#00d2d3','#0d2526'],['#ff6b81','#2d1017'],
