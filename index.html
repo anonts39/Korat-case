@@ -97,6 +97,11 @@ header{background:linear-gradient(135deg,#1a1f2e,#161b22);border-bottom:1px soli
 .people-section{margin-bottom:28px;}
 .people-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(265px,1fr));gap:12px;}
 .person-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all 0.2s;}
+.person-card.drag-over{border-color:var(--accent);background:#1f1a12;transform:scale(1.02);}
+.person-card.dragging{opacity:0.4;border-style:dashed;}
+.drag-handle{cursor:grab;color:var(--text3);font-size:1rem;padding:4px;border-radius:4px;flex-shrink:0;}
+.drag-handle:hover{color:var(--accent);}
+.drag-handle:active{cursor:grabbing;}
 .person-card:hover{border-color:var(--accent);background:var(--surface2);}
 .person-card.selected{border-color:var(--accent);background:#1f1a12;}
 .person-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
@@ -579,6 +584,8 @@ onAuthStateChanged(auth, async (user) => {
 async function loadPeople() {
   const snap = await getDocs(collection(db, 'people'));
   people = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  // Sort by order field if exists
+  people.sort((a,b) => (a.order ?? 999) - (b.order ?? 999));
 }
 async function loadCases() {
   // ไม่ใช้ orderBy เพื่อหลีกเลี่ยง Firestore index requirement
@@ -797,14 +804,14 @@ function renderPeople() {
 
   people.forEach((p, idx) => {
     const [col, bg] = COLORS[idx % COLORS.length];
-    const cur = inMonth(selYM).filter(c => c.assignee === p.id);
-    const prv = inMonth(prevYM(selYM)).filter(c => c.assignee === p.id);
+    const allCur = inMonth(selYM).filter(c => c.assignee === p.id);
+    const allPrv = inMonth(prevYM(selYM)).filter(c => c.assignee === p.id);
+    const pendingCur = cases.filter(c => c.currentPerson === p.name && !['done','court'].includes(c.status));
+    const cur = allCur, prv = allPrv;
     const ct = cur.length;
-    // ค้างในฐานะเจ้าของสำนวน (assignee)
     const cpOwner = cur.filter(c => !['done','court'].includes(c.status)).length;
-    // ค้างในฐานะผู้ถือสำนวนปัจจุบัน (currentPerson) — ข้ามเดือน
-    const cpHolder = cases.filter(c => c.currentPerson === p.name && !['done','court'].includes(c.status)).length;
-    const cp = cpOwner; // ใช้ assignee สำหรับ mom row
+    const cpHolder = pendingCur.length;
+    const cp = cpOwner;
     const cg = cur.filter(c => c.status === 'progress').length;
     const cd = cur.filter(c => c.status === 'done').length;
     const co = cur.filter(c => !['done','court'].includes(c.status) && dlStatus(c.deadline,c.status) === 'overdue').length;
@@ -813,14 +820,20 @@ function renderPeople() {
 
     const el = document.createElement('div');
     el.className = `person-card${selected?' selected':''}`;
+    el.dataset.pid = p.id;
+    el.dataset.pname = p.name;
+    el.dataset.prole = p.role||'';
+    el.draggable = true;
+
     el.innerHTML = `
       <div class="person-header">
+        <div class="drag-handle" title="ลากเพื่อจัดเรียง">⠿</div>
         <div class="avatar" style="background:${bg};color:${col}">${init}</div>
         <div style="flex:1">
           <div class="person-name">${p.name}</div>
           <div class="person-role">${p.role||''}</div>
         </div>
-        <div style="font-size:0.7rem;color:var(--text3);cursor:pointer;padding:4px 8px;border:1px solid var(--border);border-radius:6px;" 
+        <div style="font-size:0.7rem;color:var(--text3);cursor:pointer;padding:4px 8px;border:1px solid var(--border);border-radius:6px;"
              onclick="openPersonMenu('${p.id}')">⋯</div>
       </div>
       <div class="person-stats">
@@ -835,20 +848,59 @@ function renderPeople() {
         <div class="person-mom-item">ค้าง(เจ้าของ): ${momHTML(cpOwner,prv.filter(c=>!['done','court'].includes(c.status)).length,true)} | ถือสำนวน: ${cpHolder}</div>
       </div>`;
 
+    // Click to filter (not on handle or menu)
     el.onclick = function(e) {
-      if (e.target.closest('[onclick*="openPersonMenu"]')) return;
+      if (e.target.closest('.drag-handle') || e.target.closest('[onclick*="openPersonMenu"]')) return;
       filterPerson = filterPerson === p.id ? null : p.id;
       renderAll();
     };
 
-    // Store data for menu
-    el.dataset.pid   = p.id;
-    el.dataset.pname = p.name;
-    el.dataset.prole = p.role||'';
+    // Drag & Drop events
+    el.addEventListener('dragstart', function(e) {
+      e.dataTransfer.setData('text/plain', p.id);
+      el.classList.add('dragging');
+      setTimeout(() => el.style.opacity = '0.4', 0);
+    });
+    el.addEventListener('dragend', function() {
+      el.classList.remove('dragging');
+      el.style.opacity = '';
+      document.querySelectorAll('.person-card').forEach(c => c.classList.remove('drag-over'));
+    });
+    el.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      el.classList.add('drag-over');
+    });
+    el.addEventListener('dragleave', function() {
+      el.classList.remove('drag-over');
+    });
+    el.addEventListener('drop', async function(e) {
+      e.preventDefault();
+      el.classList.remove('drag-over');
+      const draggedId = e.dataTransfer.getData('text/plain');
+      if (draggedId === p.id) return;
+
+      // Reorder people array
+      const fromIdx = people.findIndex(x => x.id === draggedId);
+      const toIdx   = people.findIndex(x => x.id === p.id);
+      if (fromIdx === -1 || toIdx === -1) return;
+
+      const moved = people.splice(fromIdx, 1)[0];
+      people.splice(toIdx, 0, moved);
+
+      // Save new order to Firestore
+      try {
+        await Promise.all(people.map((person, i) =>
+          updateDoc(doc(db, 'people', person.id), { order: i })
+        ));
+      } catch(e) { console.error('Save order failed:', e); }
+
+      renderPeople();
+    });
 
     grid.appendChild(el);
   });
 
+  // Add person button
   const add = document.createElement('div');
   add.className = 'person-card';
   add.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:8px;color:var(--text3);border-style:dashed;min-height:140px;cursor:pointer;';
@@ -856,45 +908,6 @@ function renderPeople() {
   add.onclick = () => document.getElementById('personModalOverlay').classList.add('show');
   grid.appendChild(add);
 }
-
-// Person menu popup
-window.openPersonMenu = function(pid) {
-  // Find person data from card
-  const card = document.querySelector(`[data-pid="${pid}"]`);
-  if (!card) return;
-  const name = card.dataset.pname;
-  const role = card.dataset.prole;
-
-  // Remove existing menu
-  const old = document.getElementById('personMenuPopup');
-  if (old) old.remove();
-
-  const menu = document.createElement('div');
-  menu.id = 'personMenuPopup';
-  menu.style.cssText = 'position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);';
-  menu.innerHTML = `
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:280px;overflow:hidden;">
-      <div style="padding:16px 18px;border-bottom:1px solid var(--border);font-family:'Kanit',sans-serif;font-size:0.95rem;color:var(--text);">${name}</div>
-      <div style="padding:8px;">
-        <button onclick="document.getElementById('personMenuPopup').remove();editPerson('${pid}','${name.replace(/'/g,"\'")}','${role.replace(/'/g,"\'")}');" 
-          style="width:100%;padding:12px;margin-bottom:6px;border-radius:8px;border:none;background:var(--surface2);color:var(--accent);font-family:'Sarabun',sans-serif;font-size:0.9rem;cursor:pointer;text-align:left;">
-          ✏️ เปลี่ยนข้อมูล
-        </button>
-        <button onclick="document.getElementById('personMenuPopup').remove();deletePerson('${pid}','${name.replace(/'/g,"\'")}');" 
-          style="width:100%;padding:12px;border-radius:8px;border:none;background:var(--surface2);color:var(--red);font-family:'Sarabun',sans-serif;font-size:0.9rem;cursor:pointer;text-align:left;">
-          🗑 ลบบุคลากร
-        </button>
-      </div>
-      <div style="padding:0 8px 8px;">
-        <button onclick="document.getElementById('personMenuPopup').remove();" 
-          style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:'Sarabun',sans-serif;font-size:0.85rem;cursor:pointer;">
-          ยกเลิก
-        </button>
-      </div>
-    </div>`;
-  menu.onclick = function(e) { if (e.target === menu) menu.remove(); };
-  document.body.appendChild(menu);
-};
 
 
 // ===== TABLE =====
