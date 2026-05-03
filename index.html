@@ -924,7 +924,7 @@ function renderTable() {
     const canDelete  = isAdminUser || c.userId === currentUserId;
     return `<tr class="${rowCls}" id="case-row-${c.id}">
       <td><div class="case-id">${c.caseId}</div></td>
-      <td><div class="case-name">${c.name}</div>${ownerLabel}${noteLabel}</td>
+      <td><div class="case-name">${c.name}</div>${ownerLabel}${noteLabel}${pendingReason}</td>
       <td>${catBadge(c.category)}</td>
       <td><span class="pri ${c.priority||'medium'}">${PRI_LABEL[c.priority||'medium']}</span></td>
       <td style="font-size:0.82rem">${per?per.name:'-'}</td>
@@ -1396,13 +1396,14 @@ const DEPT_STATUS_MAP = {
   'อัยการเจ้าของเรื่อง':      { status: 'progress',  label: '🔵 เจ้าของสำนวน' },
   'อัยการผู้กลั่นกรองงาน':    { status: 'screening', label: '🔍 รอกลั่นกรอง' },
   'อัยการจังหวัด':             { status: 'review',    label: '⚖️ อจ.พิจารณา' },
-  'งานคดี':                    { status: 'filing',    label: '📁 งานคดี' },
+  'งานคดี':                    { status: 'done',      label: '📁 งานคดี (เสร็จสิ้น)' },
 };
 
 const RETURN_STATUS_MAP = {
-  'investigate':    { status: 'done',  label: '✅ คืนสำนวน' },
-  'noprosecute':    { status: 'done',  label: '🚫 ไม่ฟ้อง' },
-  'court':          { status: 'court', label: '🏛 ดำเนินการทางศาล (ศาล)' },
+  'investigate':    { status: 'progress', label: '🔍 สอบสวนเพิ่มเติม (ยังค้าง)' },
+  'return_done':    { status: 'done',     label: '✅ คืนสำนวน' },
+  'noprosecute':    { status: 'done',     label: '🚫 ไม่ฟ้อง' },
+  'court':          { status: 'court',    label: '🏛 ดำเนินการทางศาล' },
 };
 
 let currentTlAction = 'send';
@@ -1441,7 +1442,7 @@ window.selectReturnOpt = function(radio) {
     l.style.borderColor = 'var(--border)';
     l.style.background  = 'var(--surface2)';
   });
-  const colors = { investigate:'var(--green)', noprosecute:'var(--red)', court:'var(--purple)' };
+  const colors = { investigate:'var(--yellow)', return_done:'var(--green)', noprosecute:'var(--red)', court:'var(--purple)' };
   radio.closest('label').style.borderColor = colors[radio.value] || 'var(--accent)';
   radio.closest('label').style.background  = '#1f1a12';
 };
@@ -1735,6 +1736,28 @@ window.deletePerson = async function(id, name) {
     alert('ลบไม่ได้: ' + e.message);
   }
 };
+
+// ===== AUTO LOGOUT AFTER 30 MINUTES =====
+let _idleTimer = null;
+const IDLE_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
+function resetIdleTimer() {
+  if (_idleTimer) clearTimeout(_idleTimer);
+  _idleTimer = setTimeout(() => {
+    if (auth.currentUser) {
+      signOut(auth).then(() => {
+        alert('ระบบออกจากระบบอัตโนมัติเนื่องจากไม่มีการใช้งาน 30 นาที');
+        window.location.href = 'login.html';
+      });
+    }
+  }, IDLE_TIMEOUT);
+}
+
+// Reset timer on any user activity
+['click','touchstart','keydown','scroll','mousemove'].forEach(evt => {
+  document.addEventListener(evt, resetIdleTimer, { passive: true });
+});
+resetIdleTimer(); // Start timer
 document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('modalOverlay')) window.closeModal(); });
 document.getElementById('personModalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('personModalOverlay')) window.closePersonModal(); });
 </script>
@@ -1822,22 +1845,29 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
       <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:var(--surface2);" id="returnOpt1Label">
         <input type="radio" name="returnAction" value="investigate" style="margin-top:2px;flex-shrink:0;" onchange="selectReturnOpt(this)">
         <div>
-          <div style="font-weight:600;font-size:0.85rem;">✅ คืนสำนวน</div>
-          <div style="font-size:0.72rem;color:var(--text3);">สถานะจะเปลี่ยนเป็น "เสร็จสิ้น" — คืนสำนวนให้เจ้าของเรื่อง</div>
+          <div style="font-weight:600;font-size:0.85rem;">🔍 สอบสวนเพิ่มเติม</div>
+          <div style="font-size:0.72rem;color:var(--text3);">สถานะยังเป็น <strong>ค้าง</strong> — ส่งคืนเจ้าของสำนวนเพื่อสอบสวนเพิ่ม</div>
         </div>
       </label>
       <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:var(--surface2);" id="returnOpt2Label">
-        <input type="radio" name="returnAction" value="noprosecute" style="margin-top:2px;flex-shrink:0;" onchange="selectReturnOpt(this)">
+        <input type="radio" name="returnAction" value="return_done" style="margin-top:2px;flex-shrink:0;" onchange="selectReturnOpt(this)">
         <div>
-          <div style="font-weight:600;font-size:0.85rem;">🚫 ไม่ฟ้อง</div>
-          <div style="font-size:0.72rem;color:var(--text3);">สถานะจะเปลี่ยนเป็น "เสร็จสิ้น" — สั่งไม่ฟ้องคดี</div>
+          <div style="font-weight:600;font-size:0.85rem;">✅ คืนสำนวน</div>
+          <div style="font-size:0.72rem;color:var(--text3);">สถานะจะเปลี่ยนเป็น "เสร็จสิ้น"</div>
         </div>
       </label>
       <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:var(--surface2);" id="returnOpt3Label">
+        <input type="radio" name="returnAction" value="noprosecute" style="margin-top:2px;flex-shrink:0;" onchange="selectReturnOpt(this)">
+        <div>
+          <div style="font-weight:600;font-size:0.85rem;">🚫 ไม่ฟ้อง</div>
+          <div style="font-size:0.72rem;color:var(--text3);">สถานะจะเปลี่ยนเป็น "เสร็จสิ้น"</div>
+        </div>
+      </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:var(--surface2);" id="returnOpt4Label">
         <input type="radio" name="returnAction" value="court" style="margin-top:2px;flex-shrink:0;" onchange="selectReturnOpt(this)">
         <div>
           <div style="font-weight:600;font-size:0.85rem;">🏛 ดำเนินการทางศาล</div>
-          <div style="font-size:0.72rem;color:var(--text3);">สถานะจะเปลี่ยนเป็น "ศาล" — พร้อมยื่นฟ้องหรือดำเนินคดีต่อ</div>
+          <div style="font-size:0.72rem;color:var(--text3);">สถานะจะเปลี่ยนเป็น "ศาล"</div>
         </div>
       </label>
     </div>
