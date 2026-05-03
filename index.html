@@ -1264,11 +1264,12 @@ window.savePersonModal = async function() {
   const editIdEl = document.getElementById('pEditId');
   const editId = editIdEl ? editIdEl.value : '';
   if (!name) { alert('กรุณากรอกชื่อ'); return; }
+  const uidVal = (document.getElementById('pUID')?.value || '').trim() || null;
   try {
     if (editId) {
-      await updateDoc(doc(db, 'people', editId), { name, role: role||'เจ้าหน้าที่' });
+      await updateDoc(doc(db, 'people', editId), { name, role: role||'เจ้าหน้าที่', uid: uidVal });
     } else {
-      await addDoc(collection(db, 'people'), { name, role: role||'เจ้าหน้าที่' });
+      await addDoc(collection(db, 'people'), { name, role: role||'เจ้าหน้าที่', uid: uidVal });
     }
     await loadPeople();
     window.closePersonModal();
