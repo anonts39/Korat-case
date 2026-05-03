@@ -975,6 +975,9 @@ function renderTable() {
   const sort   = document.getElementById('sortSelect').value;
   // 'all' = ทุกสถานะทุกเดือน, 'active' = ค้างในเดือนที่เลือก, อื่นๆ = กรองตามเดือน+สถานะ
   let filtered = cases.filter(c => {
+    // Non-admin sees only their own cases
+    if (!isAdminUser && currentPersonId && c.assignee !== currentPersonId) return false;
+
     const inSelectedMonth = ymOf(c.date) === selYM;
     const statusMatch =
       filterStatus === 'all'    ? true :
