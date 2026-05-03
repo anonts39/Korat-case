@@ -233,6 +233,49 @@ window.handleQRPhoto = async function(input) {
   reader.readAsDataURL(file);
 };
 
+// ===== GUN SCANNER MODE =====
+window.activateGunMode = function() {
+  const input = document.getElementById('manualInput');
+  const btn = document.getElementById('btnGunScan');
+  const box = document.getElementById('gunReadyBox');
+  input.value = '';
+  input.focus();
+  btn.textContent = '✅ พร้อมแล้ว — ยิง QR ได้เลย!';
+  btn.style.background = '#1a2d1a';
+  btn.style.border = '1px solid #3fb950';
+  btn.style.color = '#3fb950';
+  box.style.borderColor = '#f0883e';
+  box.style.background = '#1f1a12';
+  box.querySelector('div:first-child').textContent = '🎯';
+  box.querySelector('div:nth-child(2)').textContent = 'กำลังรอสัญญาณจากเครื่องยิง QR';
+  box.querySelector('div:nth-child(3)').textContent = 'ยิง QR Code ได้เลย ระบบจะค้นหาอัตโนมัติ';
+};
+
+// Auto-search when gun scanner sends Enter after QR data
+document.addEventListener('DOMContentLoaded', function() {
+  const input = document.getElementById('manualInput');
+  if (!input) return;
+
+  let scanBuffer = '';
+  let scanTimer = null;
+
+  // Listen for rapid input (gun scanner types very fast)
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = input.value.trim();
+      if (val) {
+        document.getElementById('scanStatus').textContent = '🔍 กำลังค้นหา...';
+        setTimeout(() => searchCase(val), 100);
+      }
+      return;
+    }
+  });
+
+  // Auto-focus input on page load for gun scanner
+  setTimeout(() => { if (input) input.focus(); }, 800);
+});
+
 window.pasteAndSearch = async function() {
   try {
     const text = await navigator.clipboard.readText();
