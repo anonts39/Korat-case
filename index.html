@@ -672,6 +672,8 @@ function buildAlerts() {
   const alerts = [];
   cases.forEach(c => {
     if (c.status === 'done' || c.status === 'court') return;
+    // Non-admin เห็นเฉพาะคดีของตัวเอง
+    if (!isAdminUser && currentPersonId && c.assignee !== currentPersonId) return;
     const st = dlStatus(c.deadline, c.status);
     if (st === 'overdue') alerts.push({ type:'critical', title:c.name, sub:`เกิน deadline ${Math.abs(dlDays(c.deadline,c.status))} วัน | ${PRI_LABEL[c.priority]}`, id:c.id });
     else if (st === 'due-soon') alerts.push({ type:'warning', title:c.name, sub:`ถึงกำหนดใน ${dlDays(c.deadline,c.status)} วัน | ${PRI_LABEL[c.priority]}`, id:c.id });
