@@ -661,7 +661,7 @@ function buildMonthSelect() {
   const months = allYMs();
   // Always add current month
   const now = new Date();
-  const curYM = String(now.getFullYear()).slice(-2) + '-' + String(now.getMonth()+1).padStart(2,'0');
+  const curYM = String(now.getFullYear()) + '-' + String(now.getMonth()+1).padStart(2,'0');
   if (!months.includes(curYM)) months.push(curYM);
   if (!selYM || !months.includes(selYM)) selYM = months[months.length - 1] || curYM;
   sel.innerHTML = months.map(m => `<option value="${m}" ${m===selYM?'selected':''}>${ymFull(m)}</option>`).join('');
