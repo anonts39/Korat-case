@@ -455,6 +455,11 @@ td{padding:11px 14px;font-size:0.85rem;}
     <input type="hidden" id="pEditId" value="">
     <div class="form-group"><label class="form-label">ชื่อ-นามสกุล</label><input class="form-input" id="pName" placeholder="ชื่อเต็ม"></div>
     <div class="form-group"><label class="form-label">ตำแหน่ง</label><input class="form-input" id="pRole" placeholder="เช่น ทนายความ"></div>
+    <div class="form-group">
+      <label class="form-label">🔗 Firebase UID (เชื่อมบัญชีล็อกอิน)</label>
+      <input class="form-input" id="pUID" placeholder="วาง UID จาก Firebase Authentication">
+      <div style="font-size:0.72rem;color:var(--text3);margin-top:4px;">💡 Firebase Console → Authentication → คัดลอก UID ของแต่ละคน</div>
+    </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closePersonModal()">ยกเลิก</button>
       <button class="btn-save" id="personSaveBtn" onclick="savePersonModal()">เพิ่ม</button>
@@ -1244,6 +1249,8 @@ window.editPerson = function(id, name, role) {
   if (editIdEl) editIdEl.value = id;
   document.getElementById('pName').value = name;
   document.getElementById('pRole').value = role || '';
+  const ep = people.find(p => p.id === id);
+  if (document.getElementById('pUID')) document.getElementById('pUID').value = ep?.uid || '';
   const titleEl = document.getElementById('personModalTitle');
   if (titleEl) titleEl.textContent = 'เปลี่ยนข้อมูล: ' + name;
   const saveBtn = document.getElementById('personSaveBtn');
