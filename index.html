@@ -2601,14 +2601,15 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
     <div class="timeline-update" id="tlUpdateForm">
       <div class="timeline-update-title">📝 บันทึกการรับ/ส่งสำนวน</div>
 
-```
   <!-- Action type -->
+
   <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
     <button class="tl-action-btn active" id="btnActionSend" onclick="setTlAction('send',this)">📤 ส่งสำนวนไปแผนก</button>
     <button class="tl-action-btn" id="btnActionReturn" onclick="setTlAction('return',this)">📥 รับสำนวนคืน</button>
   </div>
 
   <!-- Send panel -->
+
   <div id="tlSendPanel">
     <div class="tl-form-grid" style="margin-bottom:8px;">
       <select class="tl-select" id="tlDept" onchange="onDeptChange(this)">
@@ -2630,6 +2631,7 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
   </div>
 
   <!-- Return panel -->
+
   <div id="tlReturnPanel" style="display:none;">
     <div style="font-size:0.8rem;color:var(--text2);margin-bottom:8px;font-weight:600;">📥 สำนวนถูกส่งคืนมา — เลือกการดำเนินการ:</div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;">
@@ -2677,7 +2679,6 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
     <button class="btn-tl-save" onclick="saveTracking('return')" style="color:#58a6ff;background:transparent;border:2px solid #58a6ff;">📥 บันทึกการรับคืนสำนวน</button>
   </div>
 </div>
-```
 
   </div>
 </div>
@@ -2706,8 +2707,8 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
   <div class="modal" style="width:580px;">
     <div class="modal-title" style="color:var(--green);">📥 รับสำนวนใหม่เข้าระบบ</div>
 
-```
 <!-- QR scan zone -->
+
 <div style="background:#0d1117;border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;">
   <div style="font-size:0.78rem;color:var(--green);font-weight:600;margin-bottom:8px;">📡 สแกน QR บนปกสำนวน</div>
   <div style="display:flex;gap:8px;">
@@ -2722,6 +2723,7 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
 </div>
 
 <!-- Form -->
+
 <div class="form-row">
   <div class="form-group"><label class="form-label">เลขรับคดีที่ *</label><input class="form-input" id="rcvCaseId" placeholder="เช่น คด.001/2569"></div>
   <div class="form-group"><label class="form-label">วันที่รับสำนวน *</label><input class="form-input" type="date" id="rcvDate"></div>
@@ -2775,7 +2777,6 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
   <button class="btn-cancel" onclick="closeReceiveModal()">ยกเลิก</button>
   <button class="btn-save" onclick="submitReceive()" style="background:var(--green);">📥 บันทึกรับสำนวน</button>
 </div>
-```
 
   </div>
 </div>
@@ -2786,8 +2787,8 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
   <div class="modal" style="width:560px;">
     <div class="modal-title" id="reviewModalTitle" style="color:var(--accent);">⚖️ อจ.พิจารณา — สแกนสำนวน</div>
 
-```
 <!-- QR scan zone -->
+
 <div style="background:#0d1117;border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;">
   <div style="font-size:0.78rem;color:var(--yellow);font-weight:600;margin-bottom:8px;">📡 สแกน QR บนปกสำนวน</div>
   <div style="display:flex;gap:8px;">
@@ -2802,6 +2803,7 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
 </div>
 
 <!-- Case info (hidden until found) -->
+
 <div id="rvwCaseInfo" style="display:none;">
   <div style="background:var(--surface2);border-radius:8px;padding:12px 14px;margin-bottom:14px;">
     <div style="font-family:'Kanit',sans-serif;font-size:0.8rem;color:var(--text3);" id="rvwCaseIdLabel"></div>
@@ -2810,6 +2812,7 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
   </div>
 
   <!-- Action selection -->
+
   <div style="font-size:0.8rem;color:var(--text2);font-weight:600;margin-bottom:10px;">เลือกการดำเนินการ:</div>
   <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
     <div id="rvwOptReceive" onclick="rvwSelectAction('receive',this)"
@@ -2843,13 +2846,13 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
 </div>
 
 <!-- Before case found -->
+
 <div id="rvwNoCase" style="text-align:center;padding:20px 0;">
   <div style="font-size:2.5rem;margin-bottom:8px;">⚖️</div>
   <div style="font-size:0.85rem;color:var(--text3);">สแกนหรือพิมพ์รหัสสำนวนด้านบนเพื่อเริ่มต้น</div>
 </div>
 
 <button class="btn-cancel" onclick="closeReviewModal()" style="width:100%;margin-top:8px;">ปิด</button>
-```
 
   </div>
 </div>
@@ -2872,7 +2875,6 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
       <div id="ownStatus" style="font-size:0.75rem;margin-top:6px;min-height:18px;"></div>
     </div>
 
-```
 <div id="ownCaseInfo" style="display:none;">
   <div style="background:var(--surface2);border-radius:8px;padding:12px 14px;margin-bottom:14px;">
     <div style="font-family:'Kanit',sans-serif;font-size:0.8rem;color:var(--text3);" id="ownCaseIdLabel"></div>
@@ -2907,7 +2909,6 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
   <div style="font-size:0.85rem;color:var(--text3);">สแกนหรือพิมพ์รหัสสำนวนด้านบนเพื่อเริ่มต้น</div>
 </div>
 <button class="btn-cancel" onclick="closeOwnerModal()" style="width:100%;margin-top:8px;">ปิด</button>
-```
 
   </div>
 </div>
