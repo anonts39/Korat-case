@@ -782,10 +782,14 @@ function renderPeople() {
     const cur = inMonth(selYM).filter(c => c.assignee === p.id);
     const prv = inMonth(prevYM(selYM)).filter(c => c.assignee === p.id);
     const ct = cur.length;
-    const cp = cur.filter(c => !['done','court'].includes(c.status)).length;
+    // ค้างในฐานะเจ้าของสำนวน (assignee)
+    const cpOwner = cur.filter(c => !['done','court'].includes(c.status)).length;
+    // ค้างในฐานะผู้ถือสำนวนปัจจุบัน (currentPerson) — ข้ามเดือน
+    const cpHolder = cases.filter(c => c.currentPerson === p.name && !['done','court'].includes(c.status)).length;
+    const cp = cpOwner; // ใช้ assignee สำหรับ mom row
     const cg = cur.filter(c => c.status === 'progress').length;
     const cd = cur.filter(c => c.status === 'done').length;
-    const co = cur.filter(c => c.status !== 'done' && c.status !== 'court' && dlStatus(c.deadline,c.status) === 'overdue').length;
+    const co = cur.filter(c => !['done','court'].includes(c.status) && dlStatus(c.deadline,c.status) === 'overdue').length;
     const init = p.name.replace('นาย','').replace('นางสาว','').replace('นาง','').trim().charAt(0);
     const selected = filterPerson === p.id;
 
@@ -803,14 +807,14 @@ function renderPeople() {
       </div>
       <div class="person-stats">
         <div class="stat-box"><div class="stat-val" style="color:var(--blue)">${ct}</div><div class="stat-lbl">ทั้งหมด</div></div>
-        <div class="stat-box"><div class="stat-val" style="color:var(--red)">${cp}</div><div class="stat-lbl">ค้าง</div></div>
-        <div class="stat-box"><div class="stat-val" style="color:var(--blue)">${cg}</div><div class="stat-lbl">เจ้าของ</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--red)">${cpOwner}</div><div class="stat-lbl">ค้าง(เจ้าของ)</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--yellow)">${cpHolder}</div><div class="stat-lbl">ถือสำนวน</div></div>
         <div class="stat-box"><div class="stat-val" style="color:var(--green)">${cd}</div><div class="stat-lbl">เสร็จ</div></div>
         <div class="stat-box"><div class="stat-val" style="color:var(--yellow)">${co}</div><div class="stat-lbl">เกินกำหนด</div></div>
       </div>
       <div class="person-mom">
         <div class="person-mom-item">ทั้งหมด: ${momHTML(ct,prv.length,false)}</div>
-        <div class="person-mom-item">ค้าง: ${momHTML(cp,prv.filter(c=>!['done','court'].includes(c.status)).length,true)}</div>
+        <div class="person-mom-item">ค้าง(เจ้าของ): ${momHTML(cpOwner,prv.filter(c=>!['done','court'].includes(c.status)).length,true)} | ถือสำนวน: ${cpHolder}</div>
       </div>`;
 
     el.onclick = function(e) {
@@ -896,7 +900,8 @@ function renderTable() {
       filterStatus === 'active' ? (inSelectedMonth && !['done','court'].includes(c.status)) :
                                   (inSelectedMonth && c.status === filterStatus);
     return statusMatch &&
-      (filterPerson === null || c.assignee === filterPerson) &&
+      (filterPerson === null || c.assignee === filterPerson ||
+       (() => { const fp = people.find(x=>x.id===filterPerson); return fp && c.currentPerson===fp.name && !['done','court'].includes(c.status); })()) &&
       (filterCategory === null || (c.category || 'ไม่ระบุ') === filterCategory) &&
       (!filterOverdue || (!['done','court'].includes(c.status) && dlStatus(c.deadline,c.status) === 'overdue')) &&
       (!search || c.name.toLowerCase().includes(search) || c.caseId.toLowerCase().includes(search) || (c.category||'').toLowerCase().includes(search));
