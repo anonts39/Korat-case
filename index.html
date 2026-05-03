@@ -1077,7 +1077,8 @@ window.saveCase = async function() {
       deadline:  document.getElementById('fDeadline').value  || null,
       priority:  document.getElementById('fPriority').value  || 'medium',
       note:      document.getElementById('fNote').value.trim(),
-      extQR:     document.getElementById('fExtQR').value.trim() || null
+      extQR:     document.getElementById('fExtQR').value.trim() || null,
+      relatedCases: (document.getElementById('fRelated').value.trim() || '').split(',').map(s=>s.trim()).filter(Boolean)
     };
     if (editingId) {
       await updateDoc(doc(db,'cases',editingId), obj);
