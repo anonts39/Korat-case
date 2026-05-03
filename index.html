@@ -2003,6 +2003,16 @@ window.rcvCheckQR = function() {
   document.getElementById('rcvCaseId').focus();
 };
 
+window.updateNpStatus = function(radio) {
+  const txt = document.getElementById('npStatusText');
+  if (!txt) return;
+  if (radio.value === 'all') {
+    txt.innerHTML = 'สถานะจะเปลี่ยนเป็น <strong style="color:var(--green);">✅ เสร็จสิ้น</strong>';
+  } else {
+    txt.innerHTML = 'สถานะยังเป็น <strong style="color:var(--blue);">🔵 เจ้าของสำนวน (ค้าง)</strong>';
+  }
+};
+
 window.rcvConfirmCustomCat = async function() {
   const val = document.getElementById('rcvCategoryCustom').value.trim();
   if (!val) return;
@@ -2332,13 +2342,13 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
         <input type="radio" name="returnAction" value="noprosecute" style="margin-top:2px;flex-shrink:0;" onchange="selectReturnOpt(this)">
         <div style="flex:1;">
           <div style="font-weight:600;font-size:0.85rem;">🚫 ไม่ฟ้อง</div>
-          <div style="font-size:0.72rem;color:var(--text3);margin-bottom:6px;">สถานะจะเปลี่ยนเป็น "เสร็จสิ้น"</div>
+          <div id="npStatusText" style="font-size:0.72rem;color:var(--text3);margin-bottom:6px;"></div>
           <div id="noprosecuteSubOpts" style="display:none;display:flex;gap:8px;margin-top:6px;">
             <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-size:0.78rem;">
-              <input type="radio" name="noprosecuteType" value="all" style="flex-shrink:0;"> ทั้งหมด
+              <input type="radio" name="noprosecuteType" value="all" style="flex-shrink:0;" onchange="updateNpStatus(this)"> ทั้งหมด
             </label>
             <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-size:0.78rem;">
-              <input type="radio" name="noprosecuteType" value="partial" style="flex-shrink:0;"> บางส่วน
+              <input type="radio" name="noprosecuteType" value="partial" style="flex-shrink:0;" onchange="updateNpStatus(this)"> บางส่วน
             </label>
           </div>
         </div>
