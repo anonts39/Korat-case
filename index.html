@@ -1554,6 +1554,8 @@ window.saveTracking = async function(actionType) {
 
 window.closeTimeline = function() {
   document.getElementById('timelineModalOverlay').classList.remove('show');
+  // ถ้ามีการค้นหาอยู่ ให้คง filter ไว้
+  renderTable();
 };
 
 document.getElementById('timelineModalOverlay').addEventListener('click', e => {
@@ -1859,11 +1861,10 @@ window.quickScanSearch = function(q) {
   if (!found) found = cases.find(c => c.extQR && c.extQR.toString().includes(code));
 
   if (found) {
-    // เปิด timeline ทันที
-    document.getElementById('searchInput').value = '';
-    renderTable();
+    // เปิด timeline ทันที — คงค่าในช่องค้นหาไว้
     selYM = ymOf(found.date);
     document.getElementById('monthSelect').value = selYM;
+    // ไม่ล้างช่องค้นหา ให้ตารางยังกรองอยู่
     renderAll();
     setTimeout(() => openTimeline(found.id), 300);
   } else {
