@@ -1149,6 +1149,7 @@ window.closePersonModal = function() {
   document.getElementById('personModalOverlay').classList.remove('show');
   document.getElementById('pName').value = '';
   document.getElementById('pRole').value = '';
+  document.getElementById('pUID') && (document.getElementById('pUID').value = '');
   const editIdEl = document.getElementById('pEditId');
   if (editIdEl) editIdEl.value = '';
   const titleEl = document.getElementById('personModalTitle');
@@ -2330,7 +2331,7 @@ window.rvwSubmit = async function() {
   try {
     await addDoc(collection(db, 'tracking'), {
       caseId: rvwCurrentCase.id, caseCode: rvwCurrentCase.caseId,
-      dept, person: currentUserEmail,
+      dept, person: currentUserName||currentUserEmail,
       note, action: actionLabel, statusLabel,
       by: currentUserEmail, timestamp: new Date()
     });
@@ -2446,7 +2447,7 @@ window.ownSubmit = async function() {
   try {
     await addDoc(collection(db,'tracking'),{
       caseId:ownCurrentCase.id, caseCode:ownCurrentCase.caseId,
-      dept, person:currentUserEmail, note,
+      dept, person:currentUserName||currentUserEmail, note,
       action:actionLabel, statusLabel, by:currentUserEmail, timestamp:new Date()
     });
     await updateDoc(doc(db,'cases',ownCurrentCase.id),{
