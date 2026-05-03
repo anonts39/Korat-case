@@ -167,9 +167,9 @@ td{padding:11px 14px;font-size:0.85rem;}
 .form-group{margin-bottom:14px;}
 .form-label{display:block;font-size:0.78rem;color:var(--text2);margin-bottom:5px;font-weight:500;}
 .form-input,.form-select{width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.85rem;outline:none;}
-.assignee-btn{padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.82rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
-.assignee-btn:hover{border-color:var(--accent);color:var(--accent);}
-.assignee-btn.selected{border-color:var(--accent);background:var(--accent);color:#fff;font-weight:600;}
+.assignee-btn{display:none;}
+.form-select-lg{width:100%;padding:12px 14px;background:var(--bg);border:2px solid var(--accent);border-radius:10px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:1rem;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23f0883e' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;}
+.form-select-lg option{font-size:1rem;padding:8px;}
 .form-select option{background:var(--surface);}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
 .btn-cancel{padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.83rem;cursor:pointer;}
@@ -390,11 +390,7 @@ td{padding:11px 14px;font-size:0.85rem;}
       </div>
     </div>
     <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">ผู้รับผิดชอบ</label>
-        <div id="fAssigneeGrid" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;"></div>
-        <input type="hidden" id="fAssignee">
-      </div>
+      <div class="form-group"><label class="form-label">ผู้รับผิดชอบ</label><select class="form-select form-select-lg" id="fAssignee"><option value="">-- เลือกผู้รับผิดชอบ --</option></select></div>
       <div class="form-group"><label class="form-label">สถานะ</label><select class="form-select" id="fStatus">
           <option value="pending">🔍 สอบสวนเพิ่มเติม</option>
           <option value="progress">🔵 เจ้าของสำนวน</option>
@@ -1087,7 +1083,6 @@ window.editCase = function(id) {
   document.getElementById('fCaseId').value   = c.caseId;
   document.getElementById('fCaseName').value = c.name;
   document.getElementById('fAssignee').value = c.assignee || '';
-  renderAssigneeGrid('fAssigneeGrid', 'fAssignee', c.assignee || '');
   document.getElementById('fStatus').value   = c.status;
   document.getElementById('fDate').value     = c.date;
   document.getElementById('fDeadline').value = c.deadline || '';
@@ -2087,7 +2082,9 @@ window.openReceiveModal = function() {
   document.getElementById('rcvDate').value = new Date().toISOString().split('T')[0];
   document.getElementById('rcvPriority').value = 'medium';
   // Populate assignee
-  renderAssigneeGrid('rcvAssigneeGrid', 'rcvAssignee', '');
+  const selR = document.getElementById('rcvAssignee');
+  selR.innerHTML = '<option value="">-- เลือกผู้รับผิดชอบ --</option>' +
+    people.map(p => `<option value="${p.id}">${p.name}${p.role?' ('+p.role+')':''}</option>`).join('');
   document.getElementById('receiveModalOverlay').classList.add('show');
   setTimeout(() => document.getElementById('rcvQR').focus(), 300);
 };
@@ -2558,11 +2555,7 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
       <button onclick="rcvConfirmCustomCat()" style="padding:9px 14px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:0.8rem;cursor:pointer;font-family:'Sarabun',sans-serif;white-space:nowrap;">+ เพิ่ม</button>
     </div>
   </div>
-  <div class="form-group">
-    <label class="form-label">ผู้รับผิดชอบ (เจ้าของสำนวน)</label>
-    <div id="rcvAssigneeGrid" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;"></div>
-    <input type="hidden" id="rcvAssignee">
-  </div>
+  <div class="form-group"><label class="form-label">ผู้รับผิดชอบ (เจ้าของสำนวน)</label><select class="form-select form-select-lg" id="rcvAssignee"><option value="">-- เลือกผู้รับผิดชอบ --</option></select></div>
 </div>
 <div class="form-row">
   <div class="form-group"><label class="form-label">📅 Deadline</label><input class="form-input" type="date" id="rcvDeadline"></div>
