@@ -2289,8 +2289,6 @@ window.rvwSearch = async function() {
   if (!val) return;
   const code = val.replace(/^tel:/i,'');
   const phoneNorm = code.replace(/[-\s]/g,'');
-  if (!cases.length) await loadCases();
-
   let found = cases.find(c => c.id === code) ||
     cases.find(c => c.caseId && c.caseId.toLowerCase() === code.toLowerCase()) ||
     cases.find(c => c.extQR && c.extQR.toString().replace(/[-\s]/g,'') === phoneNorm) ||
@@ -2420,9 +2418,7 @@ window.ownSearch = async function() {
   const phoneNorm = code.replace(/[-\s]/g,'');
   const sMap = {pending:'🔍 สอบสวนเพิ่มเติม',progress:'🔵 เจ้าของสำนวน',screening:'🔍 รอกลั่นกรอง',review:'⚖️ อจ.พิจารณา',filing:'📁 งานพิมพ์สำนวน',done:'✅ เสร็จสิ้น',court:'🏛 ศาล'};
 
-  // Reload cases to get latest data
-  await loadCases();
-
+  // Use existing cases (already loaded)
   let found = cases.find(c=>c.id===code) ||
     cases.find(c=>c.caseId&&c.caseId.toLowerCase()===code.toLowerCase()) ||
     cases.find(c=>c.extQR&&c.extQR.toString().replace(/[-\s]/g,'')===phoneNorm) ||
