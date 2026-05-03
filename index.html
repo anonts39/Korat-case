@@ -850,7 +850,7 @@ function renderPeople() {
 
     // Click to filter (not on handle or menu)
     el.onclick = function(e) {
-      if (e.target.closest('.drag-handle') || e.target.closest('[onclick*="openPersonMenu"]')) return;
+      if (e.target.closest('.drag-handle') || e.target.closest('[data-menu-pid]')) return;
       filterPerson = filterPerson === p.id ? null : p.id;
       renderAll();
     };
@@ -1154,6 +1154,57 @@ window.closePersonModal = function() {
   if (saveBtn) saveBtn.textContent = 'เพิ่ม';
 };
 
+
+// ===== PERSON MENU =====
+window.openPersonMenu = function(pid) {
+  // Remove any existing menu
+  const existing = document.getElementById('personMenuPopup');
+  if (existing) { existing.remove(); return; }
+
+  const p = people.find(x => x.id === pid);
+  if (!p) return;
+
+  const btn = document.querySelector(`[data-menu-pid="${pid}"]`);
+  if (!btn) return;
+
+  const popup = document.createElement('div');
+  popup.id = 'personMenuPopup';
+  popup.style.cssText = `
+    position:fixed;z-index:9999;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:8px;padding:6px 0;min-width:140px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.4);
+    font-family:'Sarabun',sans-serif;font-size:0.85rem;
+  `;
+
+  const rect = btn.getBoundingClientRect();
+  popup.style.top  = (rect.bottom + 6) + 'px';
+  popup.style.left = Math.min(rect.left, window.innerWidth - 160) + 'px';
+
+  popup.innerHTML = `
+    <div onclick="editPerson('${p.id}','${p.name}','${p.role||''}');document.getElementById('personMenuPopup')?.remove();"
+         style="padding:8px 16px;cursor:pointer;color:var(--text);" 
+         onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+      ✏️ แก้ไข
+    </div>
+    <div onclick="deletePerson('${p.id}','${p.name}');document.getElementById('personMenuPopup')?.remove();"
+         style="padding:8px 16px;cursor:pointer;color:var(--red);"
+         onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+      🗑 ลบ
+    </div>`;
+
+  document.body.appendChild(popup);
+
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', function handler(e) {
+      if (!popup.contains(e.target)) {
+        popup.remove();
+        document.removeEventListener('click', handler);
+      }
+    });
+  }, 100);
+};
 window.editPerson = function(id, name, role) {
   const editIdEl = document.getElementById('pEditId');
   if (editIdEl) editIdEl.value = id;
