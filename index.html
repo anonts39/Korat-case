@@ -563,9 +563,10 @@ async function loadPeople() {
   people = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 async function loadCases() {
+  // ไม่ใช้ orderBy เพื่อหลีกเลี่ยง Firestore index requirement
   let snap;
   if (isAdminUser) {
-    snap = await getDocs(query(collection(db, 'cases'), orderBy('date', 'desc')));
+    snap = await getDocs(collection(db, 'cases'));
   } else {
     snap = await getDocs(query(collection(db, 'cases'), where('userId','==',currentUserId)));
   }
