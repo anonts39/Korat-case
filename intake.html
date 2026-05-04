@@ -169,6 +169,10 @@ header{background:#161b22;border-bottom:1px solid #30363d;padding:14px 20px;disp
 <label class="form-label">หมายเหตุ</label>
 <input class="form-input" id="fNote" placeholder="หมายเหตุ (ไม่บังคับ)">
 
+<label class="form-label">🔗 สำนวนที่เกี่ยวข้อง (โอนมาจาก / รวมกับ)</label>
+<input class="form-input" id="fRelated" placeholder="เช่น 1178/2569, 1201/2569 คั่นด้วยจุลภาค">
+<div style="font-size:0.72rem;color:#6e7681;margin-top:-8px;margin-bottom:12px;">💡 ใส่เลขสำนวนที่โอนมาจากหรือรวมกับ</div>
+
 <button class="btn-submit" id="btnSubmit" onclick="submitCase()">
   📥 บันทึกลงรับสำนวน
 </button>
@@ -348,6 +352,7 @@ window.submitCase = async function() {
       priority: 'medium',
       note: document.getElementById('fNote').value.trim(),
       extQR: currentQR || null,
+      relatedCases: (document.getElementById('fRelated').value.trim() || '').split(',').map(s=>s.trim()).filter(Boolean),
       currentDept: 'อัยการเจ้าของเรื่อง',
       currentPerson: assigneePerson?.name || null,
       createdAt: new Date().toISOString(),
@@ -389,6 +394,7 @@ window.resetForm = function() {
   document.getElementById('fAssignee').value = '';
   document.getElementById('fDeadline').value = '';
   document.getElementById('fNote').value = '';
+  document.getElementById('fRelated').value = '';
   document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
   document.getElementById('formCard').classList.remove('show');
   document.getElementById('qrInput').focus();
