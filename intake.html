@@ -258,10 +258,17 @@ async function loadData() {
 }
 
 // QR Handler
+function parseBarcodeInput(raw) {
+  const rcnum = raw.match(/rcnum[:\s]*(\d+)/i);
+  const rcyr  = raw.match(/rcyr[:\s]*(\d+)/i);
+  if (rcnum && rcyr) return rcnum[1] + '/' + rcyr[1];
+  return raw.replace(/^tel:/i,'').trim();
+}
+
 window.handleQR = function() {
   const val = document.getElementById('qrInput').value.trim();
   if (!val) return;
-  const code = val.replace(/^tel:/i,'');
+  const code = parseBarcodeInput(val);
   const phoneNorm = code.replace(/[-\s]/g,'');
   const status = document.getElementById('scanStatus');
 
