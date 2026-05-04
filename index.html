@@ -2202,9 +2202,20 @@ function inDateRange(date) {
   return true;
 }
 
+function parseBarcodeInput(raw) {
+  // Try JSON-like format: {gid:...,token:...,oid:...,rcnum:1254,rcyr:2569}
+  const rcnum = raw.match(/rcnum[:\s]*(\d+)/i);
+  const rcyr  = raw.match(/rcyr[:\s]*(\d+)/i);
+  if (rcnum && rcyr) {
+    return rcnum[1] + '/' + rcyr[1];
+  }
+  // Try plain number or existing format
+  return raw.replace(/^tel:/i,'').trim();
+}
+
 window.quickScanSearch = function(q) {
   if (!q || !q.trim()) return;
-  const code = q.trim().replace(/^tel:/i,'');
+  const code = parseBarcodeInput(q.trim());
 
   // ค้นหาจาก extQR, caseId, phone
   const phoneNorm = code.replace(/[-\s]/g,'');
@@ -2468,7 +2479,7 @@ window.closeReviewModal = function() {
 window.rvwSearch = async function() {
   const val = document.getElementById('rvwQR').value.trim();
   if (!val) return;
-  const code = val.replace(/^tel:/i,'');
+  const code = parseBarcodeInput(val);
   const phoneNorm = code.replace(/[-\s]/g,'');
   let found = cases.find(c => c.id === code) ||
     cases.find(c => c.caseId && c.caseId.toLowerCase() === code.toLowerCase()) ||
@@ -2595,7 +2606,7 @@ window.closeOwnerModal = function() {
 window.ownSearch = async function() {
   const val = document.getElementById('ownQR').value.trim();
   if (!val) return;
-  const code = val.replace(/^tel:/i,'');
+  const code = parseBarcodeInput(val);
   const phoneNorm = code.replace(/[-\s]/g,'');
   const sMap = {pending:'🔍 สอบสวนเพิ่มเติม',progress:'🔵 เจ้าของสำนวน',screening:'🔍 รอกลั่นกรอง',review:'⚖️ อจ.พิจารณา',filing:'📁 งานพิมพ์สำนวน',done:'✅ เสร็จสิ้น',court:'🏛 ศาล'};
 
