@@ -252,17 +252,26 @@ window.doLogin = async function() {
 };
 
 async function loadData() {
-  const [pSnap, cSnap] = await Promise.all([
-    getDocs(collection(db,'people')),
-    getDocs(collection(db,'cases'))
-  ]);
-  people = pSnap.docs.map(d => ({id:d.id,...d.data()}));
-  cases = cSnap.docs.map(d => ({id:d.id,...d.data()}));
-  console.log('Loaded cases:', cases.length, 'people:', people.length);
+  try {
+    const [pSnap, cSnap] = await Promise.all([
+      getDocs(collection(db,'people')),
+      getDocs(collection(db,'cases'))
+    ]);
+    people = pSnap.docs.map(d => ({id:d.id,...d.data()}));
+    cases = cSnap.docs.map(d => ({id:d.id,...d.data()}));
+    console.log('Loaded cases:', cases.length, 'people:', people.length);
+  } catch(e) {
+    console.error('loadData error:', e);
+    showToast('❌ โหลดข้อมูลไม่ได้: ' + e.message, 'error');
+  }
   // Populate assignee
   const sel = document.getElementById('fAssignee');
-  sel.innerHTML = '<option value="">-- เลือก --</option>' +
-    people.map(p => `<option value="${p.id}">${p.name}${p.role?' ('+p.role+')':''}</option>`).join('');
+  if (people.length === 0) {
+    sel.innerHTML = '<option value="">❌ ไม่พบรายชื่อ (ตรวจสอบ Firestore Rules)</option>';
+  } else {
+    sel.innerHTML = '<option value="">-- เลือก --</option>' +
+      people.map(p => `<option value="${p.id}">${p.name}${p.role?' ('+p.role+')':''}</option>`).join('');
+  }
 }
 
 // QR Handler
