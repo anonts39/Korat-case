@@ -531,6 +531,23 @@ function getCatColor(cat) {
 function getCatEmoji(cat) { return CAT_EMOJI[cat] || '📁'; }
 
 const ymOf    = d => d ? d.slice(0,7) : '';
+const TH_M_S  = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+function fmtDate(raw) {
+  if (!raw) return '-';
+  // Format 1: YYYY-MM-DD
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return iso[3] + '/' + iso[2] + '/' + (parseInt(iso[1])+543);
+  // Format 2: DD MMM YYYY (Thai short month)
+  const thM = TH_M_S.indexOf(raw.split(' ')[1]);
+  if (thM >= 0) {
+    const parts = raw.split(' ');
+    return String(parts[0]).padStart(2,'0') + '/' + String(thM+1).padStart(2,'0') + '/' + parts[2];
+  }
+  // Format 3: try Date parse
+  const d = new Date(raw);
+  if (!isNaN(d)) return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + (d.getFullYear()+543);
+  return raw;
+}
 const prevYM  = m => { const [y,mo] = m.split('-').map(Number); return mo===1 ? `${y-1}-12` : `${y}-${String(mo-1).padStart(2,'0')}`; };
 const ymFull  = m => { const [y,mo] = m.split('-').map(Number); return `${TH_F[mo-1]} ${y+543}`; };
 const ymShort = m => { const [y,mo] = m.split('-').map(Number); return `${TH_S[mo-1]} ${y+543}`; };
@@ -1143,16 +1160,7 @@ function renderTable() {
       <td style="font-size:0.82rem">${per?per.name:'-'}</td>
       <td><span class="badge ${cls}">${lbl}</span></td>
       <td>${dlLabel(c.deadline,c.status)}</td>
-      <td style="color:var(--text3);font-size:0.78rem">${c.date ? (() => { 
-  const raw = c.date;
-  // Try YYYY-MM-DD format
-  const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (m) return m[3] + '/' + m[2] + '/' + (parseInt(m[1])+543);
-  // Fallback
-  const d = new Date(raw);
-  if (isNaN(d)) return raw;
-  return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + (d.getFullYear()+543);
-})() : '-'}</td>
+      <td style="color:var(--text3);font-size:0.78rem">${fmtDate(c.date)}</td>
       <td><div style="display:flex;gap:5px">
         <button class="action-btn" onclick="editCase('${c.id}')">แก้ไข</button>
         <button class="action-btn qr" onclick="showCaseQR('${c.id}')">QR</button>
