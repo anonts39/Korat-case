@@ -1113,6 +1113,7 @@ function renderTable() {
     const noteLabel  = c.note ? `<div style="font-size:0.72rem;color:var(--text3)">📝 ${c.note}</div>` : '';
     const canDelete  = isAdminUser || c.userId === currentUserId;
     return `<tr class="${rowCls}" id="case-row-${c.id}">
+      <td style="text-align:center;color:var(--text3);font-size:0.78rem;width:36px;">${rowNum}</td>
       <td><div class="case-id">${c.caseId}</div></td>
       <td>
         <div class="case-name">${c.name}</div>
