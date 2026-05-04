@@ -576,7 +576,7 @@ const ADMIN_UID = 'iLq4pa3fa2bQB9v5rQlb2hg1prr2';
 // ===== AUTH =====
 
 // ===== EXPORT & PRINT =====
-window.exportExcel = function() {
+window.exportExcel = function() { try {
   const sMap = {pending:'สอบสวนเพิ่มเติม',progress:'เจ้าของสำนวน',screening:'รอกลั่นกรอง',review:'อจ.พิจารณา',filing:'งานพิมพ์สำนวน',done:'เสร็จสิ้น',court:'ศาล'};
   let exportCases = cases.filter(c => isAdminUser || !currentPersonId || c.assignee === currentPersonId);
   const headers = ['เลขรับคดีที่','ชื่อคดี','ประเภท','ผู้รับผิดชอบ','สถานะ','วันที่รับ','Deadline','หมายเหตุ'];
@@ -593,9 +593,10 @@ window.exportExcel = function() {
   a.download = 'สำนวนคดี_'+(now.getFullYear()+543)+'-'+String(now.getMonth()+1).padStart(2,'0')+'.csv';
   a.click();
   URL.revokeObjectURL(url);
+  } catch(e) { alert('Export error: ' + e.message); }
 };
 
-window.printReport = function() {
+window.printReport = function() { try {
   const sMap = {pending:'สอบสวนเพิ่มเติม',progress:'เจ้าของสำนวน',screening:'รอกลั่นกรอง',review:'อจ.พิจารณา',filing:'งานพิมพ์สำนวน',done:'เสร็จสิ้น',court:'ศาล'};
   let printCases = cases.filter(c => isAdminUser || !currentPersonId || c.assignee === currentPersonId);
   if (filterStatus !== 'all') {
@@ -648,9 +649,22 @@ window.printReport = function() {
 '</body></html>';
 ```
 
-const w = window.open(’’,’_blank’);
+// iOS-compatible: use blob URL instead of window.open
+try {
+const blob = new Blob([html], {type: ‘text/html;charset=utf-8’});
+const url = URL.createObjectURL(blob);
+const a = document.createElement(‘a’);
+a.href = url;
+a.target = ‘_blank’;
+a.click();
+setTimeout(() => URL.revokeObjectURL(url), 5000);
+} catch(e) {
+// Fallback: open in same window
+const w = window.open(’’, ‘_blank’) || window;
 w.document.write(html);
 w.document.close();
+}
+} catch(e) { alert(’Print error: ’ + e.message); }
 };
 
 onAuthStateChanged(auth, async (user) => {
