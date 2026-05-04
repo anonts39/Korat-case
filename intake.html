@@ -63,6 +63,10 @@ header{background:#161b22;border-bottom:1px solid #30363d;padding:14px 20px;disp
 .login-err{font-size:0.78rem;color:#f85149;text-align:center;margin-top:8px;min-height:18px;}
 </style>
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+.flatpickr-calendar { font-family:'Sarabun',sans-serif; }
+</style>
 </head>
 <body>
 
@@ -415,6 +419,28 @@ function showToast(msg, type) {
   t.className = 'toast ' + type;
   setTimeout(() => t.className = 'toast', 3500);
 }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js"></script>
+
+<script>
+// Init date pickers after page load
+document.addEventListener('DOMContentLoaded', function() {
+  flatpickr('#fDate', {
+    locale: 'th',
+    dateFormat: 'Y-m-d',
+    defaultDate: new Date(),
+    allowInput: true
+  });
+  flatpickr('#fDeadline', {
+    locale: 'th',
+    dateFormat: 'Y-m-d',
+    allowInput: true,
+    minDate: 'today'
+  });
+});
 </script>
 
 </body>
