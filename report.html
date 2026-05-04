@@ -67,6 +67,10 @@ tr:hover td{background:#1c2128;}
 </header>
 
 <div class="controls">
+  <select class="select" id="viewMode" onchange="switchView()">
+    <option value="list">📋 รายการคดี</option>
+    <option value="summary">📊 สรุปรายปี</option>
+  </select>
   <select class="select" id="filterStatus" onchange="renderReport()">
     <option value="all">📋 ทุกสถานะ</option>
     <option value="active">⏳ ค้างทั้งหมด</option>
@@ -89,6 +93,7 @@ tr:hover td{background:#1c2128;}
 <div class="main">
   <div class="summary" id="summaryCards"></div>
   <div id="reportTable"><div class="loading">กำลังโหลดข้อมูล...</div></div>
+  <div id="yearSummaryView" style="display:none;"></div>
 </div>
 
 <script type="module">
@@ -216,6 +221,96 @@ window.renderReport = function() {
     </table>`;
   
   window._filteredCases = filtered;
+};
+
+window.switchView = function() {
+  const mode = document.getElementById('viewMode').value;
+  const listControls = ['filterStatus','filterPerson','filterCategory','searchInput'];
+  if (mode === 'summary') {
+    document.getElementById('reportTable').style.display = 'none';
+    document.getElementById('summaryCards').style.display = 'none';
+    document.getElementById('yearSummaryView').style.display = 'block';
+    listControls.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.closest('.select') ? el.style.display='none' : null;
+      if (el) el.style.display = 'none';
+    });
+    renderYearSummary();
+  } else {
+    document.getElementById('reportTable').style.display = 'block';
+    document.getElementById('summaryCards').style.display = 'flex';
+    document.getElementById('yearSummaryView').style.display = 'none';
+    listControls.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = '';
+    });
+    renderReport();
+  }
+};
+
+window.renderYearSummary = function() {
+  const container = document.getElementById('yearSummaryView');
+  const now = new Date();
+  const currentYear = now.getFullYear();
+
+  // Group cases by year
+  const years = [...new Set(cases.map(c => c.date ? new Date(c.date).getFullYear() : null).filter(Boolean))].sort((a,b) => b-a);
+  if (!years.includes(currentYear)) years.unshift(currentYear);
+
+  const sMap = {pending:'สอบสวนเพิ่มเติม',progress:'เจ้าของสำนวน',screening:'รอกลั่นกรอง',review:'อจ.พิจารณา',filing:'งานพิมพ์สำนวน',done:'เสร็จสิ้น',court:'ศาล'};
+
+  let html = '';
+  years.forEach(year => {
+    const yearCases = cases.filter(c => c.date && new Date(c.date).getFullYear() === year);
+    if (!yearCases.length) return;
+
+    const total = yearCases.length;
+    const pending = yearCases.filter(c => !['done','court'].includes(c.status)).length;
+    const done = yearCases.filter(c => c.status === 'done').length;
+    const court = yearCases.filter(c => c.status === 'court').length;
+    const thYear = year + 543;
+
+    html += `<div class="year-card">
+      <div class="year-card-title">📅 ปี พ.ศ. ${thYear} — สรุปรวม</div>
+      <div class="year-stats">
+        <div class="year-stat"><div class="year-stat-num" style="color:#58a6ff">${total}</div><div class="year-stat-lbl">ทั้งหมด</div></div>
+        <div class="year-stat"><div class="year-stat-num" style="color:#f85149">${pending}</div><div class="year-stat-lbl">ค้าง</div></div>
+        <div class="year-stat"><div class="year-stat-num" style="color:#3fb950">${done}</div><div class="year-stat-lbl">เสร็จสิ้น</div></div>
+        <div class="year-stat"><div class="year-stat-num" style="color:#8b949e">${court}</div><div class="year-stat-lbl">ศาล</div></div>
+        <div class="year-stat"><div class="year-stat-num" style="color:#f0883e">${total>0?Math.round(done/total*100):0}%</div><div class="year-stat-lbl">อัตราเสร็จ</div></div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <div class="person-row person-row-header">
+          <div>ผู้รับผิดชอบ</div>
+          <div class="num-cell">ทั้งหมด</div>
+          <div class="num-cell">ค้าง</div>
+          <div class="num-cell">เสร็จสิ้น</div>
+          <div class="num-cell">ศาล</div>
+          <div class="num-cell">อัตราเสร็จ</div>
+        </div>
+        ${people.map(p => {
+          const pc = yearCases.filter(c => c.assignee === p.id);
+          if (!pc.length) return '';
+          const pt = pc.length;
+          const pp = pc.filter(c => !['done','court'].includes(c.status)).length;
+          const pd = pc.filter(c => c.status === 'done').length;
+          const pco = pc.filter(c => c.status === 'court').length;
+          const pct = pt > 0 ? Math.round(pd/pt*100) : 0;
+          return `<div class="person-row">
+            <div class="person-name">${p.name}<div style="font-size:0.7rem;color:#6e7681;">${p.role||''}</div></div>
+            <div class="num-cell" style="color:#58a6ff;font-weight:600;">${pt}</div>
+            <div class="num-cell" style="color:#f85149;">${pp}</div>
+            <div class="num-cell" style="color:#3fb950;">${pd}</div>
+            <div class="num-cell" style="color:#8b949e;">${pco}</div>
+            <div class="num-cell" style="color:#f0883e;">${pct}%</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  });
+
+  container.innerHTML = html || '<div class="loading">ไม่มีข้อมูล</div>';
 };
 
 window.exportCSV = function() {
