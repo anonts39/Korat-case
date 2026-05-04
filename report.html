@@ -253,61 +253,102 @@ window.renderYearSummary = function() {
   const now = new Date();
   const currentYear = now.getFullYear();
 
-  // Group cases by year
   const years = [...new Set(cases.map(c => c.date ? new Date(c.date).getFullYear() : null).filter(Boolean))].sort((a,b) => b-a);
   if (!years.includes(currentYear)) years.unshift(currentYear);
-
-  const sMap = {pending:'สอบสวนเพิ่มเติม',progress:'เจ้าของสำนวน',screening:'รอกลั่นกรอง',review:'อจ.พิจารณา',filing:'งานพิมพ์สำนวน',done:'เสร็จสิ้น',court:'ศาล'};
 
   let html = '';
   years.forEach(year => {
     const yearCases = cases.filter(c => c.date && new Date(c.date).getFullYear() === year);
     if (!yearCases.length) return;
-
+    const thYear = year + 543;
     const total = yearCases.length;
     const pending = yearCases.filter(c => !['done','court'].includes(c.status)).length;
     const done = yearCases.filter(c => c.status === 'done').length;
     const court = yearCases.filter(c => c.status === 'court').length;
-    const thYear = year + 543;
+    const pct = total > 0 ? Math.round(done/total*100) : 0;
 
-    html += `<div class="year-card">
-      <div class="year-card-title">📅 ปี พ.ศ. ${thYear} — สรุปรวม</div>
-      <div class="year-stats">
-        <div class="year-stat"><div class="year-stat-num" style="color:#58a6ff">${total}</div><div class="year-stat-lbl">ทั้งหมด</div></div>
-        <div class="year-stat"><div class="year-stat-num" style="color:#f85149">${pending}</div><div class="year-stat-lbl">ค้าง</div></div>
-        <div class="year-stat"><div class="year-stat-num" style="color:#3fb950">${done}</div><div class="year-stat-lbl">เสร็จสิ้น</div></div>
-        <div class="year-stat"><div class="year-stat-num" style="color:#8b949e">${court}</div><div class="year-stat-lbl">ศาล</div></div>
-        <div class="year-stat"><div class="year-stat-num" style="color:#f0883e">${total>0?Math.round(done/total*100):0}%</div><div class="year-stat-lbl">อัตราเสร็จ</div></div>
-      </div>
+    // Person rows
+    const personRows = people.map(p => {
+      const pc = yearCases.filter(c => c.assignee === p.id);
+      if (!pc.length) return '';
+      const pt = pc.length;
+      const pp = pc.filter(c => !['done','court'].includes(c.status)).length;
+      const pd = pc.filter(c => c.status === 'done').length;
+      const pco = pc.filter(c => c.status === 'court').length;
+      const ppct = pt > 0 ? Math.round(pd/pt*100) : 0;
+      const barW = ppct;
+      return `
+        <div style="background:#0d1117;border-radius:10px;padding:14px;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div>
+              <div style="font-weight:600;font-size:0.88rem;">${p.name}</div>
+              <div style="font-size:0.72rem;color:#6e7681;">${p.role||''}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:1.1rem;font-weight:700;color:#58a6ff;font-family:'Kanit',sans-serif;">${pt}</div>
+              <div style="font-size:0.7rem;color:#6e7681;">สำนวน</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
+            <div style="background:#161b22;border-radius:6px;padding:8px;text-align:center;">
+              <div style="font-size:1rem;font-weight:700;color:#f85149;">${pp}</div>
+              <div style="font-size:0.68rem;color:#6e7681;">ค้าง</div>
+            </div>
+            <div style="background:#161b22;border-radius:6px;padding:8px;text-align:center;">
+              <div style="font-size:1rem;font-weight:700;color:#3fb950;">${pd}</div>
+              <div style="font-size:0.68rem;color:#6e7681;">เสร็จสิ้น</div>
+            </div>
+            <div style="background:#161b22;border-radius:6px;padding:8px;text-align:center;">
+              <div style="font-size:1rem;font-weight:700;color:#8b949e;">${pco}</div>
+              <div style="font-size:0.68rem;color:#6e7681;">ศาล</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="flex:1;background:#21262d;border-radius:20px;height:6px;overflow:hidden;">
+              <div style="width:${barW}%;background:#3fb950;height:100%;border-radius:20px;transition:width 0.5s;"></div>
+            </div>
+            <div style="font-size:0.75rem;color:#3fb950;font-weight:600;white-space:nowrap;">${ppct}% เสร็จ</div>
+          </div>
+        </div>`;
+    }).join('');
 
-      <div style="margin-top:12px;">
-        <div class="person-row person-row-header">
-          <div>ผู้รับผิดชอบ</div>
-          <div class="num-cell">ทั้งหมด</div>
-          <div class="num-cell">ค้าง</div>
-          <div class="num-cell">เสร็จสิ้น</div>
-          <div class="num-cell">ศาล</div>
-          <div class="num-cell">อัตราเสร็จ</div>
+    html += `
+      <div class="year-card" style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="year-card-title" style="margin-bottom:0;">📅 ปี พ.ศ. ${thYear}</div>
+          <div style="font-size:0.78rem;color:#6e7681;">${total} สำนวน</div>
         </div>
-        ${people.map(p => {
-          const pc = yearCases.filter(c => c.assignee === p.id);
-          if (!pc.length) return '';
-          const pt = pc.length;
-          const pp = pc.filter(c => !['done','court'].includes(c.status)).length;
-          const pd = pc.filter(c => c.status === 'done').length;
-          const pco = pc.filter(c => c.status === 'court').length;
-          const pct = pt > 0 ? Math.round(pd/pt*100) : 0;
-          return `<div class="person-row">
-            <div class="person-name">${p.name}<div style="font-size:0.7rem;color:#6e7681;">${p.role||''}</div></div>
-            <div class="num-cell" style="color:#58a6ff;font-weight:600;">${pt}</div>
-            <div class="num-cell" style="color:#f85149;">${pp}</div>
-            <div class="num-cell" style="color:#3fb950;">${pd}</div>
-            <div class="num-cell" style="color:#8b949e;">${pco}</div>
-            <div class="num-cell" style="color:#f0883e;">${pct}%</div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>`;
+
+        <!-- รวมทั้งหมด -->
+        <div style="background:#1a1f2d;border:1px solid #1a2a4a;border-radius:10px;padding:14px;margin-bottom:14px;">
+          <div style="font-size:0.78rem;color:#58a6ff;font-weight:600;margin-bottom:10px;">📊 ภาพรวมทั้งสำนักงาน</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+            <div style="text-align:center;">
+              <div style="font-size:1.4rem;font-weight:700;color:#58a6ff;font-family:'Kanit',sans-serif;">${total}</div>
+              <div style="font-size:0.7rem;color:#6e7681;">ทั้งหมด</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:1.4rem;font-weight:700;color:#f85149;font-family:'Kanit',sans-serif;">${pending}</div>
+              <div style="font-size:0.7rem;color:#6e7681;">ค้าง</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:1.4rem;font-weight:700;color:#3fb950;font-family:'Kanit',sans-serif;">${done}</div>
+              <div style="font-size:0.7rem;color:#6e7681;">เสร็จสิ้น</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:1.4rem;font-weight:700;color:#f0883e;font-family:'Kanit',sans-serif;">${pct}%</div>
+              <div style="font-size:0.7rem;color:#6e7681;">อัตราเสร็จ</div>
+            </div>
+          </div>
+          <div style="background:#21262d;border-radius:20px;height:8px;overflow:hidden;">
+            <div style="width:${pct}%;background:linear-gradient(90deg,#3fb950,#58a6ff);height:100%;border-radius:20px;transition:width 0.5s;"></div>
+          </div>
+        </div>
+
+        <!-- รายบุคคล -->
+        <div style="font-size:0.78rem;color:#8b949e;font-weight:600;margin-bottom:8px;">👤 รายละเอียดแต่ละคน</div>
+        ${personRows}
+      </div>`;
   });
 
   container.innerHTML = html || '<div class="loading">ไม่มีข้อมูล</div>';
