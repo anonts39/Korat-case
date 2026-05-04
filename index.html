@@ -289,12 +289,19 @@ td{padding:11px 14px;font-size:0.85rem;}
 </div>
 
 <div class="main">
-  <div class="month-bar">
-    <span class="month-label">📅 ดูข้อมูลเดือน:</span>
-    <select class="month-select" id="monthSelect" onchange="renderAll()"></select>
+  <div class="month-bar" style="flex-wrap:wrap;gap:8px;">
+    <span class="month-label">📅 ช่วงเวลา:</span>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <span style="font-size:0.78rem;color:var(--text3);">จาก</span>
+      <select class="month-select" id="monthFrom" onchange="onDateRangeChange()" style="min-width:120px;"></select>
+      <span style="font-size:0.78rem;color:var(--text3);">ถึง</span>
+      <select class="month-select" id="monthTo" onchange="onDateRangeChange()" style="min-width:120px;"></select>
+    </div>
+    <button onclick="resetDateRange()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">รีเซ็ต</button>
     <span class="mbadge cur" id="curBadge"></span>
     <span style="color:var(--text3);font-size:0.78rem">เทียบกับ</span>
     <span class="mbadge prev" id="prevBadge"></span>
+    <input type="hidden" id="monthSelect">
   </div>
   <div class="alert-strip" id="alertStrip">
     <div class="alert-strip-title">🚨 คดีที่ต้องดำเนินการด่วน</div>
@@ -663,18 +670,35 @@ function init() {
     NOW.toLocaleDateString('th-TH', { year:'numeric', month:'long', day:'numeric' }));
   document.getElementById('fDate').value = NOW.toISOString().split('T')[0];
   buildMonthSelect();
+  // Init range vars
+  const _months = allYMs();
+  selYMFrom = _months[0] || selYM;
+  selYMTo = selYM;
   renderAll();
   buildAlerts();
 }
 function buildMonthSelect() {
-  const sel = document.getElementById('monthSelect');
-  const months = allYMs();
-  // Always add current month
   const now = new Date();
   const curYM = String(now.getFullYear()) + '-' + String(now.getMonth()+1).padStart(2,'0');
+  const months = allYMs();
   if (!months.includes(curYM)) months.push(curYM);
-  if (!selYM || !months.includes(selYM)) selYM = months[months.length - 1] || curYM;
-  sel.innerHTML = months.map(m => `<option value="${m}" ${m===selYM?'selected':''}>${ymFull(m)}</option>`).join('');
+  if (!selYM || !months.includes(selYM)) selYM = months[months.length-1] || curYM;
+
+  const opts = months.map(m => `<option value="${m}">${ymFull(m)}</option>`).join('');
+  const fromSel = document.getElementById('monthFrom');
+  const toSel = document.getElementById('monthTo');
+  if (fromSel) {
+    fromSel.innerHTML = opts;
+    fromSel.value = months[0] || curYM;
+  }
+  if (toSel) {
+    toSel.innerHTML = opts;
+    toSel.value = curYM;
+  }
+  selYM = curYM;
+  // Keep hidden monthSelect for compatibility
+  const sel = document.getElementById('monthSelect');
+  if (sel) sel.value = curYM;
 }
 
 // ===== ALERTS =====
@@ -1029,7 +1053,13 @@ function renderTable() {
     // Non-admin sees only their own cases
     if (!isAdminUser && currentPersonId && c.assignee !== currentPersonId) return false;
 
-    const inSelectedMonth = ymOf(c.date) === selYM;
+    // Date range filter
+    const ym = ymOf(c.date);
+    const from = selYMFrom || '';
+    const to = selYMTo || '';
+    const inRange2 = (!from || ym >= from) && (!to || ym <= to);
+    if (!inRange2) return false;
+
     const statusMatch =
       filterStatus === 'all'    ? true :
       filterStatus === 'active'   ? (!['done','court'].includes(c.status)) :
@@ -2125,6 +2155,45 @@ window.scanBarcode = function(code) {
 };
 
 // ===== QUICK SCAN SEARCH (Barcode/QR gun) =====
+// ===== DATE RANGE =====
+let selYMFrom = '', selYMTo = '';
+
+window.onDateRangeChange = function() {
+  const from = document.getElementById('monthFrom')?.value || '';
+  const to = document.getElementById('monthTo')?.value || '';
+  selYMFrom = from;
+  selYMTo = to;
+  // Update selYM to "to" for badges
+  selYM = to;
+  const sel = document.getElementById('monthSelect');
+  if (sel) sel.value = to;
+  renderAll();
+};
+
+window.resetDateRange = function() {
+  const now = new Date();
+  const curYM = String(now.getFullYear()) + '-' + String(now.getMonth()+1).padStart(2,'0');
+  const months = allYMs();
+  const fromSel = document.getElementById('monthFrom');
+  const toSel = document.getElementById('monthTo');
+  if (fromSel && months.length) fromSel.value = months[0];
+  if (toSel) toSel.value = curYM;
+  selYMFrom = months[0] || curYM;
+  selYMTo = curYM;
+  selYM = curYM;
+  renderAll();
+};
+
+function inDateRange(date) {
+  if (!date) return false;
+  const ym = date.slice(0,7);
+  const from = selYMFrom || '';
+  const to = selYMTo || '';
+  if (from && ym < from) return false;
+  if (to && ym > to) return false;
+  return true;
+}
+
 window.quickScanSearch = function(q) {
   if (!q || !q.trim()) return;
   const code = q.trim().replace(/^tel:/i,'');
