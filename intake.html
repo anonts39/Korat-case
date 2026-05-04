@@ -285,6 +285,15 @@ window.handleQR = function() {
   currentQR = code;
   document.getElementById('qrCode').textContent = code;
 
+  // Auto-fill เลขรับคดีที่ถ้าได้จาก rcnum/rcyr
+  const rcnum = val.match(/rcnum[:\s]*(\d+)/i);
+  const rcyr  = val.match(/rcyr[:\s]*(\d+)/i);
+  if (rcnum && rcyr) {
+    const caseIdVal = rcnum[1] + '/' + rcyr[1];
+    document.getElementById('fCaseId').value = caseIdVal;
+    checkCaseIdDup(caseIdVal);
+  }
+
   if (existing) {
     status.innerHTML = `⚠️ รหัสนี้มีในระบบแล้ว: <strong>${existing.caseId} — ${existing.name}</strong>`;
     status.style.color = '#e3b341';
