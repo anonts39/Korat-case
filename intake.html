@@ -250,6 +250,7 @@ async function loadData() {
   ]);
   people = pSnap.docs.map(d => ({id:d.id,...d.data()}));
   cases = cSnap.docs.map(d => ({id:d.id,...d.data()}));
+  console.log('Loaded cases:', cases.length, 'people:', people.length);
   // Populate assignee
   const sel = document.getElementById('fAssignee');
   sel.innerHTML = '<option value="">-- เลือก --</option>' +
@@ -296,12 +297,32 @@ window.pasteQR = async function() {
   } catch(e) { document.getElementById('qrInput').focus(); }
 };
 
+window.checkCaseIdDup = function(val) {
+  const warn = document.getElementById('caseIdWarn');
+  if (!val || !val.trim()) { warn.textContent = ''; return; }
+  const v = val.trim().toLowerCase();
+  const dup = cases.find(c => c.caseId && c.caseId.toLowerCase() === v);
+  if (dup) {
+    warn.textContent = `⚠️ เลขคดีนี้มีในระบบแล้ว: ${dup.caseId} — ${dup.name}`;
+    warn.style.color = '#e3b341';
+  } else {
+    warn.textContent = '✅ เลขคดีนี้ยังไม่มีในระบบ';
+    warn.style.color = '#3fb950';
+  }
+};
+
 window.submitCase = async function() {
   const caseId = document.getElementById('fCaseId').value.trim();
   const name = document.getElementById('fName').value.trim();
   const date = document.getElementById('fDate').value;
   if (!caseId || !name) { showToast('❌ กรุณากรอกเลขคดีและชื่อคดี','error'); return; }
   if (!date) { showToast('❌ กรุณาเลือกวันที่รับสำนวน','error'); return; }
+  // เช็คเลขคดีซ้ำ
+  const dupCase = cases.find(c => c.caseId && c.caseId.toLowerCase() === caseId.toLowerCase());
+  if (dupCase) {
+    showToast(`❌ เลขคดี ${caseId} มีในระบบแล้ว — ${dupCase.name}`, 'error');
+    return;
+  }
 
   const btn = document.getElementById('btnSubmit');
   btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
