@@ -784,7 +784,11 @@ function renderAll() {
 
 // ===== SUMMARY =====
 function renderSummary() {
-  const c = inMonth(selYM), p = inMonth(prevYM(selYM));
+  // Use date range if set, otherwise use single month
+  const c = (selYMFrom && selYMTo && selYMFrom !== selYMTo)
+    ? cases.filter(x => { const ym = ymOf(x.date); return ym >= selYMFrom && ym <= selYMTo; })
+    : inMonth(selYM);
+  const p = inMonth(prevYM(selYM));
   const DONE_STATUSES = ['done','court'];
   const ct = c.length;
   const cp = c.filter(x => !DONE_STATUSES.includes(x.status)).length; // ค้าง = ทุกที่ไม่ใช่ done/court
@@ -909,7 +913,9 @@ function renderPeople() {
 
   people.forEach((p, idx) => {
     const [col, bg] = COLORS[idx % COLORS.length];
-    const allCur = inMonth(selYM).filter(c => c.assignee === p.id);
+    const allCur = ((selYMFrom && selYMTo && selYMFrom !== selYMTo)
+      ? cases.filter(x => { const ym = ymOf(x.date); return ym >= selYMFrom && ym <= selYMTo; })
+      : inMonth(selYM)).filter(c => c.assignee === p.id);
     const allPrv = inMonth(prevYM(selYM)).filter(c => c.assignee === p.id);
     const pendingCur = cases.filter(c => c.currentPerson === p.name && !['done','court'].includes(c.status));
     const cur = allCur, prv = allPrv;
