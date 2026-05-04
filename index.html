@@ -1143,7 +1143,16 @@ function renderTable() {
       <td style="font-size:0.82rem">${per?per.name:'-'}</td>
       <td><span class="badge ${cls}">${lbl}</span></td>
       <td>${dlLabel(c.deadline,c.status)}</td>
-      <td style="color:var(--text3);font-size:0.78rem">${c.date ? (() => { const d = new Date(c.date); return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + (d.getFullYear()+543); })() : '-'}</td>
+      <td style="color:var(--text3);font-size:0.78rem">${c.date ? (() => { 
+  const raw = c.date;
+  // Try YYYY-MM-DD format
+  const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return m[3] + '/' + m[2] + '/' + (parseInt(m[1])+543);
+  // Fallback
+  const d = new Date(raw);
+  if (isNaN(d)) return raw;
+  return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + (d.getFullYear()+543);
+})() : '-'}</td>
       <td><div style="display:flex;gap:5px">
         <button class="action-btn" onclick="editCase('${c.id}')">แก้ไข</button>
         <button class="action-btn qr" onclick="showCaseQR('${c.id}')">QR</button>
