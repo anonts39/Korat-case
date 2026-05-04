@@ -684,16 +684,24 @@ function buildMonthSelect() {
   if (!months.includes(curYM)) months.push(curYM);
   if (!selYM || !months.includes(selYM)) selYM = months[months.length-1] || curYM;
 
-  const opts = months.map(m => `<option value="${m}">${ymFull(m)}</option>`).join('');
+  // Add "ทั้งหมด" option at start
+  const allOpt = '<option value="">-- ทั้งหมด --</option>';
+  const opts = months.map(m => {
+    const label = ymFull(m);
+    return label.includes('undefined') || label.includes('NaN') ? '' : `<option value="${m}">${label}</option>`;
+  }).filter(Boolean).join('');
+
   const fromSel = document.getElementById('monthFrom');
   const toSel = document.getElementById('monthTo');
   if (fromSel) {
-    fromSel.innerHTML = opts;
-    fromSel.value = months[0] || curYM;
+    fromSel.innerHTML = allOpt + opts;
+    fromSel.value = months[0] || '';
+    selYMFrom = months[0] || '';
   }
   if (toSel) {
-    toSel.innerHTML = opts;
+    toSel.innerHTML = allOpt + opts;
     toSel.value = curYM;
+    selYMTo = curYM;
   }
   selYM = curYM;
   // Keep hidden monthSelect for compatibility
