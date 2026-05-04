@@ -81,6 +81,13 @@ tr:hover td{background:#1c2128;}
     <option value="done">✅ เสร็จสิ้น</option>
     <option value="court">🏛 ศาล</option>
   </select>
+  <div style="display:flex;align-items:center;gap:6px;background:#21262d;border:1px solid #30363d;border-radius:8px;padding:6px 10px;">
+    <span style="font-size:0.75rem;color:#8b949e;white-space:nowrap;">📅 จาก</span>
+    <select class="select" id="dateFrom" onchange="renderReport()" style="border:none;background:transparent;padding:4px;min-width:120px;"></select>
+    <span style="font-size:0.75rem;color:#8b949e;">ถึง</span>
+    <select class="select" id="dateTo" onchange="renderReport()" style="border:none;background:transparent;padding:4px;min-width:120px;"></select>
+    <button onclick="resetDates()" style="padding:4px 8px;border-radius:6px;border:1px solid #30363d;background:transparent;color:#8b949e;font-size:0.72rem;cursor:pointer;white-space:nowrap;">รีเซ็ต</button>
+  </div>
   <select class="select" id="filterPerson" onchange="renderReport()">
     <option value="">👤 ทุกคน</option>
   </select>
@@ -157,17 +164,31 @@ onAuthStateChanged(auth, async user => {
   renderReport();
 });
 
+window.resetDates = function() {
+  const fromSel = document.getElementById('dateFrom');
+  const toSel = document.getElementById('dateTo');
+  if (fromSel) fromSel.value = '';
+  if (toSel) toSel.value = '';
+  renderReport();
+};
+
 window.renderReport = function() {
   const status = document.getElementById('filterStatus').value;
   const personId = document.getElementById('filterPerson').value;
   const category = document.getElementById('filterCategory').value;
   const search = document.getElementById('searchInput').value.toLowerCase().trim();
+  const dateFrom = document.getElementById('dateFrom')?.value || '';
+  const dateTo = document.getElementById('dateTo')?.value || '';
 
   let filtered = cases.filter(c => {
     if (status === 'active') { if (['done','court'].includes(c.status)) return false; }
     else if (status !== 'all') { if (c.status !== status) return false; }
     if (personId && c.assignee !== personId) return false;
     if (category && c.category !== category) return false;
+    // Date range filter
+    const ym = c.date ? c.date.slice(0,7) : '';
+    if (dateFrom && ym < dateFrom) return false;
+    if (dateTo && ym > dateTo) return false;
     if (search) {
       const match = (c.caseId||'').toLowerCase().includes(search) ||
                     (c.name||'').toLowerCase().includes(search) ||
