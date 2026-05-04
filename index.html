@@ -691,6 +691,20 @@ function buildAlerts() {
     .filter(c => isAdminUser || !currentPersonId || c.assignee === currentPersonId)
     .forEach(c => alerts.push({ type:'info', title:c.name, sub:'ระดับวิกฤต — ยังไม่มี deadline', id:c.id }));
 
+  // Reinvestigate deadline alerts
+  const today = new Date(); today.setHours(0,0,0,0);
+  cases.filter(c => c.status === 'pending' && c.reinvestigateDeadline)
+    .filter(c => isAdminUser || !currentPersonId || c.assignee === currentPersonId)
+    .forEach(c => {
+      const dl = new Date(c.reinvestigateDeadline); dl.setHours(0,0,0,0);
+      const diff = Math.ceil((dl - today) / 86400000);
+      if (diff < 0) {
+        alerts.push({ type:'critical', title:c.name, sub:`เกินกำหนดส่งผลสอบสวน ${Math.abs(diff)} วัน`, id:c.id });
+      } else if (diff <= 3) {
+        alerts.push({ type:'warning', title:c.name, sub:`ถึงกำหนดส่งผลสอบสวนใน ${diff} วัน`, id:c.id });
+      }
+    });
+
   const dot = document.getElementById('bellDot');
   if (alerts.length) { dot.style.display = 'flex'; dot.textContent = alerts.length > 9 ? '9+' : alerts.length; }
   else dot.style.display = 'none';
@@ -1735,6 +1749,10 @@ window.saveTracking = async function(actionType) {
       if (isPartial) newStatus = 'progress';
     }
     actionLabel = `📥 รับสำนวนคืน — ${statusLabel}`;
+    // Get reinvestigate deadline if set
+    const reDeadline = currentReturnAction === 'reinvestigate'
+      ? (document.getElementById('tlReinvestigateDeadline')?.value || null)
+      : null;
   }
 
   // Disable all save buttons
