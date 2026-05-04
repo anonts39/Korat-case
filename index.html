@@ -1104,7 +1104,8 @@ function renderTable() {
     done:      ['✅ เสร็จสิ้น',    'done'],
     court:     ['🏛 ศาล',          'court']
   };
-  tbody.innerHTML = filtered.map(c => {
+  tbody.innerHTML = filtered.map((c, idx) => {
+    const rowNum = idx + 1;
     const per = people.find(x => x.id === c.assignee);
     const [lbl, cls] = sMap[c.status] || [c.status||'ไม่ทราบ', 'pending'];
     const dls = dlStatus(c.deadline, c.status);
