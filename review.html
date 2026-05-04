@@ -297,8 +297,16 @@ function handleCode(code) {
   searchCase(clean);
 }
 
+function parseBarcodeInput(raw) {
+  const rcnum = raw.match(/rcnum[:\s]*(\d+)/i);
+  const rcyr  = raw.match(/rcyr[:\s]*(\d+)/i);
+  if (rcnum && rcyr) return rcnum[1] + '/' + rcyr[1];
+  return raw.replace(/^tel:/i,'').trim();
+}
+
 window.searchCase = function(code) {
-  const q = (code || document.getElementById('manualInput').value).trim();
+  const raw = code || document.getElementById('manualInput').value;
+  const q = parseBarcodeInput(raw.trim());
   if (!q) return;
   const phoneNorm = q.replace(/[-\s]/g,'');
 
