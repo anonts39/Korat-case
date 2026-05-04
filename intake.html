@@ -428,18 +428,43 @@ function showToast(msg, type) {
 <script>
 // Init date pickers after page load
 document.addEventListener('DOMContentLoaded', function() {
-  flatpickr('#fDate', {
-    locale: 'th',
-    dateFormat: 'Y-m-d',
-    defaultDate: new Date(),
-    allowInput: true
-  });
-  flatpickr('#fDeadline', {
-    locale: 'th',
+  const thMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const thDays = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+
+  const thLocale = {
+    weekdays: { shorthand: thDays, longhand: thDays },
+    months: { shorthand: thMonths, longhand: thMonths },
+    firstDayOfWeek: 0
+  };
+
+  // Custom hook to show พ.ศ. in header
+  function addBuddhistYear(fp) {
+    fp.calendarContainer.querySelectorAll('.cur-year').forEach(el => {
+      el.value = parseInt(el.value) + 543;
+    });
+  }
+
+  const fpConfig = {
+    locale: thLocale,
     dateFormat: 'Y-m-d',
     allowInput: true,
-    minDate: 'today'
-  });
+    onReady: (_, __, fp) => addBuddhistYear(fp),
+    onMonthChange: (_, __, fp) => addBuddhistYear(fp),
+    onYearChange: (_, __, fp) => addBuddhistYear(fp),
+    onOpen: (_, __, fp) => addBuddhistYear(fp),
+    parseDate: (dateStr) => {
+      // Accept Y-m-d format
+      const d = new Date(dateStr);
+      return isNaN(d) ? null : d;
+    },
+    formatDate: (date) => {
+      // Store as CE but display logic handled by hooks
+      return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
+    }
+  };
+
+  flatpickr('#fDate', { ...fpConfig, defaultDate: new Date() });
+  flatpickr('#fDeadline', { ...fpConfig, minDate: 'today' });
 });
 </script>
 
