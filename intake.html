@@ -361,7 +361,10 @@ window.submitCase = async function() {
       assignee: assigneeId || null,
       status: 'progress',
       date,
-      deadline: document.getElementById('fDeadline').value || null,
+      deadline: (() => {
+      const el = document.getElementById('fDeadline');
+      return el.dataset.ceValue || el._fpInstance?.selectedDates[0]?.toISOString().split('T')[0] || el.value || null;
+    })(),
       priority: 'medium',
       note: document.getElementById('fNote').value.trim(),
       extQR: currentQR || null,
@@ -444,27 +447,64 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  const thMonthsShort = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+  // Convert CE date string to display as วัน/เดือน/พ.ศ.
+  function formatThaiDisplay(date) {
+    const d = String(date.getDate()).padStart(2,'0');
+    const m = thMonthsShort[date.getMonth()];
+    const y = date.getFullYear() + 543;
+    return d + ' ' + m + ' ' + y;
+  }
+
+  // Convert display back to Y-m-d for storage
+  function parseThaiDisplay(str) {
+    // Try Y-m-d first
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return new Date(str);
+    // Try dd mmm yyyy (Thai)
+    const parts = str.trim().split(/\s+/);
+    if (parts.length === 3) {
+      const d = parseInt(parts[0]);
+      const mIdx = thMonthsShort.indexOf(parts[1]);
+      const y = parseInt(parts[2]) - 543;
+      if (mIdx >= 0 && !isNaN(d) && !isNaN(y)) {
+        return new Date(y, mIdx, d);
+      }
+    }
+    return new Date(str);
+  }
+
   const fpConfig = {
     locale: thLocale,
-    dateFormat: 'Y-m-d',
     allowInput: true,
+    dateFormat: 'Y-m-d',
+    formatDate: (date) => formatThaiDisplay(date),
+    parseDate: (str) => parseThaiDisplay(str),
     onReady: (_, __, fp) => addBuddhistYear(fp),
     onMonthChange: (_, __, fp) => addBuddhistYear(fp),
     onYearChange: (_, __, fp) => addBuddhistYear(fp),
     onOpen: (_, __, fp) => addBuddhistYear(fp),
-    parseDate: (dateStr) => {
-      // Accept Y-m-d format
-      const d = new Date(dateStr);
-      return isNaN(d) ? null : d;
-    },
-    formatDate: (date) => {
-      // Store as CE but display logic handled by hooks
-      return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
+    // Store actual CE value in hidden format
+    onChange: (dates, dateStr, fp) => {
+      if (dates[0]) {
+        const d = dates[0];
+        const ceVal = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        fp.element.dataset.ceValue = ceVal;
+      }
     }
   };
 
-  flatpickr('#fDate', { ...fpConfig, defaultDate: new Date() });
-  flatpickr('#fDeadline', { ...fpConfig, minDate: 'today' });
+  // Override value getter to return CE format for saving
+  function initFP(id, extra) {
+    const fp = flatpickr(id, { ...fpConfig, ...extra });
+    // Patch to return CE value
+    const orig = Object.getOwnPropertyDescriptor(fp.element, 'value');
+    Object.defineProperty(fp.element, '_fpInstance', { value: fp });
+    return fp;
+  }
+
+  initFP('#fDate', { defaultDate: new Date() });
+  initFP('#fDeadline', { minDate: 'today' });
 });
 </script>
 
