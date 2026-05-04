@@ -769,9 +769,31 @@ function renderSummary() {
   const pp = p.filter(x => !DONE_STATUSES.includes(x.status)).length;
   const pd = p.filter(x => x.status==='done').length;
   const po = p.filter(x => !DONE_STATUSES.includes(x.status) && dlStatus(x.deadline,x.status)==='overdue').length;
-  document.getElementById('totalCases').textContent   = ct; // คดีที่ยังค้างอยู่
+  document.getElementById('totalCases').textContent   = ct;
   document.getElementById('totalPending').textContent = cp;
   document.getElementById('totalDone').textContent    = cd;
+
+  // Reinvestigate stats
+  const today = new Date(); today.setHours(0,0,0,0);
+  const reinvCases = cases.filter(c => c.status === 'pending');
+  const reinvTotal = reinvCases.length;
+  const reinvOverdue = reinvCases.filter(c => c.reinvestigateDeadline &&
+    new Date(c.reinvestigateDeadline) < today).length;
+  const reinvSoon = reinvCases.filter(c => c.reinvestigateDeadline && (() => {
+    const dl = new Date(c.reinvestigateDeadline); dl.setHours(0,0,0,0);
+    const diff = Math.ceil((dl-today)/86400000);
+    return diff >= 0 && diff <= 3;
+  })()).length;
+
+  const reinvEl = document.getElementById('totalReinvestigate');
+  const reinvOvEl = document.getElementById('reinvestigateOverdue');
+  if (reinvEl) reinvEl.textContent = reinvTotal;
+  if (reinvOvEl) {
+    if (reinvOverdue > 0) reinvOvEl.textContent = `⚠️ เกินกำหนด ${reinvOverdue} สำนวน`;
+    else if (reinvSoon > 0) reinvOvEl.textContent = `🔔 ใกล้กำหนด ${reinvSoon} สำนวน`;
+    else if (reinvTotal > 0) reinvOvEl.textContent = `📋 ${reinvTotal} สำนวน`;
+    else reinvOvEl.textContent = '';
+  }
   document.getElementById('totalOverdue').textContent = co;
   document.getElementById('pendingPct').textContent   = `${ct?Math.round(cp/ct*100):0}% ของคดีทั้งหมด`;
   document.getElementById('donePct').textContent      = `${ct?Math.round(cd/ct*100):0}% ของคดีทั้งหมด`;
