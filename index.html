@@ -262,7 +262,8 @@ td{padding:11px 14px;font-size:0.85rem;}
       <button id="logoutBtn" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:0.72rem;cursor:pointer;font-family:'Sarabun',sans-serif;">ออกจากระบบ</button>
     </div>
     <button class="bell-btn" id="btnTeamMgmt" onclick="openTeamModal()" title="จัดการทีม" style="display:none;font-size:1rem;">👥</button>
-    <a class="bell-btn" id="btnTeamSummary" href="teams.html" title="สรุปทีม" style="display:none;font-size:1rem;text-decoration:none;">📋</a>
+    <button class="bell-btn" id="btnTeamView" onclick="openTeamViewPicker()" title="ดูมุมมองทีม" style="display:none;font-size:1rem;">👁</button>
+    <a class="bell-btn" id="btnTeamSummary" href="team.html" title="สรุปทีม" style="display:none;font-size:1rem;text-decoration:none;">📋</a>
     <a href="report.html" class="bell-btn" title="รายงาน/Export" style="font-size:1rem;display:inline-flex;align-items:center;text-decoration:none;">📊</a>
     <button class="bell-btn" id="btnReceiveModal" onclick="openReceiveModal()" title="รับสำนวนใหม่" style="font-size:1rem;">📥</button>
     <button class="bell-btn" id="btnOwnerModal" onclick="openOwnerModal()" title="เจ้าของสำนวน" style="padding:4px;background:#fff;border-radius:6px;border:1px solid #58a6ff;">
@@ -288,6 +289,17 @@ td{padding:11px 14px;font-size:0.85rem;}
 <div class="alert-panel" id="alertPanel">
   <div class="alert-panel-header"><span>🔔 การแจ้งเตือน</span><span id="alertCount" style="font-size:0.75rem;color:var(--text3)"></span></div>
   <div id="alertList"></div>
+</div>
+
+<!-- Team View Banner -->
+
+<div id="teamViewBanner" style="display:none;background:#1a2d1a;border-bottom:2px solid #3fb950;padding:10px 20px;display:none;align-items:center;justify-content:space-between;">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span style="font-size:1rem;">👁</span>
+    <span style="font-family:'Kanit',sans-serif;font-size:0.9rem;color:#3fb950;font-weight:600;" id="teamViewLabel">มุมมองทีม</span>
+    <span style="font-size:0.78rem;color:#6e7681;">— Admin กำลังดูข้อมูลในมุมมองนี้</span>
+  </div>
+  <button onclick="exitTeamView()" style="padding:6px 14px;border-radius:8px;border:1px solid #3fb950;background:transparent;color:#3fb950;font-family:'Sarabun',sans-serif;font-size:0.82rem;cursor:pointer;">← กลับมุมมอง Admin</button>
 </div>
 
 <div class="main">
@@ -601,6 +613,8 @@ onAuthStateChanged(auth, async (user) => {
     if (tb) tb.style.display = 'inline-flex';
     const ts = document.getElementById('btnTeamSummary');
     if (ts) ts.style.display = 'inline-flex';
+    const tv = document.getElementById('btnTeamView');
+    if (tv) tv.style.display = 'inline-flex';
   }
   document.getElementById('logoutBtn').onclick = () =>
     signOut(auth).then(() => window.location.href = 'login.html');
@@ -727,7 +741,10 @@ function buildAlerts() {
   const alerts = [];
   cases.forEach(c => {
     if (c.status === 'done' || c.status === 'court') return;
-    if (!isAdminUser) {
+    if (_teamViewMode && _teamViewId) {
+      const _vt = teams.find(function(t){ return t.id===_teamViewId; });
+      if (_vt && !(_vt.memberIds||[]).includes(c.assignee)) return;
+    } else if (!isAdminUser) {
       if (isScreener && myTeam) {
         if (!(myTeam.memberIds||[]).includes(c.assignee)) return;
       } else if (currentPersonId && c.assignee !== currentPersonId) {
@@ -1060,7 +1077,11 @@ function renderTable() {
   // 'all' = ทุกสถานะทุกเดือน, 'active' = ค้างในเดือนที่เลือก, อื่นๆ = กรองตามเดือน+สถานะ
   let filtered = cases.filter(c => {
     // Access control
-    if (!isAdminUser) {
+    if (_teamViewMode && _teamViewId) {
+      // Admin in team view mode - show only that team's cases
+      const _vt = teams.find(function(t){ return t.id === _teamViewId; });
+      if (_vt && !(_vt.memberIds||[]).includes(c.assignee)) return false;
+    } else if (!isAdminUser) {
       if (isScreener && myTeam) {
         if (!(myTeam.memberIds||[]).includes(c.assignee)) return false;
       } else if (currentPersonId && c.assignee !== currentPersonId) {
@@ -2186,6 +2207,83 @@ window.scanBarcode = function(code) {
 };
 
 // ===== QUICK SCAN SEARCH (Barcode/QR gun) =====
+// ===== TEAM VIEW MODE =====
+let _teamViewMode = false;
+let _teamViewId = null;
+
+window.openTeamViewPicker = function() {
+  if (!teams.length) {
+    alert('ยังไม่มีทีม กรุณาตั้งค่าทีมก่อนครับ');
+    return;
+  }
+  const existing = document.getElementById('teamViewPicker');
+  if (existing) { existing.remove(); return; }
+
+  const popup = document.createElement('div');
+  popup.id = 'teamViewPicker';
+  popup.style.cssText = 'position:fixed;top:60px;right:20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;z-index:9999;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,0.4);';
+
+  const hdr = document.createElement('div');
+  hdr.style.cssText = 'font-size:0.78rem;color:var(--text3);margin-bottom:8px;font-weight:600;';
+  hdr.textContent = '👁 เลือกมุมมองทีม';
+  popup.appendChild(hdr);
+
+  teams.forEach(function(t) {
+    const screener = people.find(function(p){ return p.id===t.screenerId; });
+    var _d2 = document.createElement('div');
+    _d2.style.cssText = 'padding:10px 12px;cursor:pointer;border-radius:8px;margin-bottom:4px;background:var(--surface2);';
+    _d2.innerHTML = '<div style="font-weight:600;font-size:0.88rem;">' + t.name + '</div><div style="font-size:0.75rem;color:var(--text3);">' + (screener ? screener.name : 'ผู้กลั่นกรอง') + '</div>';
+    (function(tid){ _d2.onclick = function(){ switchTeamView(tid); popup.remove(); }; }(t.id));
+    popup.appendChild(_d2);
+  });
+
+  const _backDiv = document.createElement('div');
+  _backDiv.style.cssText = 'padding:8px 12px;cursor:pointer;border-radius:8px;color:var(--text3);font-size:0.82rem;text-align:center;margin-top:4px;border:1px solid var(--border);';
+  _backDiv.textContent = '← กลับมุมมอง Admin';
+  _backDiv.addEventListener('click', function(){ exitTeamView(); popup.remove(); });
+  popup.appendChild(_backDiv);
+  document.body.appendChild(popup);
+
+  setTimeout(function() {
+    document.addEventListener('click', function handler(e) {
+      if (!popup.contains(e.target) && e.target.id !== 'btnTeamView') {
+        popup.remove();
+        document.removeEventListener('click', handler);
+      }
+    });
+  }, 100);
+};
+
+window.switchTeamView = function(teamId) {
+  const picker = document.getElementById('teamViewPicker');
+  if (picker) picker.remove();
+
+  const team = teams.find(function(t){ return t.id === teamId; });
+  if (!team) return;
+
+  _teamViewMode = true;
+  _teamViewId = teamId;
+
+  // Show banner
+  const banner = document.getElementById('teamViewBanner');
+  if (banner) {
+    banner.style.display = 'flex';
+    document.getElementById('teamViewLabel').textContent = '👁 มุมมอง: ' + team.name;
+  }
+
+  renderAll();
+  buildAlerts();
+};
+
+window.exitTeamView = function() {
+  _teamViewMode = false;
+  _teamViewId = null;
+  const banner = document.getElementById('teamViewBanner');
+  if (banner) banner.style.display = 'none';
+  renderAll();
+  buildAlerts();
+};
+
 // ===== DATE RANGE =====
 let _df = '', _dt = '';
 
