@@ -263,6 +263,8 @@ header{background:#161b22;border-bottom:1px solid #30363d;padding:14px 20px;disp
 </div>
 
 <label class="form-label">ผู้รับผิดชอบ (เจ้าของสำนวน)</label>
+<input placeholder="🔍 ค้นหาชื่อ..." oninput="filterIntakeAssignee(this.value)"
+  style="width:100%;padding:8px 12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-family:'Sarabun',sans-serif;font-size:0.85rem;outline:none;margin-bottom:6px;">
 <select class="form-select" id="fAssignee">
   <option value="">-- เลือก --</option>
 </select>
@@ -514,6 +516,16 @@ window.pasteQR = async function() {
   } catch(e) { document.getElementById('qrInput').focus(); }
 };
 
+window.filterIntakeAssignee = function(q) {
+  const sel = document.getElementById('fAssignee');
+  if (!sel) return;
+  const query = q.toLowerCase();
+  Array.from(sel.options).forEach(opt => {
+    if (!opt.value) { opt.style.display = ''; return; }
+    opt.style.display = opt.text.toLowerCase().includes(query) ? '' : 'none';
+  });
+};
+
 window.checkCaseIdDup = function(val) {
   const warn = document.getElementById('caseIdWarn');
   if (!val || !val.trim()) { warn.textContent = ''; return; }
@@ -595,11 +607,22 @@ window.submitCase = async function() {
     if (numEl) numEl.textContent = caseId ? '📋 เลขที่สำนวน: ' + caseId : '';
     document.getElementById('formCard').style.display = 'none';
     // Generate QR code
-    const qrData = JSON.stringify({rcnum: caseId.split('/')[0], rcyr: caseId.split('/')[1]});
-    QRCode.toCanvas(document.getElementById('qrCanvas'), qrData || caseId, {
-      width: 180, margin: 1,
-      color: { dark: '#000000', light: '#ffffff' }
-    }, function(err) { if(err) console.error(err); });
+    const qrData = caseId;
+    setTimeout(() => {
+      const canvas = document.getElementById('qrCanvas');
+      if (typeof QRCode !== 'undefined') {
+        QRCode.toCanvas(canvas, qrData, {
+          width: 180, margin: 2,
+          color: { dark: '#000000', light: '#ffffff' }
+        }, function(err) { if(err) console.error('QR error:', err); });
+      } else {
+        // Fallback: use QR API
+        const img = document.createElement('img');
+        img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(qrData);
+        img.style.borderRadius = '8px';
+        canvas.parentNode.replaceChild(img, canvas);
+      }
+    }, 300);
     document.getElementById('qrResult').scrollIntoView({behavior:'smooth', block:'center'});
 
   } catch(e) {
