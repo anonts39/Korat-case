@@ -131,7 +131,9 @@ header{background:#161b22;border-bottom:1px solid #30363d;padding:14px 20px;disp
   <div class="qr-result-caseid" id="qrResultCaseId"></div>
   <div class="qr-result-name" id="qrResultName"></div>
   <canvas id="qrCanvas" width="180" height="180"></canvas>
-  <div style="font-size:0.75rem;color:#6e7681;margin-top:8px;">สแกน QR เพื่อเข้าถึงสำนวนนี้</div>
+  <div id="qrResultCategory" style="font-size:0.9rem;color:#e3b341;font-weight:600;margin-top:10px;"></div>
+  <div id="qrResultCaseNum" style="font-size:0.85rem;color:#8b949e;margin-top:4px;"></div>
+  <div style="font-size:0.72rem;color:#6e7681;margin-top:6px;">สแกน QR เพื่อเข้าถึงสำนวนนี้</div>
   <button class="btn-next" onclick="nextCase()">📥 ลงรับสำนวนถัดไป</button>
 </div>
 
@@ -424,6 +426,11 @@ window.submitCase = async function() {
     document.getElementById('qrResult').classList.add('show');
     document.getElementById('qrResultCaseId').textContent = caseId;
     document.getElementById('qrResultName').textContent = name;
+    const cat = document.getElementById('fCategory').value || '';
+    const catEl = document.getElementById('qrResultCategory');
+    if (catEl) catEl.textContent = cat ? '📁 ประเภท: ' + cat : '';
+    const numEl = document.getElementById('qrResultCaseNum');
+    if (numEl) numEl.textContent = caseId ? '📋 เลขที่สำนวน: ' + caseId : '';
     document.getElementById('formCard').style.display = 'none';
     // Generate QR code
     const qrData = JSON.stringify({rcnum: caseId.split('/')[0], rcyr: caseId.split('/')[1]});
