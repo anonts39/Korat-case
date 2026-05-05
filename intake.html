@@ -61,9 +61,18 @@ header{background:#161b22;border-bottom:1px solid #30363d;padding:14px 20px;disp
 .login-input:focus{border-color:#f0883e;}
 .login-btn{width:100%;padding:12px;border-radius:8px;border:none;background:#f0883e;color:#fff;font-family:‘Kanit’,sans-serif;font-size:0.95rem;font-weight:600;cursor:pointer;}
 .login-err{font-size:0.78rem;color:#f85149;text-align:center;margin-top:8px;min-height:18px;}
+/* QR Result */
+.qr-result{background:#161b22;border:1px solid #3fb950;border-radius:14px;padding:20px;margin-bottom:16px;text-align:center;display:none;}
+.qr-result.show{display:block;animation:fadeUp 0.3s ease;}
+.qr-result-title{font-family:‘Kanit’,sans-serif;font-size:1rem;color:#3fb950;margin-bottom:4px;}
+.qr-result-caseid{font-family:‘Kanit’,sans-serif;font-size:1.3rem;font-weight:700;color:#f0883e;margin-bottom:12px;}
+.qr-result-name{font-size:0.85rem;color:#8b949e;margin-bottom:16px;}
+#qrCanvas{border-radius:8px;background:#fff;padding:8px;}
+.btn-next{width:100%;padding:12px;border-radius:10px;border:none;background:#3fb950;color:#fff;font-family:‘Kanit’,sans-serif;font-size:1rem;font-weight:600;cursor:pointer;margin-top:12px;}
 </style>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <style>
 .flatpickr-calendar { font-family:'Sarabun',sans-serif; }
 </style>
@@ -115,7 +124,18 @@ header{background:#161b22;border-bottom:1px solid #30363d;padding:14px 20px;disp
 
   <!-- Step 2: Form -->
 
-  <div class="form-card" id="formCard">
+  <!-- QR Result after save -->
+
+<div class="qr-result" id="qrResult">
+  <div class="qr-result-title">✅ บันทึกสำเร็จ!</div>
+  <div class="qr-result-caseid" id="qrResultCaseId"></div>
+  <div class="qr-result-name" id="qrResultName"></div>
+  <canvas id="qrCanvas" width="180" height="180"></canvas>
+  <div style="font-size:0.75rem;color:#6e7681;margin-top:8px;">สแกน QR เพื่อเข้าถึงสำนวนนี้</div>
+  <button class="btn-next" onclick="nextCase()">📥 ลงรับสำนวนถัดไป</button>
+</div>
+
+<div class="form-card" id="formCard">
     <div class="form-title">📝 ขั้นที่ 2 — กรอกรายละเอียดสำนวน</div>
 
 ```
@@ -400,14 +420,30 @@ window.submitCase = async function() {
     });
 
     cases.push({id:docRef.id,...newCase});
-    showToast(`✅ บันทึกสำเร็จ! สำนวน ${caseId} เข้าระบบแล้ว`,'success');
-    setTimeout(() => resetForm(), 2500);
+    // Show QR result
+    document.getElementById('qrResult').classList.add('show');
+    document.getElementById('qrResultCaseId').textContent = caseId;
+    document.getElementById('qrResultName').textContent = name;
+    document.getElementById('formCard').style.display = 'none';
+    // Generate QR code
+    const qrData = JSON.stringify({rcnum: caseId.split('/')[0], rcyr: caseId.split('/')[1]});
+    QRCode.toCanvas(document.getElementById('qrCanvas'), qrData || caseId, {
+      width: 180, margin: 1,
+      color: { dark: '#000000', light: '#ffffff' }
+    }, function(err) { if(err) console.error(err); });
+    document.getElementById('qrResult').scrollIntoView({behavior:'smooth', block:'center'});
 
   } catch(e) {
     showToast('❌ เกิดข้อผิดพลาด: ' + e.message,'error');
   } finally {
     btn.disabled = false; btn.textContent = '📥 บันทึกลงรับสำนวน';
   }
+};
+
+window.nextCase = function() {
+  document.getElementById('qrResult').classList.remove('show');
+  document.getElementById('formCard').style.display = '';
+  resetForm();
 };
 
 window.resetForm = function() {
