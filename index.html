@@ -2254,6 +2254,8 @@ window.quickScanSearch = function(q) {
   if (!found) found = cases.find(c => c.extQR && c.extQR.toString().replace(/[-\s]/g,'') === phoneNorm);
   if (!found) found = cases.find(c => c.caseId && c.caseId.toLowerCase().includes(code.toLowerCase()));
   if (!found) found = cases.find(c => c.extQR && c.extQR.toString().includes(code));
+  if (!found) found = cases.find(c => c.extQRRaw && c.extQRRaw.toString().replace(/[-\s]/g,'') === phoneNorm);
+  if (!found) found = cases.find(c => c.extQRRaw && c.extQRRaw.toString().includes(code));
 
   if (found) {
     // เปิด timeline ทันที — คงค่าในช่องค้นหาไว้
@@ -2639,6 +2641,7 @@ window.ownSearch = async function() {
   let found = cases.find(c=>c.id===code) ||
     cases.find(c=>c.caseId&&c.caseId.toLowerCase()===code.toLowerCase()) ||
     cases.find(c=>c.extQR&&c.extQR.toString().replace(/[-\s]/g,'')===phoneNorm) ||
+    cases.find(c=>c.extQRRaw&&c.extQRRaw.toString().replace(/[-\s]/g,'')===phoneNorm) ||
     cases.find(c=>c.caseId&&c.caseId.toLowerCase().includes(code.toLowerCase()));
   const status = document.getElementById('ownStatus');
   if (!found) {
