@@ -243,16 +243,17 @@ header{background:#161b22;border-bottom:1px solid #30363d;padding:14px 20px;disp
   <div class="form-row">
     <div>
       <label class="form-label">ประเภทคดี</label>
-      <select class="form-select" id="fCategory">
+      <select class="form-select" id="fCategory" onchange="toggleCustomCat(this.value)">
         <option value="">-- เลือก --</option>
         <option value="แพ่ง">⚖️ แพ่ง</option>
         <option value="อาญา">🔒 อาญา</option>
         <option value="ส.1">📋 ส.1</option>
         <option value="ส.2">📋 ส.2</option>
         <option value="ส.3">📋 ส.3</option>
-        <option value="ครอบครัว">👨‍👩‍👧 ครอบครัว</option>
-        <option value="ทรัพย์สินทางปัญญา">💡 ทรัพย์สินทางปัญญา</option>
+        <option value="ส.13">📋 ส.13</option>
+        <option value="คดี มร.">⚖️ คดี มร.</option>
         <option value="ที่ดิน">🏠 ที่ดิน</option>
+        <option value="อื่นๆ">✏️ อื่นๆ (ระบุเอง)</option>
       </select>
     </div>
     <div>
@@ -516,6 +517,17 @@ window.pasteQR = async function() {
   } catch(e) { document.getElementById('qrInput').focus(); }
 };
 
+window.toggleCustomCat = function(val) {
+  const custom = document.getElementById('fCategoryCustom');
+  if (val === 'อื่นๆ') {
+    custom.style.display = 'block';
+    custom.focus();
+  } else {
+    custom.style.display = 'none';
+    custom.value = '';
+  }
+};
+
 window.filterIntakeAssignee = function(q) {
   const sel = document.getElementById('fAssignee');
   if (!sel) return;
@@ -562,7 +574,7 @@ window.submitCase = async function() {
   try {
     const newCase = {
       caseId, name,
-      category: document.getElementById('fCategory').value || null,
+      category: finalCat || null,
       assignee: assigneeId || null,
       status: 'progress',
       date,
@@ -645,6 +657,8 @@ window.resetForm = function() {
   document.getElementById('fCaseId').value = '';
   document.getElementById('fName').value = '';
   document.getElementById('fCategory').value = '';
+  document.getElementById('fCategoryCustom').value = '';
+  document.getElementById('fCategoryCustom').style.display = 'none';
   document.getElementById('fAssignee').value = '';
   document.getElementById('fDeadline').value = '';
   document.getElementById('fNote').value = '';
