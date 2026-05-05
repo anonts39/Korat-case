@@ -583,6 +583,7 @@ let _dateFrom = '', _dateTo = '';
 window.onRangeChange = function() {
   _dateFrom = document.getElementById('dateFrom')?.value || '';
   _dateTo   = document.getElementById('dateTo')?.value || '';
+  console.log('Date range:', _dateFrom, '->', _dateTo);
   const badge = document.getElementById('curBadge');
   if (badge) {
     if (_dateFrom || _dateTo) {
@@ -620,9 +621,11 @@ onAuthStateChanged(auth, async (user) => {
   document.getElementById('logoutBtn').onclick = () =>
     signOut(auth).then(() => window.location.href = 'login.html');
 
-  await loadPeople();
-  await loadCases();
-  await loadCustomCategories();
+  try {
+    await loadPeople();
+    await loadCases();
+    await loadCustomCategories();
+  } catch(e) { console.error('Load error:', e); }
 
   // Match current user UID with people
   const _matched = people.find(p => p.uid === currentUserId);
@@ -1023,6 +1026,13 @@ function renderTable() {
   let filtered = cases.filter(c => {
     // Non-admin sees only their own cases
     if (!isAdminUser && currentPersonId && c.assignee !== currentPersonId) return false;
+
+    // Date range filter
+    if (_dateFrom || _dateTo) {
+      const d = c.date ? c.date.slice(0,10) : '';
+      if (_dateFrom && d < _dateFrom) return false;
+      if (_dateTo && d > _dateTo) return false;
+    }
 
     const inSelectedMonth = ymOf(c.date) === selYM;
     const statusMatch =
