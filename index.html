@@ -695,16 +695,9 @@ function buildMonthSelect() {
   const now = new Date();
   const curYM = String(now.getFullYear()) + '-' + String(now.getMonth()+1).padStart(2,'0');
   selYM = curYM;
-  // Set default date range to current month
-  const firstDay = curYM + '-01';
-  const lastDay = new Date(now.getFullYear(), now.getMonth()+1, 0);
-  const lastDayStr = curYM + '-' + String(lastDay.getDate()).padStart(2,'0');
-  const fromEl = document.getElementById('monthFrom');
-  const toEl = document.getElementById('monthTo');
-  if (fromEl && !fromEl.value) fromEl.value = firstDay;
-  if (toEl && !toEl.value) toEl.value = lastDayStr;
-  selDateFrom = fromEl?.value || '';
-  selDateTo = toEl?.value || '';
+  // Don't auto-set dates - show all cases by default
+  selDateFrom = '';
+  selDateTo = '';
   const sel = document.getElementById('monthSelect');
   if (sel) sel.value = curYM;
 }
@@ -798,7 +791,7 @@ function renderSummary() {
         const d = x.date ? x.date.slice(0,10) : '';
         return (!selDateFrom || d >= selDateFrom) && (!selDateTo || d <= selDateTo);
       })
-    : inMonth(selYM);
+    : cases;
   const p = inMonth(prevYM(selYM));
   const DONE_STATUSES = ['done','court'];
   const ct = c.length;
@@ -929,7 +922,7 @@ function renderPeople() {
           const d = x.date ? x.date.slice(0,10) : '';
           return (!selDateFrom || d >= selDateFrom) && (!selDateTo || d <= selDateTo);
         })
-      : inMonth(selYM)).filter(c => c.assignee === p.id);
+      : cases).filter(c => c.assignee === p.id);
     const allPrv = inMonth(prevYM(selYM)).filter(c => c.assignee === p.id);
     const pendingCur = cases.filter(c => c.currentPerson === p.name && !['done','court'].includes(c.status));
     const cur = allCur, prv = allPrv;
@@ -1073,12 +1066,12 @@ function renderTable() {
     // Non-admin sees only their own cases
     if (!isAdminUser && currentPersonId && c.assignee !== currentPersonId) return false;
 
-    // Date range filter (exact date)
-    const cDate = c.date ? c.date.slice(0,10) : '';
-    const from = selDateFrom || '';
-    const to = selDateTo || '';
-    const inRange2 = (!from && !to) || ((!from || cDate >= from) && (!to || cDate <= to));
-    if (!inRange2) return false;
+    // Date range filter (exact date) - only filter if user explicitly set dates
+    if (selDateFrom || selDateTo) {
+      const cDate = c.date ? c.date.slice(0,10) : '';
+      if (selDateFrom && cDate < selDateFrom) return false;
+      if (selDateTo && cDate > selDateTo) return false;
+    }
 
     const statusMatch =
       filterStatus === 'all'    ? true :
