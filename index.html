@@ -293,14 +293,14 @@ td{padding:11px 14px;font-size:0.85rem;}
     <span class="month-label">📅 ช่วงเวลา:</span>
     <div style="display:flex;align-items:center;gap:6px;">
       <span style="font-size:0.78rem;color:var(--text3);">จาก</span>
-      <select class="month-select" id="monthFrom" onchange="onDateRangeChange()" style="min-width:120px;"></select>
+      <input type="date" id="monthFrom" onchange="onDateRangeChange()"
+             style="padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.82rem;outline:none;">
       <span style="font-size:0.78rem;color:var(--text3);">ถึง</span>
-      <select class="month-select" id="monthTo" onchange="onDateRangeChange()" style="min-width:120px;"></select>
+      <input type="date" id="monthTo" onchange="onDateRangeChange()"
+             style="padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.82rem;outline:none;">
     </div>
     <button onclick="resetDateRange()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">รีเซ็ต</button>
     <span class="mbadge cur" id="curBadge"></span>
-    <span style="color:var(--text3);font-size:0.78rem">เทียบกับ</span>
-    <span class="mbadge prev" id="prevBadge"></span>
     <input type="hidden" id="monthSelect">
   </div>
   <div class="alert-strip" id="alertStrip">
@@ -687,41 +687,24 @@ function init() {
     NOW.toLocaleDateString('th-TH', { year:'numeric', month:'long', day:'numeric' }));
   document.getElementById('fDate').value = NOW.toISOString().split('T')[0];
   buildMonthSelect();
-  // Init range vars
-  const _months = allYMs();
-  selYMFrom = _months[0] || selYM;
-  selYMTo = selYM;
+  // Init range - date inputs initialized in buildMonthSelect
   renderAll();
   buildAlerts();
 }
 function buildMonthSelect() {
   const now = new Date();
   const curYM = String(now.getFullYear()) + '-' + String(now.getMonth()+1).padStart(2,'0');
-  const months = allYMs();
-  if (!months.includes(curYM)) months.push(curYM);
-  if (!selYM || !months.includes(selYM)) selYM = months[months.length-1] || curYM;
-
-  // Add "ทั้งหมด" option at start
-  const allOpt = '<option value="">-- ทั้งหมด --</option>';
-  const opts = months.map(m => {
-    const label = ymFull(m);
-    return label.includes('undefined') || label.includes('NaN') ? '' : `<option value="${m}">${label}</option>`;
-  }).filter(Boolean).join('');
-
-  const fromSel = document.getElementById('monthFrom');
-  const toSel = document.getElementById('monthTo');
-  if (fromSel) {
-    fromSel.innerHTML = allOpt + opts;
-    fromSel.value = months[0] || '';
-    selYMFrom = months[0] || '';
-  }
-  if (toSel) {
-    toSel.innerHTML = allOpt + opts;
-    toSel.value = curYM;
-    selYMTo = curYM;
-  }
   selYM = curYM;
-  // Keep hidden monthSelect for compatibility
+  // Set default date range to current month
+  const firstDay = curYM + '-01';
+  const lastDay = new Date(now.getFullYear(), now.getMonth()+1, 0);
+  const lastDayStr = curYM + '-' + String(lastDay.getDate()).padStart(2,'0');
+  const fromEl = document.getElementById('monthFrom');
+  const toEl = document.getElementById('monthTo');
+  if (fromEl && !fromEl.value) fromEl.value = firstDay;
+  if (toEl && !toEl.value) toEl.value = lastDayStr;
+  selDateFrom = fromEl?.value || '';
+  selDateTo = toEl?.value || '';
   const sel = document.getElementById('monthSelect');
   if (sel) sel.value = curYM;
 }
@@ -810,8 +793,11 @@ function renderAll() {
 // ===== SUMMARY =====
 function renderSummary() {
   // Use date range if set, otherwise use single month
-  const c = (selYMFrom && selYMTo && selYMFrom !== selYMTo)
-    ? cases.filter(x => { const ym = ymOf(x.date); return ym >= selYMFrom && ym <= selYMTo; })
+  const c = (selDateFrom || selDateTo)
+    ? cases.filter(x => {
+        const d = x.date ? x.date.slice(0,10) : '';
+        return (!selDateFrom || d >= selDateFrom) && (!selDateTo || d <= selDateTo);
+      })
     : inMonth(selYM);
   const p = inMonth(prevYM(selYM));
   const DONE_STATUSES = ['done','court'];
@@ -938,8 +924,11 @@ function renderPeople() {
 
   people.forEach((p, idx) => {
     const [col, bg] = COLORS[idx % COLORS.length];
-    const allCur = ((selYMFrom && selYMTo && selYMFrom !== selYMTo)
-      ? cases.filter(x => { const ym = ymOf(x.date); return ym >= selYMFrom && ym <= selYMTo; })
+    const allCur = ((selDateFrom || selDateTo)
+      ? cases.filter(x => {
+          const d = x.date ? x.date.slice(0,10) : '';
+          return (!selDateFrom || d >= selDateFrom) && (!selDateTo || d <= selDateTo);
+        })
       : inMonth(selYM)).filter(c => c.assignee === p.id);
     const allPrv = inMonth(prevYM(selYM)).filter(c => c.assignee === p.id);
     const pendingCur = cases.filter(c => c.currentPerson === p.name && !['done','court'].includes(c.status));
@@ -1084,11 +1073,11 @@ function renderTable() {
     // Non-admin sees only their own cases
     if (!isAdminUser && currentPersonId && c.assignee !== currentPersonId) return false;
 
-    // Date range filter
-    const ym = ymOf(c.date);
-    const from = selYMFrom || '';
-    const to = selYMTo || '';
-    const inRange2 = (!from || ym >= from) && (!to || ym <= to);
+    // Date range filter (exact date)
+    const cDate = c.date ? c.date.slice(0,10) : '';
+    const from = selDateFrom || '';
+    const to = selDateTo || '';
+    const inRange2 = (!from && !to) || ((!from || cDate >= from) && (!to || cDate <= to));
     if (!inRange2) return false;
 
     const statusMatch =
@@ -2190,30 +2179,36 @@ window.scanBarcode = function(code) {
 // ===== QUICK SCAN SEARCH (Barcode/QR gun) =====
 // ===== DATE RANGE =====
 let selYMFrom = '', selYMTo = '';
+let selDateFrom = '', selDateTo = '';
 
 window.onDateRangeChange = function() {
   const from = document.getElementById('monthFrom')?.value || '';
   const to = document.getElementById('monthTo')?.value || '';
-  selYMFrom = from;
-  selYMTo = to;
-  // Update selYM to "to" for badges
-  selYM = to;
-  const sel = document.getElementById('monthSelect');
-  if (sel) sel.value = to;
+  selYMFrom = from ? from.slice(0,7) : '';
+  selYMTo = to ? to.slice(0,7) : '';
+  selDateFrom = from;
+  selDateTo = to;
+  selYM = to ? to.slice(0,7) : '';
+  // Update badge
+  const badge = document.getElementById('curBadge');
+  if (badge) {
+    if (from && to) {
+      const fmtD = d => { const m = d.match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3]+'/'+m[2]+'/'+(parseInt(m[1])+543) : d; };
+      badge.textContent = fmtD(from) + ' — ' + fmtD(to);
+    } else badge.textContent = '';
+  }
   renderAll();
 };
 
 window.resetDateRange = function() {
+  document.getElementById('monthFrom').value = '';
+  document.getElementById('monthTo').value = '';
+  selDateFrom = ''; selDateTo = '';
+  selYMFrom = ''; selYMTo = '';
   const now = new Date();
-  const curYM = String(now.getFullYear()) + '-' + String(now.getMonth()+1).padStart(2,'0');
-  const months = allYMs();
-  const fromSel = document.getElementById('monthFrom');
-  const toSel = document.getElementById('monthTo');
-  if (fromSel && months.length) fromSel.value = months[0];
-  if (toSel) toSel.value = curYM;
-  selYMFrom = months[0] || curYM;
-  selYMTo = curYM;
-  selYM = curYM;
+  selYM = String(now.getFullYear()) + '-' + String(now.getMonth()+1).padStart(2,'0');
+  const badge = document.getElementById('curBadge');
+  if (badge) badge.textContent = '';
   renderAll();
 };
 
