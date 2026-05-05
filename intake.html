@@ -377,6 +377,7 @@ window.submitCase = async function() {
       priority: 'medium',
       note: document.getElementById('fNote').value.trim(),
       extQR: currentQR || null,
+      extQRRaw: document.getElementById('qrInput').value.trim() || null,
       relatedCases: (document.getElementById('fRelated').value.trim() || '').split(',').map(s=>s.trim()).filter(Boolean),
       currentDept: 'อัยการเจ้าของเรื่อง',
       currentPerson: assigneePerson?.name || null,
