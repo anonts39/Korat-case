@@ -602,6 +602,7 @@ onAuthStateChanged(auth, async (user) => {
 
   try {
     await loadPeople();
+    await loadTeams();
     await loadCases();
     await loadCustomCategories();
   } catch(loadErr) {
@@ -885,9 +886,9 @@ function renderPeople() {
     const [col, bg] = COLORS[idx % COLORS.length];
     // Skip people not in my team (for screener)
     if (isScreener && myTeam) {
-      if (!(myTeam.memberIds||[]).includes(p.id)) return '';
+      if (!(myTeam.memberIds||[]).includes(p.id)) return;
     } else if (!isAdminUser && p.id !== currentPersonId) {
-      return '';
+      return;
     }
     const allCur = ((_df || _dt)
       ? cases.filter(x => { const d = x.date?x.date.slice(0,10):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
@@ -1320,40 +1321,51 @@ window.closeTeamModal = function() {
 };
 
 function renderTeamModal() {
-  const container = document.getElementById('teamModalContent');
-  const teamNames = ['ทีม 1', 'ทีม 2', 'ทีม 3'];
-  const screeners = people.filter(p => (p.role||'').includes('ผู้กลั่นกรอง'));
-  const members = people.filter(p => !(p.role||'').includes('ผู้กลั่นกรอง') && !(p.role||'').includes('อจ') && !(p.role||'').includes('จังหวัด'));
+  const container = document.getElementById("teamModalContent");
+  const teamNames = ["ทีม 1", "ทีม 2", "ทีม 3"];
+  const screeners = people.filter(function(p){ return (p.role||"").includes("ผู้กลั่นกรอง"); });
+  const members = people.filter(function(p){ 
+    return !(p.role||"").includes("ผู้กลั่นกรอง") && 
+           !(p.role||"").includes("อจ") && 
+           !(p.role||"").includes("จังหวัด"); 
+  });
 
-  container.innerHTML = teamNames.map((name, i) => {
-    const team = teams.find(t => t.name === name) || { name, screenerId: '', memberIds: [] };
-    return `
-    <div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:16px;margin-bottom:12px;">
-      <div style="font-family:'Kanit',sans-serif;font-weight:600;color:#f0883e;margin-bottom:12px;">👥 ${name}</div>
-      <label style="font-size:0.78rem;color:#8b949e;display:block;margin-bottom:4px;">ผู้กลั่นกรองงาน</label>
-      <select id="teamScreener${i}" style="width:100%;padding:8px;background:#161b22;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-family:'Sarabun',sans-serif;font-size:0.85rem;margin-bottom:10px;">
-        <option value="">-- เลือก --</option>
-        ${screeners.map(p => `<option value="${p.id}" ${team.screenerId===p.id?'selected':''}>${p.name}</option>`).join('')}
-      </select>
-      <label style="font-size:0.78rem;color:#8b949e;display:block;margin-bottom:4px;">เจ้าของสำนวนในทีม</label>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;">
-        ${members.map(p => `
-          <label style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:#161b22;border:1px solid #30363d;border-radius:6px;cursor:pointer;font-size:0.82rem;">
-            <input type="checkbox" value="${p.id}" ${(team.memberIds||[]).includes(p.id)?'checked':''} 
-              style="accent-color:#f0883e;">
-            ${p.name}
-          </label>`).join('')}
-      </div>
-    </div>`;
-  }).join('');
+  let html = "";
+  teamNames.forEach(function(name, i) {
+    const team = teams.find(function(t){ return t.name === name; }) || { name: name, screenerId: "", memberIds: [] };
+    
+    let screenerOpts = '<option value="">-- เลือก --</option>';
+    screeners.forEach(function(p) {
+      const sel = team.screenerId === p.id ? " selected" : "";
+      screenerOpts += "<option value=" + JSON.stringify(p.id) + sel + ">" + p.name + "</option>";
+    });
+    
+    let memberChk = "";
+    members.forEach(function(p) {
+      const chk = (team.memberIds||[]).includes(p.id) ? " checked" : "";
+      memberChk += "<label style=" + JSON.stringify("display:flex;align-items:center;gap:6px;padding:6px 10px;background:#161b22;border:1px solid #30363d;border-radius:6px;cursor:pointer;font-size:0.82rem;") + ">" +
+        "<input type=" + JSON.stringify("checkbox") + " data-team=" + JSON.stringify(String(i)) + " value=" + JSON.stringify(p.id) + chk + " style=" + JSON.stringify("accent-color:#f0883e;") + ">" +
+        p.name + "</label>";
+    });
+
+    html += "<div style=" + JSON.stringify("background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:16px;margin-bottom:12px;") + ">" +
+      "<div style=" + JSON.stringify("font-family:Kanit,sans-serif;font-weight:600;color:#f0883e;margin-bottom:12px;") + ">👥 " + name + "</div>" +
+      "<label style=" + JSON.stringify("font-size:0.78rem;color:#8b949e;display:block;margin-bottom:4px;") + ">ผู้กลั่นกรองงาน</label>" +
+      "<select id=" + JSON.stringify("teamScreener"+i) + " style=" + JSON.stringify("width:100%;padding:8px;background:#161b22;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-family:Sarabun,sans-serif;font-size:0.85rem;margin-bottom:10px;") + ">" + screenerOpts + "</select>" +
+      "<label style=" + JSON.stringify("font-size:0.78rem;color:#8b949e;display:block;margin-bottom:4px;") + ">เจ้าของสำนวนในทีม</label>" +
+      "<div style=" + JSON.stringify("display:flex;flex-wrap:wrap;gap:6px;") + ">" + memberChk + "</div>" +
+      "</div>";
+  });
+  container.innerHTML = html;
 }
+
 
 window.saveTeams = async function() {
   const teamNames = ['ทีม 1', 'ทีม 2', 'ทีม 3'];
   try {
     for (let i = 0; i < 3; i++) {
       const screenerId = document.getElementById(`teamScreener${i}`).value;
-      const memberIds = [...document.querySelectorAll(`#teamModalContent div:nth-child(${i+1}) input[type=checkbox]:checked`)].map(cb => cb.value);
+      const memberIds = [...document.querySelectorAll("#teamModalContent input[type=checkbox][data-team=\""+i+"\"]:checked")].map(function(cb){ return cb.value; });
       const existing = teams.find(t => t.name === teamNames[i]);
       const data = { name: teamNames[i], screenerId, memberIds };
       if (existing) {
@@ -1363,7 +1375,7 @@ window.saveTeams = async function() {
       }
     }
     await loadTeams();
-    showNotif('✅ บันทึกทีมสำเร็จ');
+    alert('✅ บันทึกทีมสำเร็จ');
     closeTeamModal();
   } catch(e) {
     alert('Error: ' + e.message);
