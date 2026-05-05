@@ -516,7 +516,7 @@ const NOW = new Date(); NOW.setHours(0,0,0,0);
 
 // ===== STATE =====
 let people = [], cases = [], customCategories = [];
-let currentUserId = '', currentUserEmail = '', currentUserName = '', currentPersonId = null, isAdminUser = false;
+let currentUserId = '', currentUserEmail = '', currentUserName = '', currentPersonId = null, isAdminUser = false, isScreener = false, myTeam = null;
 let editingId = null, filterStatus = 'active', filterPerson = null;
 let filterOverdue = false, filterCategory = null, selYM = '';
 let catColorMap = {};
@@ -593,7 +593,10 @@ onAuthStateChanged(auth, async (user) => {
   } catch(e) { isAdminUser = false; }
 
   document.getElementById('userEmail').textContent = user.email;
-  if (isAdminUser) document.getElementById('adminLink').style.display = 'inline-flex';
+  if (isAdminUser) {
+    document.getElementById('adminLink').style.display = 'inline-flex';
+    document.getElementById('btnTeamMgmt').style.display = 'inline-flex';
+  }
   document.getElementById('logoutBtn').onclick = () =>
     signOut(auth).then(() => window.location.href = 'login.html');
 
@@ -615,6 +618,17 @@ onAuthStateChanged(auth, async (user) => {
     currentUserName = currentUserEmail;
     currentPersonId = null;
   }
+
+  // Check if screener (ผู้กลั่นกรองงาน)
+  const _myPerson = people.find(p => p.id === currentPersonId);
+  isScreener = !isAdminUser && (_myPerson?.role || '').includes('ผู้กลั่นกรอง');
+  // Find my team
+  if (isScreener) {
+    myTeam = teams.find(t => t.screenerId === currentPersonId);
+  } else {
+    myTeam = teams.find(t => t.memberIds?.includes(currentPersonId));
+  }
+
   // Show/hide buttons based on role
   updateHeaderButtons();
 
@@ -689,8 +703,14 @@ function buildAlerts() {
   const alerts = [];
   cases.forEach(c => {
     if (c.status === 'done' || c.status === 'court') return;
-    // Non-admin เห็นเฉพาะคดีของตัวเอง
-    if (!isAdminUser && currentPersonId && c.assignee !== currentPersonId) return;
+    // Access control
+    if (!isAdminUser) {
+      if (isScreener && myTeam) {
+        if (!(myTeam.memberIds||[]).includes(c.assignee)) return;
+      } else if (currentPersonId && c.assignee !== currentPersonId) {
+        return;
+      }
+    }
     const st = dlStatus(c.deadline, c.status);
     if (st === 'overdue') alerts.push({ type:'critical', title:c.name, sub:`เกิน deadline ${Math.abs(dlDays(c.deadline,c.status))} วัน | ${PRI_LABEL[c.priority]}`, id:c.id });
     else if (st === 'due-soon') alerts.push({ type:'warning', title:c.name, sub:`ถึงกำหนดใน ${dlDays(c.deadline,c.status)} วัน | ${PRI_LABEL[c.priority]}`, id:c.id });
@@ -753,9 +773,13 @@ function renderAll() {
 
 // ===== SUMMARY =====
 function renderSummary() {
+  // Filter cases by role
+  const _allCases = isAdminUser ? cases :
+    isScreener && myTeam ? cases.filter(x => (myTeam.memberIds||[]).includes(x.assignee)) :
+    cases.filter(x => x.assignee === currentPersonId);
   const c = (_df || _dt)
-    ? cases.filter(x => { const d = x.date?x.date.slice(0,10):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
-    : cases;
+    ? _allCases.filter(x => { const d = x.date?x.date.slice(0,10):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
+    : _allCases;
   const p = inMonth(prevYM(selYM));
   const DONE_STATUSES = ['done','court'];
   const ct = c.length;
@@ -859,6 +883,12 @@ function renderPeople() {
 
   people.forEach((p, idx) => {
     const [col, bg] = COLORS[idx % COLORS.length];
+    // Skip people not in my team (for screener)
+    if (isScreener && myTeam) {
+      if (!(myTeam.memberIds||[]).includes(p.id)) return '';
+    } else if (!isAdminUser && p.id !== currentPersonId) {
+      return '';
+    }
     const allCur = ((_df || _dt)
       ? cases.filter(x => { const d = x.date?x.date.slice(0,10):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
       : cases).filter(c => c.assignee === p.id);
@@ -1002,8 +1032,17 @@ function renderTable() {
   const sort   = document.getElementById('sortSelect').value;
   // 'all' = ทุกสถานะทุกเดือน, 'active' = ค้างในเดือนที่เลือก, อื่นๆ = กรองตามเดือน+สถานะ
   let filtered = cases.filter(c => {
-    // Non-admin sees only their own cases
-    if (!isAdminUser && currentPersonId && c.assignee !== currentPersonId) return false;
+    // Access control by role
+    if (!isAdminUser) {
+      if (isScreener && myTeam) {
+        // Screener sees all team members' cases
+        const teamMembers = myTeam.memberIds || [];
+        if (!teamMembers.includes(c.assignee) && c.assignee !== currentPersonId) return false;
+      } else if (currentPersonId) {
+        // Regular member sees only own cases
+        if (c.assignee !== currentPersonId) return false;
+      }
+    }
 
     // Date range filter (only if user set dates)
     if (_df || _dt) {
@@ -1268,6 +1307,68 @@ function updateHeaderButtons() {
     btnReview.style.display  = isReviewer ? '' : 'none';  // เจ้าของสำนวนไม่เห็น ⚖️
   }
 }
+
+// ===== TEAM MANAGEMENT =====
+window.openTeamModal = async function() {
+  await loadTeams();
+  renderTeamModal();
+  document.getElementById('teamModalOverlay').classList.add('show');
+};
+
+window.closeTeamModal = function() {
+  document.getElementById('teamModalOverlay').classList.remove('show');
+};
+
+function renderTeamModal() {
+  const container = document.getElementById('teamModalContent');
+  const teamNames = ['ทีม 1', 'ทีม 2', 'ทีม 3'];
+  const screeners = people.filter(p => (p.role||'').includes('ผู้กลั่นกรอง'));
+  const members = people.filter(p => !(p.role||'').includes('ผู้กลั่นกรอง') && !(p.role||'').includes('อจ') && !(p.role||'').includes('จังหวัด'));
+
+  container.innerHTML = teamNames.map((name, i) => {
+    const team = teams.find(t => t.name === name) || { name, screenerId: '', memberIds: [] };
+    return `
+    <div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:16px;margin-bottom:12px;">
+      <div style="font-family:'Kanit',sans-serif;font-weight:600;color:#f0883e;margin-bottom:12px;">👥 ${name}</div>
+      <label style="font-size:0.78rem;color:#8b949e;display:block;margin-bottom:4px;">ผู้กลั่นกรองงาน</label>
+      <select id="teamScreener${i}" style="width:100%;padding:8px;background:#161b22;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-family:'Sarabun',sans-serif;font-size:0.85rem;margin-bottom:10px;">
+        <option value="">-- เลือก --</option>
+        ${screeners.map(p => `<option value="${p.id}" ${team.screenerId===p.id?'selected':''}>${p.name}</option>`).join('')}
+      </select>
+      <label style="font-size:0.78rem;color:#8b949e;display:block;margin-bottom:4px;">เจ้าของสำนวนในทีม</label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${members.map(p => `
+          <label style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:#161b22;border:1px solid #30363d;border-radius:6px;cursor:pointer;font-size:0.82rem;">
+            <input type="checkbox" value="${p.id}" ${(team.memberIds||[]).includes(p.id)?'checked':''} 
+              style="accent-color:#f0883e;">
+            ${p.name}
+          </label>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.saveTeams = async function() {
+  const teamNames = ['ทีม 1', 'ทีม 2', 'ทีม 3'];
+  try {
+    for (let i = 0; i < 3; i++) {
+      const screenerId = document.getElementById(`teamScreener${i}`).value;
+      const memberIds = [...document.querySelectorAll(`#teamModalContent div:nth-child(${i+1}) input[type=checkbox]:checked`)].map(cb => cb.value);
+      const existing = teams.find(t => t.name === teamNames[i]);
+      const data = { name: teamNames[i], screenerId, memberIds };
+      if (existing) {
+        await updateDoc(doc(db, 'teams', existing.id), data);
+      } else {
+        await addDoc(collection(db, 'teams'), data);
+      }
+    }
+    await loadTeams();
+    showNotif('✅ บันทึกทีมสำเร็จ');
+    closeTeamModal();
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+};
 
 // ===== ASSIGNEE BUTTON GRID =====
 function renderAssigneeGrid(gridId, hiddenId, selectedId) {
@@ -2984,5 +3085,19 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
 
   </div>
 </div>
+
+<!-- Team Management Modal -->
+
+<div class="modal-overlay" id="teamModalOverlay" onclick="if(event.target===this)closeTeamModal()">
+  <div class="modal" style="width:600px;max-height:85vh;overflow-y:auto;">
+    <div class="modal-title" style="color:#f0883e;">👥 จัดการทีม</div>
+    <div id="teamModalContent"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn-save" onclick="saveTeams()" style="flex:1;">💾 บันทึกทีม</button>
+      <button class="btn-cancel" onclick="closeTeamModal()" style="flex:1;">ปิด</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
