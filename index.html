@@ -764,8 +764,22 @@ window.scrollToCase = function(id) {
 function renderAll() {
   selYM = document.getElementById('monthSelect').value || selYM;
   buildMonthSelect();
-  document.getElementById('curBadge').textContent  = ymShort(selYM);
-  document.getElementById('prevBadge').textContent = ymShort(prevYM(selYM));
+  // Show date range badge or nothing
+  const _badge = document.getElementById('curBadge');
+  if (_badge) {
+    if (_df || _dt) {
+      const _fmtB = function(d) {
+        if (!d) return '';
+        var m = d.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        return m ? m[3]+'/'+m[2]+'/'+(parseInt(m[1])+543) : d;
+      };
+      _badge.textContent = (_fmtB(_df)||'ทั้งหมด') + ' — ' + (_fmtB(_dt)||'ปัจจุบัน');
+    } else {
+      _badge.textContent = '';
+    }
+  }
+  const _prevBadge = document.getElementById('prevBadge');
+  if (_prevBadge) _prevBadge.textContent = '';
   renderSummary();
   renderCompare();
   renderCategoryStats();
