@@ -400,7 +400,9 @@ td{padding:11px 14px;font-size:0.85rem;}
       </div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">ผู้รับผิดชอบ</label><select class="form-select form-select-lg" id="fAssignee"><option value="">-- เลือกผู้รับผิดชอบ --</option></select></div>
+      <div class="form-group"><label class="form-label">ผู้รับผิดชอบ</label><input placeholder="🔍 ค้นหาชื่อ..." oninput="filterSelectOptions('fAssignee',this.value)"
+  style="width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.85rem;outline:none;margin-bottom:6px;">
+<select class="form-select form-select-lg" id="fAssignee"><option value="">-- เลือกผู้รับผิดชอบ --</option></select></div>
       <div class="form-group"><label class="form-label">สถานะ</label><select class="form-select" id="fStatus">
           <option value="pending">🔍 สอบสวนเพิ่มเติม</option>
           <option value="progress">🔵 เจ้าของสำนวน</option>
@@ -1104,10 +1106,29 @@ function resetPri(p = 'medium') {
       o.classList.add(`sel-${p}`);
   });
 }
+// Filter select options by search text
+window.filterSelectOptions = function(selectId, query) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const q = query.toLowerCase();
+  Array.from(sel.options).forEach(opt => {
+    if (!opt.value) { opt.style.display = ''; return; } // keep placeholder
+    opt.style.display = opt.text.toLowerCase().includes(q) ? '' : 'none';
+  });
+  // Auto-select if only one match
+  const visible = Array.from(sel.options).filter(o => o.value && o.style.display !== 'none');
+  if (visible.length === 1) sel.value = visible[0].value;
+};
+
 function populateAssigneeSelect() {
-  const sel = document.getElementById('fAssignee'), cur = sel.value;
-  sel.innerHTML = '<option value="">-- เลือก --</option>' +
-    people.map(p => `<option value="${p.id}" ${cur===p.id?'selected':''}>${p.name}</option>`).join('');
+  const sel = document.getElementById('fAssignee');
+  const cur = sel?.value || '';
+  if (sel) sel.innerHTML = '<option value="">-- เลือก --</option>' +
+    people.map(p => `<option value="${p.id}" ${cur===p.id?'selected':''}>${p.name}${p.role?' ('+p.role+')':''}</option>`).join('');
+  const sel2 = document.getElementById('rcvAssignee');
+  const cur2 = sel2?.value || '';
+  if (sel2) sel2.innerHTML = '<option value="">-- เลือก --</option>' +
+    people.map(p => `<option value="${p.id}" ${cur2===p.id?'selected':''}>${p.name}${p.role?' ('+p.role+')':''}</option>`).join('');
 }
 
 window.handleCatChange = function(sel) {
@@ -2798,7 +2819,9 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
       <button onclick="rcvConfirmCustomCat()" style="padding:9px 14px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:0.8rem;cursor:pointer;font-family:'Sarabun',sans-serif;white-space:nowrap;">+ เพิ่ม</button>
     </div>
   </div>
-  <div class="form-group"><label class="form-label">ผู้รับผิดชอบ (เจ้าของสำนวน)</label><select class="form-select form-select-lg" id="rcvAssignee"><option value="">-- เลือกผู้รับผิดชอบ --</option></select></div>
+  <div class="form-group"><label class="form-label">ผู้รับผิดชอบ (เจ้าของสำนวน)</label><input placeholder="🔍 ค้นหาชื่อ..." oninput="filterSelectOptions('rcvAssignee',this.value)"
+  style="width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.85rem;outline:none;margin-bottom:6px;">
+<select class="form-select form-select-lg" id="rcvAssignee"><option value="">-- เลือกผู้รับผิดชอบ --</option></select></div>
 </div>
 <div class="form-row">
   <div class="form-group"><label class="form-label">📅 Deadline</label><input class="form-input" type="date" id="rcvDeadline"></div>
