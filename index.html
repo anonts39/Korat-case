@@ -2275,6 +2275,10 @@ window.switchTeamView = function(teamId) {
   _teamViewMode = true;
   _teamViewId = teamId;
 
+  // Debug alert for iPad
+  var _dbgTeams = window._teams || [];
+  alert('teamId: ' + teamId + '\nwindow._teams count: ' + _dbgTeams.length + '\nteams: ' + _dbgTeams.map(function(t){return t.name+' ('+t.id+')'}).join(', '));
+
   // Show banner
   const banner = document.getElementById('teamViewBanner');
   if (banner) {
