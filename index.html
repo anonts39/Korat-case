@@ -2263,8 +2263,14 @@ window.switchTeamView = function(teamId) {
   const picker = document.getElementById('teamViewPicker');
   if (picker) picker.remove();
 
-  const team = teams.find(function(t){ return t.id === teamId; });
-  if (!team) return;
+  // Sync teams from window._teams if module teams is empty
+  if (!teams.length && window._teams && window._teams.length) {
+    teams.push.apply(teams, window._teams);
+  }
+
+  const team = teams.find(function(t){ return t.id === teamId; }) ||
+    (window._teams||[]).find(function(t){ return t.id === teamId; });
+  if (!team) { alert('ไม่พบทีม'); return; }
 
   _teamViewMode = true;
   _teamViewId = teamId;
@@ -3229,13 +3235,16 @@ window.saveTeams = async function() {
         var cb = allChecks[ci];
         if (cb.dataset.ti == i && cb.checked) memberIds.push(cb.value);
       }
-      var existing = _teams.find(function(t){ return t.name===teamNames[i]; });
+      // Find existing team - check both local and window._teams
+      var _allT = (window._teams||[]);
+      var existing = _allT.find(function(t){ return t.name===teamNames[i]; });
       var data = { name:teamNames[i], screenerId:screenerId, memberIds:memberIds };
-      if (existing) {
+      if (existing && existing.id) {
         await _upd(_doc2(_db,'teams',existing.id), data);
-      } else {
+      } else if (!existing) {
         await _add(_col(_db,'teams'), data);
       }
+      // If existing but no id - skip (corrupt data)
     }
     if (window._loadTeams) {
       await window._loadTeams();
