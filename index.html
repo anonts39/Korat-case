@@ -698,11 +698,12 @@ function init() {
 function buildMonthSelect() {
   const sel = document.getElementById('monthSelect');
   const months = allYMs();
-  // Always add current month
   const now = new Date();
   const curYM = String(now.getFullYear()) + '-' + String(now.getMonth()+1).padStart(2,'0');
   if (!months.includes(curYM)) months.push(curYM);
-  if (!selYM || !months.includes(selYM)) selYM = months[months.length - 1] || curYM;
+  // Always set selYM to current month regardless
+  selYM = curYM;
+  if (sel) sel.value = curYM;
   sel.innerHTML = months.map(m => `<option value="${m}" ${m===selYM?'selected':''}>${ymFull(m)}</option>`).join('');
 }
 
@@ -1037,7 +1038,7 @@ function renderTable() {
     const inSelectedMonth = ymOf(c.date) === selYM;
     const statusMatch =
       filterStatus === 'all'    ? true :
-      filterStatus === 'active'   ? (!['done','court'].includes(c.status)) :
+      filterStatus === 'active' ? (!['done','court'].includes(c.status)) :
       filterStatus === 'progress' ? (['progress','pending'].includes(c.status)) :
                                     (c.status === filterStatus);
     return statusMatch &&
