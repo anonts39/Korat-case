@@ -81,6 +81,10 @@ header{background:#161b22;border-bottom:1px solid #30363d;padding:14px 20px;disp
 .tl-meta{font-size:0.75rem;color:#6e7681;margin-top:2px;}
 .tl-note{font-size:0.8rem;color:#8b949e;margin-top:4px;}
 .badge-status{padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:600;}
+.assignee-popup-item{padding:10px 14px;cursor:pointer;font-size:0.88rem;font-family:‘Sarabun’,sans-serif;border-bottom:1px solid #30363d;color:#e6edf3;}
+.assignee-popup-item:last-child{border-bottom:none;}
+.assignee-popup-item:hover{background:#f0883e22;color:#f0883e;}
+.assignee-popup-item .role{font-size:0.72rem;color:#6e7681;margin-top:2px;}
 /* QR Result */
 .qr-result{background:#161b22;border:1px solid #3fb950;border-radius:14px;padding:20px;margin-bottom:16px;text-align:center;display:none;}
 .qr-result.show{display:block;animation:fadeUp 0.3s ease;}
@@ -264,11 +268,17 @@ header{background:#161b22;border-bottom:1px solid #30363d;padding:14px 20px;disp
 </div>
 
 <label class="form-label">ผู้รับผิดชอบ (เจ้าของสำนวน)</label>
-<input placeholder="🔍 ค้นหาชื่อ..." oninput="filterIntakeAssignee(this.value)"
-  style="width:100%;padding:8px 12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-family:'Sarabun',sans-serif;font-size:0.85rem;outline:none;margin-bottom:6px;">
-<select class="form-select" id="fAssignee">
-  <option value="">-- เลือก --</option>
-</select>
+<div style="position:relative;">
+  <input id="fAssigneeSearch" placeholder="🔍 พิมพ์ชื่อเพื่อค้นหา..."
+    autocomplete="off" autocorrect="off" spellcheck="false"
+    oninput="onAssigneeInput(this.value)"
+    onfocus="onAssigneeInput(this.value)"
+    onblur="setTimeout(()=>{document.getElementById('fAssigneePopup').style.display='none'},200)"
+    style="width:100%;padding:10px 12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-family:'Sarabun',sans-serif;font-size:0.88rem;outline:none;">
+  <div id="fAssigneePopup" style="display:none;position:absolute;top:100%;left:0;right:0;background:#1c2128;border:1px solid #f0883e;border-radius:8px;z-index:999;max-height:200px;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,0.5);margin-top:2px;"></div>
+</div>
+<input type="hidden" id="fAssignee">
+<div id="fAssigneeSelected" style="font-size:0.78rem;color:#3fb950;margin-top:4px;min-height:16px;"></div>
 
 <label class="form-label">หมายเหตุ</label>
 <input class="form-input" id="fNote" placeholder="หมายเหตุ (ไม่บังคับ)">
@@ -451,13 +461,13 @@ async function loadData() {
     console.error('loadData error:', e);
     showToast('❌ โหลดข้อมูลไม่ได้: ' + e.message, 'error');
   }
-  // Populate assignee
-  const sel = document.getElementById('fAssignee');
+  // People loaded - popup will build dynamically
   if (people.length === 0) {
-    sel.innerHTML = '<option value="">❌ ไม่พบรายชื่อ (ตรวจสอบ Firestore Rules)</option>';
+    const search = document.getElementById('fAssigneeSearch');
+    if (search) search.placeholder = '❌ ไม่พบรายชื่อ (ตรวจสอบ Firestore Rules)';
   } else {
-    sel.innerHTML = '<option value="">-- เลือก --</option>' +
-      people.map(p => `<option value="${p.id}">${p.name}${p.role?' ('+p.role+')':''}</option>`).join('');
+    const search = document.getElementById('fAssigneeSearch');
+    if (search) search.placeholder = '🔍 พิมพ์ชื่อเพื่อค้นหา (' + people.length + ' คน)';
   }
 }
 
@@ -528,14 +538,31 @@ window.toggleCustomCat = function(val) {
   }
 };
 
-window.filterIntakeAssignee = function(q) {
-  const sel = document.getElementById('fAssignee');
-  if (!sel) return;
-  const query = q.toLowerCase();
-  Array.from(sel.options).forEach(opt => {
-    if (!opt.value) { opt.style.display = ''; return; }
-    opt.style.display = opt.text.toLowerCase().includes(query) ? '' : 'none';
-  });
+window.onAssigneeInput = function(q) {
+  const popup = document.getElementById('fAssigneePopup');
+  if (!popup) return;
+  const query = q.toLowerCase().trim();
+  const filtered = query 
+    ? people.filter(p => p.name.toLowerCase().includes(query))
+    : people;
+  if (!filtered.length) {
+    popup.innerHTML = '<div class="assignee-popup-item" style="color:#6e7681;">ไม่พบชื่อ</div>';
+  } else {
+    popup.innerHTML = filtered.map(p => 
+      `<div class="assignee-popup-item" onmousedown="selectIntakeAssignee('${p.id}','${p.name.replace(/'/g,"\\'")}')">
+        ${p.name}
+        ${p.role ? `<div class="role">${p.role}</div>` : ''}
+      </div>`
+    ).join('');
+  }
+  popup.style.display = 'block';
+};
+
+window.selectIntakeAssignee = function(id, name) {
+  document.getElementById('fAssignee').value = id;
+  document.getElementById('fAssigneeSearch').value = name;
+  document.getElementById('fAssigneeSelected').textContent = '✅ เลือก: ' + name;
+  document.getElementById('fAssigneePopup').style.display = 'none';
 };
 
 window.checkCaseIdDup = function(val) {
@@ -660,6 +687,8 @@ window.resetForm = function() {
   document.getElementById('fCategoryCustom').value = '';
   document.getElementById('fCategoryCustom').style.display = 'none';
   document.getElementById('fAssignee').value = '';
+  document.getElementById('fAssigneeSearch').value = '';
+  document.getElementById('fAssigneeSelected').textContent = '';
   document.getElementById('fDeadline').value = '';
   document.getElementById('fNote').value = '';
   document.getElementById('fRelated').value = '';
