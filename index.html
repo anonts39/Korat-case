@@ -640,6 +640,14 @@ async function loadPeople() {
   // Sort by order field if exists
   people.sort((a,b) => (a.order ?? 999) - (b.order ?? 999));
 }
+
+let teams = [];
+async function loadTeams() {
+  try {
+    const snap = await getDocs(collection(db, 'teams'));
+    teams = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch(e) { teams = []; }
+}
 async function loadCases() {
   // ไม่ใช้ orderBy เพื่อหลีกเลี่ยง Firestore index requirement
   let snap;
