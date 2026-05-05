@@ -633,8 +633,8 @@ onAuthStateChanged(auth, async (user) => {
   document.getElementById('loadingOverlay').style.display = 'none';
   // Expose globals for team modal
   window._db = db;
-  window._people = people;
-  window._teams = teams;
+  window._people = [...people];
+  window._teams = [...teams];
   window._loadTeams = loadTeams;
   window._addDoc = addDoc;
   window._updateDoc = updateDoc;
@@ -649,6 +649,7 @@ async function loadPeople() {
   people = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   // Sort by order field if exists
   people.sort((a,b) => (a.order ?? 999) - (b.order ?? 999));
+  window._people = [...people];
 }
 
 let teams = [];
@@ -3074,7 +3075,8 @@ function renderTeamModal() {
   var teamNames = ['ทีม 1', 'ทีม 2', 'ทีม 3'];
   var screeners = people.filter(function(p){ return (p.role||'').includes('ผู้กลั่นกรอง'); });
   var members = people.filter(function(p){ 
-    return !(p.role||'').includes('ผู้กลั่นกรอง') && !(p.role||'').includes('อจ') && !(p.role||'').includes('จังหวัด'); 
+    var r = (p.role||'').trim();
+    return !r.includes('ผู้กลั่นกรอง') && r !== 'อจ.' && !r.includes('อัยการจังหวัด'); 
   });
   var html = '';
   for (var i=0; i<teamNames.length; i++) {
