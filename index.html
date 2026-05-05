@@ -744,9 +744,9 @@ function buildAlerts() {
   cases.forEach(c => {
     if (c.status === 'done' || c.status === 'court') return;
     if (_teamViewMode && _teamViewId) {
-      const _tArr2 = teams.length ? teams : (window._teams||[]);
-      const _vt = _tArr2.find(function(t){ return t.id===_teamViewId; });
-      if (_vt && !(_vt.memberIds||[]).includes(c.assignee)) return;
+      const _wt2 = (window._teams||[]);
+      const _vt = _wt2.find(function(t){ return t.id===_teamViewId; });
+      if (!_vt || !(_vt.memberIds||[]).includes(c.assignee)) return;
     } else if (!isAdminUser) {
       if (isScreener && myTeam) {
         if (!(myTeam.memberIds||[]).includes(c.assignee)) return;
@@ -1082,9 +1082,9 @@ function renderTable() {
     // Access control
     if (_teamViewMode && _teamViewId) {
       // Admin in team view mode - show only that team's cases
-      const _tArr = teams.length ? teams : (window._teams||[]);
-      const _vt = _tArr.find(function(t){ return t.id === _teamViewId; });
-      if (_vt && !(_vt.memberIds||[]).includes(c.assignee)) return false;
+      const _wt = (window._teams||[]);
+      const _vt = _wt.find(function(t){ return t.id === _teamViewId; });
+      if (!_vt || !(_vt.memberIds||[]).includes(c.assignee)) return false;
     } else if (!isAdminUser) {
       if (isScreener && myTeam) {
         if (!(myTeam.memberIds||[]).includes(c.assignee)) return false;
