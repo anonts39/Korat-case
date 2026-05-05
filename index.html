@@ -3217,7 +3217,11 @@ window.saveTeams = async function() {
     for (var i=0; i<3; i++) {
       var screenerId = document.getElementById('tScr'+i).value;
       var memberIds = [];
-      document.querySelectorAll('input[type=checkbox][data-ti="'+i+'"]:checked').forEach(function(cb){ memberIds.push(cb.value); });
+      var allChecks = document.querySelectorAll('#teamModalContent input[type=checkbox]');
+      for (var ci=0; ci<allChecks.length; ci++) {
+        var cb = allChecks[ci];
+        if (cb.dataset.ti == i && cb.checked) memberIds.push(cb.value);
+      }
       var existing = teams.find(function(t){ return t.name===teamNames[i]; });
       var data = { name:teamNames[i], screenerId:screenerId, memberIds:memberIds };
       if (existing) {
