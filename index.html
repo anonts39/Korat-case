@@ -631,6 +631,15 @@ onAuthStateChanged(auth, async (user) => {
   updateHeaderButtons();
 
   document.getElementById('loadingOverlay').style.display = 'none';
+  // Expose globals for team modal
+  window._db = db;
+  window._people = people;
+  window._teams = teams;
+  window._loadTeams = loadTeams;
+  window._addDoc = addDoc;
+  window._updateDoc = updateDoc;
+  window._collection = collection;
+  window._doc = doc;
   init();
 });
 
@@ -649,6 +658,11 @@ async function loadTeams() {
     teams = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch(e) { teams = []; }
 }
+// Expose to global scope for non-module scripts
+window._teams = teams;
+window._loadTeams = loadTeams;
+window._people = people;
+window._db = null; // will be set after init
 async function loadCases() {
   // ไม่ใช้ orderBy เพื่อหลีกเลี่ยง Firestore index requirement
   let snap;
@@ -3045,7 +3059,8 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
 
 <script>
 window.openTeamModal = async function() {
-  if (typeof loadTeams === 'function') await loadTeams();
+  if (window._loadTeams) await window._loadTeams();
+  window._teams = window._teams || [];
   renderTeamModal();
   document.getElementById('teamModalOverlay').classList.add('show');
 };
@@ -3053,6 +3068,8 @@ window.closeTeamModal = function() {
   document.getElementById('teamModalOverlay').classList.remove('show');
 };
 function renderTeamModal() {
+  var teams = window._teams || [];
+  var people = window._people || [];
   var container = document.getElementById('teamModalContent');
   var teamNames = ['ทีม 1', 'ทีม 2', 'ทีม 3'];
   var screeners = people.filter(function(p){ return (p.role||'').includes('ผู้กลั่นกรอง'); });
@@ -3084,6 +3101,8 @@ function renderTeamModal() {
   container.innerHTML = html;
 }
 window.saveTeams = async function() {
+  var teams = window._teams || [];
+  var db = window._db;
   var teamNames = ['ทีม 1', 'ทีม 2', 'ทีม 3'];
   try {
     for (var i=0; i<3; i++) {
@@ -3093,15 +3112,16 @@ window.saveTeams = async function() {
       var existing = teams.find(function(t){ return t.name===teamNames[i]; });
       var data = { name:teamNames[i], screenerId:screenerId, memberIds:memberIds };
       if (existing) {
-        await updateDoc(doc(db,'teams',existing.id), data);
+        await window._updateDoc(window._doc(db,'teams',existing.id), data);
       } else {
-        await addDoc(collection(db,'teams'), data);
+        await window._addDoc(window._collection(db,'teams'), data);
       }
     }
-    await loadTeams();
+    if (window._loadTeams) await window._loadTeams();
+    window._teams = window._teams || [];
     alert('บันทึกทีมสำเร็จ');
     closeTeamModal();
-    renderAll();
+    if (typeof renderAll === 'function') renderAll();
   } catch(e) { alert('Error: '+e.message); }
 };
 </script>
