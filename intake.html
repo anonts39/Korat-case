@@ -595,6 +595,9 @@ window.submitCase = async function() {
   const btn = document.getElementById('btnSubmit');
   btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
 
+  const catSel = document.getElementById('fCategory').value;
+  const catCustom = document.getElementById('fCategoryCustom')?.value.trim() || '';
+  const finalCat = catSel === 'อื่นๆ' ? catCustom : catSel;
   const assigneeId = document.getElementById('fAssignee').value;
   const assigneePerson = people.find(p => p.id === assigneeId);
 
