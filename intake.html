@@ -61,6 +61,26 @@ header{background:#161b22;border-bottom:1px solid #30363d;padding:14px 20px;disp
 .login-input:focus{border-color:#f0883e;}
 .login-btn{width:100%;padding:12px;border-radius:8px;border:none;background:#f0883e;color:#fff;font-family:‘Kanit’,sans-serif;font-size:0.95rem;font-weight:600;cursor:pointer;}
 .login-err{font-size:0.78rem;color:#f85149;text-align:center;margin-top:8px;min-height:18px;}
+/* TABS */
+.tabs{display:flex;gap:4px;background:var(–surface2,#21262d);border-radius:10px;padding:4px;margin-bottom:16px;}
+.tab-btn{flex:1;padding:9px;border:none;border-radius:8px;background:transparent;color:#8b949e;font-family:‘Sarabun’,sans-serif;font-size:0.85rem;cursor:pointer;font-weight:500;}
+.tab-btn.active{background:#161b22;color:#f0883e;font-weight:600;}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+/* Case Detail */
+.detail-card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:16px;margin-bottom:12px;}
+.detail-title{font-family:‘Kanit’,sans-serif;font-size:1rem;font-weight:600;color:#e6edf3;margin-bottom:12px;}
+.detail-row{display:flex;gap:8px;margin-bottom:8px;font-size:0.85rem;}
+.detail-label{color:#6e7681;min-width:110px;flex-shrink:0;}
+.detail-value{color:#e6edf3;font-weight:500;}
+.tl-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #21262d;}
+.tl-item:last-child{border-bottom:none;}
+.tl-dot{width:10px;height:10px;border-radius:50%;background:#f0883e;margin-top:5px;flex-shrink:0;}
+.tl-body{flex:1;}
+.tl-action{font-size:0.85rem;font-weight:600;color:#e6edf3;}
+.tl-meta{font-size:0.75rem;color:#6e7681;margin-top:2px;}
+.tl-note{font-size:0.8rem;color:#8b949e;margin-top:4px;}
+.badge-status{padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:600;}
 /* QR Result */
 .qr-result{background:#161b22;border:1px solid #3fb950;border-radius:14px;padding:20px;margin-bottom:16px;text-align:center;display:none;}
 .qr-result.show{display:block;animation:fadeUp 0.3s ease;}
@@ -72,10 +92,54 @@ header{background:#161b22;border-bottom:1px solid #30363d;padding:14px 20px;disp
 </style>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  </div><!-- end tabIntake -->
+
+  <!-- Tab: ค้นหาสำนวน -->
+
+  <div class="tab-content" id="tabSearch">
+    <div class="scan-card">
+      <div class="scan-title">📡 สแกน QR / Barcode หรือพิมพ์เลขสำนวน</div>
+      <div class="scan-wrap">
+        <input class="scan-input" id="searchQR" placeholder="ยิงบาร์โค้ด หรือพิมพ์เลขคดี..."
+               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+               onkeydown="if(event.key==='Enter'){event.preventDefault();searchCase();}">
+        <button class="btn-scan" onclick="searchCase()">ค้นหา</button>
+      </div>
+      <div id="searchStatus" style="font-size:0.78rem;margin-top:8px;min-height:20px;"></div>
+    </div>
+
+```
+<!-- Case Detail -->
+<div id="caseDetailWrap" style="display:none;">
+  <div class="detail-card">
+    <div class="detail-title" id="detailName">—</div>
+    <div class="detail-row"><span class="detail-label">เลขที่สำนวน</span><span class="detail-value" id="detailCaseId">—</span></div>
+    <div class="detail-row"><span class="detail-label">ประเภทคดี</span><span class="detail-value" id="detailCategory">—</span></div>
+    <div class="detail-row"><span class="detail-label">ผู้รับผิดชอบ</span><span class="detail-value" id="detailAssignee">—</span></div>
+    <div class="detail-row"><span class="detail-label">สถานะ</span><span class="detail-value" id="detailStatus">—</span></div>
+    <div class="detail-row"><span class="detail-label">วันที่รับ</span><span class="detail-value" id="detailDate">—</span></div>
+    <div class="detail-row"><span class="detail-label">Deadline</span><span class="detail-value" id="detailDeadline">—</span></div>
+    <div class="detail-row" id="detailNoteRow" style="display:none;"><span class="detail-label">หมายเหตุ</span><span class="detail-value" id="detailNote">—</span></div>
+  </div>
+
+  <!-- Timeline -->
+  <div class="detail-card">
+    <div class="detail-title">📋 ประวัติการเคลื่อนไหว</div>
+    <div id="detailTimeline"><div style="color:#6e7681;font-size:0.85rem;text-align:center;padding:16px;">ไม่มีประวัติ</div></div>
+  </div>
+</div>
+```
+
+  </div><!-- end tabSearch -->
+
+</div><!-- end main -->
+
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
 <style>
 .flatpickr-calendar { font-family:'Sarabun',sans-serif; }
 </style>
+
 </head>
 <body>
 
@@ -106,6 +170,17 @@ header{background:#161b22;border-bottom:1px solid #30363d;padding:14px 20px;disp
 </header>
 
 <div class="main">
+
+  <!-- Tabs -->
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('tabIntake',this)">📥 ลงรับสำนวน</button>
+    <button class="tab-btn" onclick="switchTab('tabSearch',this)">🔍 ค้นหาสำนวน</button>
+  </div>
+
+  <!-- Tab: ลงรับ -->
+
+  <div class="tab-content active" id="tabIntake">
 
   <!-- Step 1: Scan -->
 
@@ -215,7 +290,7 @@ header{background:#161b22;border-bottom:1px solid #30363d;padding:14px 20px;disp
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
 import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword }
   from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
-import { getFirestore, collection, addDoc, getDocs }
+import { getFirestore, collection, addDoc, getDocs, query, where }
   from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
 
 const app = initializeApp({
@@ -259,6 +334,93 @@ function showLogin() {
   document.getElementById('loginErr').textContent = '';
   document.getElementById('loginEmail').value = '';
   document.getElementById('loginPass').value = '';
+}
+
+// ===== TABS =====
+window.switchTab = function(tabId, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  btn.classList.add('active');
+  if (tabId === 'tabSearch') setTimeout(() => document.getElementById('searchQR').focus(), 300);
+};
+
+// ===== SEARCH CASE =====
+const sMapIntake = {pending:'🔍 สอบสวนเพิ่มเติม',progress:'🔵 เจ้าของสำนวน',screening:'🔍 รอกลั่นกรอง',review:'⚖️ อจ.พิจารณา',filing:'📁 งานพิมพ์สำนวน',done:'✅ เสร็จสิ้น',court:'🏛 ศาล'};
+
+window.searchCase = async function() {
+  const val = document.getElementById('searchQR').value.trim();
+  if (!val) return;
+  const code = parseBarcodeInput(val);
+  const norm = code.replace(/[-\s]/g,'');
+  const status = document.getElementById('searchStatus');
+
+  status.textContent = '⏳ กำลังค้นหา...';
+  status.style.color = '#6e7681';
+
+  const found = cases.find(c => c.caseId && c.caseId.toLowerCase() === code.toLowerCase()) ||
+    cases.find(c => c.extQR && c.extQR.toString().replace(/[-\s]/g,'') === norm) ||
+    cases.find(c => c.extQRRaw && c.extQRRaw.toString().replace(/[-\s]/g,'') === norm) ||
+    cases.find(c => c.caseId && c.caseId.toLowerCase().includes(code.toLowerCase()));
+
+  if (!found) {
+    status.textContent = '❌ ไม่พบสำนวน: ' + code;
+    status.style.color = '#f85149';
+    document.getElementById('caseDetailWrap').style.display = 'none';
+    return;
+  }
+
+  status.textContent = '✅ พบสำนวน: ' + found.caseId;
+  status.style.color = '#3fb950';
+
+  // Fill detail
+  const assigneePerson = people.find(p => p.id === found.assignee);
+  document.getElementById('detailName').textContent = found.name || '—';
+  document.getElementById('detailCaseId').textContent = found.caseId || '—';
+  document.getElementById('detailCategory').textContent = found.category || '—';
+  document.getElementById('detailAssignee').textContent = assigneePerson?.name || '—';
+  document.getElementById('detailStatus').textContent = sMapIntake[found.status] || found.status || '—';
+  document.getElementById('detailDate').textContent = found.date ? fmtDateIntake(found.date) : '—';
+  document.getElementById('detailDeadline').textContent = found.deadline ? fmtDateIntake(found.deadline) : '—';
+  if (found.note) {
+    document.getElementById('detailNote').textContent = found.note;
+    document.getElementById('detailNoteRow').style.display = 'flex';
+  } else {
+    document.getElementById('detailNoteRow').style.display = 'none';
+  }
+
+  document.getElementById('caseDetailWrap').style.display = 'block';
+
+  // Load timeline
+  try {
+    const snap = await getDocs(query(collection(db,'tracking'), where('caseId','==',found.id)));
+    const tracks = snap.docs.map(d => d.data()).sort((a,b) => new Date(b.timestamp?.toDate?.()??b.timestamp) - new Date(a.timestamp?.toDate?.()??a.timestamp));
+    const tlEl = document.getElementById('detailTimeline');
+    if (!tracks.length) {
+      tlEl.innerHTML = '<div style="color:#6e7681;font-size:0.85rem;text-align:center;padding:16px;">ไม่มีประวัติ</div>';
+    } else {
+      tlEl.innerHTML = tracks.map(t => {
+        const ts = t.timestamp ? new Date(t.timestamp?.toDate?.()??t.timestamp).toLocaleString('th-TH') : '';
+        return `<div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-body">
+            <div class="tl-action">${t.action||''}</div>
+            <div class="tl-meta">${t.dept||''} ${t.person?'· '+t.person:''} ${ts?'· '+ts:''}</div>
+            ${t.note?`<div class="tl-note">💬 ${t.note}</div>`:''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+  } catch(e) { console.error(e); }
+
+  document.getElementById('caseDetailWrap').scrollIntoView({behavior:'smooth', block:'start'});
+};
+
+function fmtDateIntake(raw) {
+  if (!raw) return '—';
+  const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return m[3]+'/'+m[2]+'/'+(parseInt(m[1])+543);
+  return raw;
 }
 
 window.doLogin = async function() {
