@@ -3210,8 +3210,16 @@ function renderTeamModal() {
   container.innerHTML = html;
 }
 window.saveTeams = async function() {
-  var teams = window._teams || [];
-  var db = window._db;
+  var _teams = window._teams || [];
+  var _db = window._db;
+  var _col = window._collection;
+  var _add = window._addDoc;
+  var _upd = window._updateDoc;
+  var _doc2 = window._doc;
+  if (!_db || !_col || !_add || !_upd || !_doc2) {
+    alert('ระบบยังโหลดไม่เสร็จ กรุณารอสักครู่แล้วลองใหม่');
+    return;
+  }
   var teamNames = ['ทีม 1', 'ทีม 2', 'ทีม 3'];
   try {
     for (var i=0; i<3; i++) {
@@ -3222,17 +3230,19 @@ window.saveTeams = async function() {
         var cb = allChecks[ci];
         if (cb.dataset.ti == i && cb.checked) memberIds.push(cb.value);
       }
-      var existing = teams.find(function(t){ return t.name===teamNames[i]; });
+      var existing = _teams.find(function(t){ return t.name===teamNames[i]; });
       var data = { name:teamNames[i], screenerId:screenerId, memberIds:memberIds };
       if (existing) {
-        await window._updateDoc(window._doc(db,'teams',existing.id), data);
+        await _upd(_doc2(_db,'teams',existing.id), data);
       } else {
-        await window._addDoc(window._collection(db,'teams'), data);
+        await _add(_col(_db,'teams'), data);
       }
     }
-    if (window._loadTeams) await window._loadTeams();
-    window._teams = window._teams || [];
-    alert('บันทึกทีมสำเร็จ');
+    if (window._loadTeams) {
+      await window._loadTeams();
+      window._teams = [...(window._teams||[])];
+    }
+    alert('✅ บันทึกทีมสำเร็จ');
     closeTeamModal();
     if (typeof renderAll === 'function') renderAll();
   } catch(e) { alert('Error: '+e.message); }
