@@ -683,7 +683,6 @@ async function loadTeams() {
 window._teams = teams;
 window._loadTeams = loadTeams;
 window._people = people;
-window._db = null; // will be set after init
 async function loadCases() {
   // ไม่ใช้ orderBy เพื่อหลีกเลี่ยง Firestore index requirement
   let snap;
