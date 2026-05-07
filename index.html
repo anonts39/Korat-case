@@ -1372,6 +1372,7 @@ window.saveCase = async function() {
       date:      document.getElementById('fDate').value,
       deadline:  document.getElementById('fDeadline').value  || null,
       priority:  document.getElementById('fPriority').value  || 'medium',
+      custody:   document.getElementById('fCustody')?.value || null,
       note:      document.getElementById('fNote').value.trim(),
       extQR:     document.getElementById('fExtQR').value.trim() || null,
       relatedCases: (document.getElementById('fRelated').value.trim() || '').split(',').map(s=>s.trim()).filter(Boolean)
