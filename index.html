@@ -323,7 +323,54 @@ td{padding:11px 14px;font-size:0.85rem;}
     <div class="alert-strip-title">🚨 คดีที่ต้องดำเนินการด่วน</div>
     <div class="alert-strip-list" id="alertStripList"></div>
   </div>
-  <div class="summary-grid">
+  <!-- Team/Office comparison row -->
+<div id="summaryCompareRow" style="display:none;background:#1a2d1a;border:1px solid #3fb950;border-radius:10px;padding:12px 16px;margin-bottom:12px;">
+  <div style="font-size:0.78rem;color:#3fb950;font-weight:600;margin-bottom:8px;">📊 เปรียบเทียบ: สำนักงาน vs ทีมที่ดูอยู่</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div>
+      <div style="font-size:0.72rem;color:#6e7681;margin-bottom:6px;">🏢 รวมทั้งสำนักงาน</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <span style="font-size:0.82rem;">ทั้งหมด: <strong id="cmpAllTotal" style="color:#58a6ff;">0</strong></span>
+        <span style="font-size:0.82rem;">ค้าง: <strong id="cmpAllPending" style="color:#f85149;">0</strong></span>
+        <span style="font-size:0.82rem;">เสร็จ: <strong id="cmpAllDone" style="color:#3fb950;">0</strong></span>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:0.72rem;color:#6e7681;margin-bottom:6px;" id="cmpTeamLabel">👥 ทีม</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <span style="font-size:0.82rem;">ทั้งหมด: <strong id="cmpTeamTotal" style="color:#58a6ff;">0</strong></span>
+        <span style="font-size:0.82rem;">ค้าง: <strong id="cmpTeamPending" style="color:#f85149;">0</strong></span>
+        <span style="font-size:0.82rem;">เสร็จ: <strong id="cmpTeamDone" style="color:#3fb950;">0</strong></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Office/Self comparison for non-admin -->
+
+<div id="selfCompareRow" style="display:none;background:#1a1f2d;border:1px solid #1a2a4a;border-radius:10px;padding:12px 16px;margin-bottom:12px;">
+  <div style="font-size:0.78rem;color:#58a6ff;font-weight:600;margin-bottom:8px;">📊 เปรียบเทียบ: สำนักงาน vs ของฉัน</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div>
+      <div style="font-size:0.72rem;color:#6e7681;margin-bottom:6px;">🏢 รวมทั้งสำนักงาน</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <span style="font-size:0.82rem;">ทั้งหมด: <strong id="cmpOfficeTotalSelf" style="color:#58a6ff;">0</strong></span>
+        <span style="font-size:0.82rem;">ค้าง: <strong id="cmpOfficePendingSelf" style="color:#f85149;">0</strong></span>
+        <span style="font-size:0.82rem;">เสร็จ: <strong id="cmpOfficeDoneSelf" style="color:#3fb950;">0</strong></span>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:0.72rem;color:#6e7681;margin-bottom:6px;">👤 ของฉัน</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <span style="font-size:0.82rem;">ทั้งหมด: <strong id="cmpSelfTotal" style="color:#58a6ff;">0</strong></span>
+        <span style="font-size:0.82rem;">ค้าง: <strong id="cmpSelfPending" style="color:#f85149;">0</strong></span>
+        <span style="font-size:0.82rem;">เสร็จ: <strong id="cmpSelfDone" style="color:#3fb950;">0</strong></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="summary-grid">
     <div class="summary-card total"><div class="card-label">คดีทั้งหมด</div><div class="card-number blue" id="totalCases">0</div><div class="mom-row" id="momRowTotal"></div><div class="card-sub" id="totalCasesSub">คดีที่ยังค้างในเดือนนี้</div></div>
     <div class="summary-card pending"><div class="card-label">คดีค้าง (ยังไม่เสร็จ)</div><div class="card-number red" id="totalPending">0</div><div class="mom-row" id="momRowPending"></div><div class="card-sub" id="pendingPct">0%</div><div class="prog-bar-wrap"><div class="prog-bar" id="pendingBar" style="width:0%"></div></div></div>
     <div class="summary-card done"><div class="card-label">เสร็จสิ้น</div><div class="card-number green" id="totalDone">0</div><div class="mom-row" id="momRowDone"></div><div class="card-sub" id="donePct">0%</div></div>
@@ -809,7 +856,7 @@ function renderAll() {
     if (_df || _dt) {
       const _fmtB = function(d) {
         if (!d) return '';
-        var m = d.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        var m = d.match(/(\d{4})-(\d{2})-(\d{2})/);
         return m ? m[3]+'/'+m[2]+'/'+(parseInt(m[1])+543) : d;
       };
       _badge.textContent = (_fmtB(_df)||'ทั้งหมด') + ' — ' + (_fmtB(_dt)||'ปัจจุบัน');
@@ -830,10 +877,15 @@ function renderAll() {
 
 // ===== SUMMARY =====
 function renderSummary() {
+  const now2 = new Date();
+  const curYM2 = String(now2.getFullYear())+'-'+String(now2.getMonth()+1).padStart(2,'0');
+  const activeSelYM = selYM || curYM2;
   const c = (_df || _dt)
     ? cases.filter(x => { const d = x.date?x.date.slice(0,10):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
-    : cases;
-  const p = inMonth(prevYM(selYM));
+    : (_teamViewMode && _teamViewId)
+      ? cases.filter(x => { const _wt=(window._teams||[]); const _vt=_wt.find(t=>t.id===_teamViewId); return _vt&&(_vt.memberIds||[]).includes(x.assignee); })
+      : cases;
+  const p = inMonth(prevYM(activeSelYM));
   const DONE_STATUSES = ['done','court'];
   const ct = c.length;
   const cp = c.filter(x => !DONE_STATUSES.includes(x.status)).length; // ค้าง = ทุกที่ไม่ใช่ done/court
