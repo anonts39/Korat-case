@@ -270,6 +270,39 @@ background: var(–surface2) !important;
 input[type=“date”] {
 color-scheme: dark;
 }
+
+/* ===== DATE INPUT FIX ===== */
+input[type=“date”] {
+color: #222222 !important;
+background: #ffffff !important;
+border: 1px solid #aaaaaa !important;
+color-scheme: light !important;
+}
+input[type=“date”]::-webkit-calendar-picker-indicator {
+filter: none !important;
+cursor: pointer;
+}
+/* Fix tl-action-btn */
+.tl-action-btn {
+padding: 7px 14px !important;
+border-radius: 8px !important;
+border: 2px solid #aaaaaa !important;
+background: #ffffff !important;
+color: #222222 !important;
+font-family: ‘Sarabun’, sans-serif !important;
+font-size: 0.78rem !important;
+cursor: pointer !important;
+font-weight: 500 !important;
+}
+.tl-action-btn:hover {
+background: #f0f0f0 !important;
+}
+.tl-action-btn.active {
+border-color: #e36209 !important;
+background: #e36209 !important;
+color: #ffffff !important;
+font-weight: 700 !important;
+}
 </style>
 
 </head>
