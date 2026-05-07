@@ -2522,10 +2522,19 @@ window.closeReceiveModal = function() {
   document.getElementById('receiveModalOverlay').classList.remove('show');
 };
 
+function parseBarcodeInput(raw) {
+  // Handle JSON barcode: {rcnum:1254,rcyr:2569,...}
+  const rcnum = raw.match(/rcnum[\s:]*(\d+)/i);
+  const rcyr  = raw.match(/rcyr[\s:]*(\d+)/i);
+  if (rcnum && rcyr) return rcnum[1] + '/' + rcyr[1];
+  // Handle tel: prefix
+  return raw.replace(/^tel:/i,'').trim();
+}
+
 window.rcvCheckQR = function() {
   const val = document.getElementById('rcvQR').value.trim();
   if (!val) return;
-  const code = val.replace(/^tel:/i,'');
+  const code = parseBarcodeInput(val);
   const phoneNorm = code.replace(/[-\s]/g,'');
   const status = document.getElementById('rcvQRStatus');
 
@@ -2545,6 +2554,9 @@ window.rcvCheckQR = function() {
   } else {
     status.innerHTML = `✅ รหัส QR: <strong>${code}</strong> — ยังไม่มีในระบบ พร้อมบันทึก`;
     status.style.color = 'var(--green)';
+    // Auto-fill case ID with parsed barcode
+    const rcvCaseIdEl = document.getElementById('rcvCaseId');
+    if (!rcvCaseIdEl.value) rcvCaseIdEl.value = code;
   }
   document.getElementById('rcvCaseId').focus();
 };
