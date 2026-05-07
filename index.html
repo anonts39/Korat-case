@@ -600,7 +600,17 @@ function getCatColor(cat) {
 }
 function getCatEmoji(cat) { return CAT_EMOJI[cat] || '📁'; }
 
-const ymOf    = d => d ? d.slice(0,7) : '';
+const ymOf    = function(d) {
+  if (!d) return '';
+  var ym = d.slice(0,7);
+  var y = parseInt(ym.split('-')[0]);
+  // If BE year (>2400), convert to CE
+  if (y > 2400) {
+    var mo = ym.split('-')[1];
+    return (y-543)+'-'+mo;
+  }
+  return ym;
+};
 const prevYM  = m => { const [y,mo] = m.split('-').map(Number); return mo===1 ? `${y-1}-12` : `${y}-${String(mo-1).padStart(2,'0')}`; };
 const ymFull  = m => { const [y,mo] = m.split('-').map(Number); const yr = y > 2400 ? y : y+543; return `${TH_F[mo-1]} ${yr}`; };
 const ymShort = m => { const [y,mo] = m.split('-').map(Number); const yr = y > 2400 ? y : y+543; return `${TH_S[mo-1]} ${yr}`; };
@@ -781,7 +791,13 @@ function buildMonthSelect() {
   const now = new Date();
   const curYM = String(now.getFullYear()) + '-' + String(now.getMonth()+1).padStart(2,'0');
   if (!months.includes(curYM)) months.push(curYM);
-  if (!selYM || !months.includes(selYM)) selYM = months[months.length - 1] || curYM;
+  // Always prefer current month
+  if (!selYM || !months.includes(selYM)) selYM = curYM;
+  else if (selYM && parseInt(selYM.split('-')[0]) > 2400) {
+    // selYM is BE - convert to CE
+    var _sparts = selYM.split('-');
+    selYM = (parseInt(_sparts[0])-543)+'-'+_sparts[1];
+  }
   sel.innerHTML = months.map(m => `<option value="${m}" ${m===selYM?'selected':''}>${ymFull(m)}</option>`).join('');
 }
 
