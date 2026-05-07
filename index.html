@@ -1241,7 +1241,7 @@ function renderTable() {
     review:    ['⚖️ อจ.พิจารณา',  'review'],
     filing:    ['📁 งานพิมพ์สำนวน',       'filing'],
     done:      ['✅ เสร็จสิ้น',    'done'],
-    court:     ['🏛 ศาล',          'court']
+    court:     ['🏛 ศาล (เสร็จสิ้น)', 'done']
   };
   tbody.innerHTML = filtered.map(c => {
     const per = people.find(x => x.id === c.assignee);
