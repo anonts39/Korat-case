@@ -3023,6 +3023,13 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
           <div style="font-size:0.72rem;color:var(--text3);">สถานะยังเป็น <strong>ค้าง</strong> — ส่งคืนเจ้าของสำนวนเพื่อสอบสวนเพิ่ม</div>
         </div>
       </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:var(--surface2);" id="returnOptArrestLabel">
+        <input type="radio" name="returnAction" value="arrest" style="margin-top:2px;flex-shrink:0;" onchange="selectReturnOpt(this)">
+        <div>
+          <div style="font-weight:600;font-size:0.85rem;">🚨 สั่งจับ / แจ้งจับ</div>
+          <div style="font-size:0.72rem;color:var(--text3);">ออกหมายจับ — สถานะเป็น <strong>สอบสวนเพิ่มเติม</strong></div>
+        </div>
+      </label>
       <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:var(--surface2);" id="returnOpt2Label">
         <input type="radio" name="returnAction" value="return_done" style="margin-top:2px;flex-shrink:0;" onchange="selectReturnOpt(this)">
         <div>
