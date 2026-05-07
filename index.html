@@ -516,10 +516,10 @@ td{padding:11px 14px;font-size:0.85rem;}
     <option value="ขัง 1">🔒 ขัง 1</option>
     <option value="ขัง 2">🔒 ขัง 2</option>
     <option value="ขัง 3">🔒 ขัง 3</option>
-    <option value="ขัง 4">🔒 ขัง 4</option>
+    <option value="ขัง 4" style="color:#f85149;font-weight:700;">🚨 ขัง 4 (ใกล้หมด)</option>
     <option value="ขัง 5">🔒 ขัง 5</option>
     <option value="ขัง 6">🔒 ขัง 6</option>
-    <option value="ขัง 7">🔒 ขัง 7</option>
+    <option value="ขัง 7" style="color:#ff4444;font-weight:700;">⚠️ ขัง 7 (ครั้งสุดท้าย)</option>
     <option value="ประกัน">✅ ประกัน</option>
   </select>
   <input type="hidden" id="fPriority" value="medium">
@@ -2469,6 +2469,7 @@ window.openReceiveModal = function() {
   document.getElementById('rcvDeadline').value = '';
   document.getElementById('rcvDate').value = new Date().toISOString().split('T')[0];
   document.getElementById('rcvPriority').value = 'medium';
+  if (document.getElementById('rcvCustody')) document.getElementById('rcvCustody').value = '';
   // Populate assignee
   const selR = document.getElementById('rcvAssignee');
   selR.innerHTML = '<option value="">-- เลือกผู้รับผิดชอบ --</option>' +
@@ -3086,13 +3087,18 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
   <div class="form-group"><label class="form-label">หมายเหตุ</label><input class="form-input" id="rcvNote" placeholder="หมายเหตุ (ไม่บังคับ)"></div>
 </div>
 <div class="form-group">
-  <label class="form-label">🎯 ระดับความสำคัญ</label>
-  <div class="pri-grid">
-    <div class="pri-opt" onclick="selectPri('critical',this)">🔴 วิกฤต</div>
-    <div class="pri-opt" onclick="selectPri('high',this)">🟠 สูง</div>
-    <div class="pri-opt sel-medium" onclick="selectPri('medium',this)">🔵 ปานกลาง</div>
-    <div class="pri-opt" onclick="selectPri('low',this)">🟢 ต่ำ</div>
-  </div>
+  <label class="form-label">🔒 สถานะผู้ต้องหา</label>
+  <select class="form-select" id="rcvCustody">
+    <option value="">-- เลือก --</option>
+    <option value="ขัง 1">🔒 ขัง 1</option>
+    <option value="ขัง 2">🔒 ขัง 2</option>
+    <option value="ขัง 3">🔒 ขัง 3</option>
+    <option value="ขัง 4" style="color:#f85149;font-weight:600;">🚨 ขัง 4</option>
+    <option value="ขัง 5">🔒 ขัง 5</option>
+    <option value="ขัง 6">🔒 ขัง 6</option>
+    <option value="ขัง 7" style="color:#ff4444;font-weight:700;">⚠️ ขัง 7</option>
+    <option value="ประกัน">✅ ประกัน</option>
+  </select>
   <input type="hidden" id="rcvPriority" value="medium">
 </div>
 <div class="form-group">
