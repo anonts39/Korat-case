@@ -1226,7 +1226,19 @@ function renderTable() {
     const ownerLabel = isAdminUser && c.userEmail ? `<div style="font-size:0.68rem;color:var(--purple)">👤 ${c.userEmail}</div>` : '';
     const noteLabel  = c.note ? `<div style="font-size:0.72rem;color:var(--text3)">📝 ${c.note}</div>` : '';
     const canDelete  = isAdminUser || c.userId === currentUserId;
-    const custodyLabel = c.custody ? `<div style="margin-top:3px;"><span style="font-size:0.72rem;padding:2px 8px;border-radius:10px;font-weight:${c.custody==='ขัง 4'||c.custody==='ขัง 7'?'700':'500'};background:${c.custody==='ประกัน'?'#1a2d1a':c.custody==='ขัง 7'?'#3d0000':c.custody==='ขัง 4'?'#3d1a00':'#2d1a0d'};color:${c.custody==='ประกัน'?'#3fb950':c.custody==='ขัง 7'?'#ff4444':c.custody==='ขัง 4'?'#f85149':'#f0883e'};">${c.custody==='ขัง 7'?'⚠️ ขัง 7 (ครั้งสุดท้าย)':c.custody==='ขัง 4'?'🚨 ขัง 4 (ใกล้หมด)':c.custody}</span></div>` : '';
+    // สี: ขัง 7=แดงสด(เร่งด่วนสุด), ขัง 4=แดงส้ม, ขัง 5-6=ส้ม, ขัง 1-3=เหลือง, ประกัน=เขียว
+    const _custodyColor = {
+      'ขัง 1': { bg:'#2d2a00', color:'#e3b341', icon:'🔒', txt:'ขัง 1' },
+      'ขัง 2': { bg:'#2d2a00', color:'#e3b341', icon:'🔒', txt:'ขัง 2' },
+      'ขัง 3': { bg:'#2d2a00', color:'#e3b341', icon:'🔒', txt:'ขัง 3' },
+      'ขัง 4': { bg:'#3d1a00', color:'#f85149', icon:'🚨', txt:'ขัง 4 (ใกล้หมด)' },
+      'ขัง 5': { bg:'#2d1800', color:'#f0883e', icon:'⚠️', txt:'ขัง 5' },
+      'ขัง 6': { bg:'#2d1800', color:'#f0883e', icon:'⚠️', txt:'ขัง 6' },
+      'ขัง 7': { bg:'#3d0000', color:'#ff4444', icon:'🆘', txt:'ขัง 7 (ครั้งสุดท้าย!)' },
+      'ประกัน': { bg:'#1a2d1a', color:'#3fb950', icon:'✅', txt:'ประกัน' },
+    };
+    const _cd = c.custody ? _custodyColor[c.custody] : null;
+    const custodyLabel = _cd ? '<div style="margin-top:4px;"><span style="font-size:0.72rem;padding:3px 10px;border-radius:20px;font-weight:600;background:'+_cd.bg+';color:'+_cd.color+';border:1px solid '+_cd.color+'33;">'+_cd.icon+' '+_cd.txt+'</span></div>' : '';
     return `<tr class="${rowCls}" id="case-row-${c.id}">
       <td><div class="case-id">${c.caseId}</div></td>
       <td>
