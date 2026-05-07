@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เจ้าหน้าที่ — สอจ.นม</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&family=Kanit:wght@600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Sarabun',sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh;}
+header{background:#161b22;border-bottom:1px solid #30363d;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;}
+.logo{font-family:'Kanit',sans-serif;font-size:1rem;font-weight:700;color:#f0883e;}
+.sub{font-size:0.72rem;color:#6e7681;}
+.user-info{font-size:0.78rem;color:#8b949e;display:flex;align-items:center;gap:10px;}
+.btn-logout{padding:5px 12px;border-radius:6px;border:1px solid #30363d;background:transparent;color:#8b949e;font-family:'Sarabun',sans-serif;font-size:0.78rem;cursor:pointer;}
+.main{max-width:680px;margin:0 auto;padding:20px 16px;}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;background:#161b22;border-radius:10px;padding:4px;margin-bottom:16px;border:1px solid #30363d;}
+.tab-btn{flex:1;padding:10px;border:none;border-radius:8px;background:transparent;color:#8b949e;font-family:‘Sarabun’,sans-serif;font-size:0.82rem;cursor:pointer;font-weight:500;transition:all 0.15s;}
+.tab-btn.active{background:#f0883e;color:#ffffff;font-weight:700;}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* Cards */
+.card{background:#161b22;border:1px solid #30363d;border-radius:14px;padding:18px;margin-bottom:14px;}
+.card-title{font-family:‘Kanit’,sans-serif;font-size:0.95rem;font-weight:600;color:#f0883e;margin-bottom:14px;}
+
+/* Scan */
+.scan-wrap{display:flex;gap:8px;}
+.scan-input{flex:1;padding:12px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-family:‘Sarabun’,sans-serif;font-size:0.9rem;outline:none;}
+.scan-input:focus{border-color:#f0883e;}
+.btn-scan{padding:12px 18px;background:#f0883e;border:none;border-radius:8px;color:#fff;font-family:‘Kanit’,sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;}
+.scan-status{font-size:0.82rem;margin-top:8px;min-height:20px;padding:4px 0;}
+
+/* Case Detail */
+.detail-box{background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:14px;margin-top:12px;display:none;}
+.detail-row{display:flex;gap:8px;margin-bottom:8px;font-size:0.85rem;}
+.detail-label{color:#6e7681;min-width:100px;flex-shrink:0;}
+.detail-value{color:#e6edf3;font-weight:500;}
+.btn-court{width:100%;margin-top:14px;padding:12px;background:#1a2d4a;border:2px solid #388bfd;border-radius:10px;color:#388bfd;font-family:‘Kanit’,sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;transition:all 0.15s;}
+.btn-court:hover{background:#388bfd;color:#fff;}
+.btn-court:disabled{opacity:0.5;cursor:not-allowed;}
+
+/* Form */
+.form-group{margin-bottom:12px;}
+.form-label{font-size:0.82rem;color:#8b949e;display:block;margin-bottom:5px;font-weight:500;}
+.form-input,.form-select{width:100%;padding:10px 12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-family:‘Sarabun’,sans-serif;font-size:0.88rem;outline:none;}
+.form-input:focus,.form-select:focus{border-color:#f0883e;}
+.form-input[type=“date”]{color:#111;background:#fff;color-scheme:light;}
+.btn-submit{width:100%;padding:12px;background:#f0883e;border:none;border-radius:10px;color:#fff;font-family:‘Kanit’,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;margin-top:6px;}
+.btn-submit:disabled{opacity:0.5;cursor:not-allowed;}
+
+/* Review */
+.review-case{background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:14px;margin-bottom:10px;}
+.review-case-id{font-family:‘Kanit’,sans-serif;font-size:0.85rem;color:#f0883e;}
+.review-case-name{font-size:0.9rem;font-weight:600;margin:4px 0;}
+.review-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.btn-action{padding:8px 14px;border-radius:8px;border:none;font-family:‘Sarabun’,sans-serif;font-size:0.82rem;cursor:pointer;font-weight:600;}
+.btn-green{background:#1a2d1a;color:#3fb950;border:1px solid #3fb950;}
+.btn-orange{background:#2d1a00;color:#f0883e;border:1px solid #f0883e;}
+.btn-red{background:#2d0000;color:#f85149;border:1px solid #f85149;}
+.btn-blue{background:#1a1f2d;color:#388bfd;border:1px solid #388bfd;}
+.btn-purple{background:#1a1a2d;color:#bc8cff;border:1px solid #bc8cff;}
+.empty{text-align:center;color:#6e7681;padding:30px;font-size:0.85rem;}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:600;}
+.badge-review{background:#1a1a2d;color:#bc8cff;}
+.badge-screening{background:#2d2a00;color:#e3b341;}
+.badge-progress{background:#1a1f2d;color:#388bfd;}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#3fb950;color:#fff;padding:10px 20px;border-radius:10px;font-family:‘Sarabun’,sans-serif;font-size:0.85rem;display:none;z-index:9999;font-weight:600;}
+.toast.error{background:#f85149;}
+
+/* Note input */
+textarea.form-input{resize:vertical;min-height:70px;}
+</style>
+
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">สอจ.นม — เจ้าหน้าที่</div>
+    <div class="sub" id="userEmail"></div>
+  </div>
+  <div class="user-info">
+    <a href="index.html" style="color:#8b949e;font-size:0.78rem;text-decoration:none;">📊 หน้าหลัก</a>
+    <button class="btn-logout" id="btnLogout">ออกจากระบบ</button>
+  </div>
+</header>
+
+<div class="main">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('tabScan',this)">📡 ส่งศาล</button>
+    <button class="tab-btn" onclick="switchTab('tabIntake',this)">📥 ลงรับ</button>
+    <button class="tab-btn" onclick="switchTab('tabSend',this)">📤 ส่งงานคดี</button>
+  </div>
+
+  <!-- TAB 1: ยิงบาร์โค้ด + ส่งศาล -->
+
+  <div class="tab-content active" id="tabScan">
+    <div class="card">
+      <div class="card-title">📡 ยิงบาร์โค้ดส่งสำนวนไปศาล</div>
+      <div class="scan-wrap">
+        <input class="scan-input" id="scanInput" placeholder="ยิงบาร์โค้ด หรือพิมพ์เลขคดี..."
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();doScan();}">
+        <button class="btn-scan" onclick="doScan()">ค้นหา</button>
+      </div>
+      <div class="scan-status" id="scanStatus"></div>
+      <div class="detail-box" id="scanResult">
+        <div class="detail-row"><span class="detail-label">เลขคดี</span><span class="detail-value" id="srCaseId">—</span></div>
+        <div class="detail-row"><span class="detail-label">ชื่อคดี</span><span class="detail-value" id="srName">—</span></div>
+        <div class="detail-row"><span class="detail-label">ประเภท</span><span class="detail-value" id="srCat">—</span></div>
+        <div class="detail-row"><span class="detail-label">ผู้รับผิดชอบ</span><span class="detail-value" id="srAssignee">—</span></div>
+        <div class="detail-row"><span class="detail-label">สถานะ</span><span class="detail-value" id="srStatus">—</span></div>
+        <div class="form-group" style="margin-top:10px;">
+          <label class="form-label">หมายเหตุ (ถ้ามี)</label>
+          <textarea class="form-input" id="srNote" placeholder="บันทึกเพิ่มเติม..."></textarea>
+        </div>
+        <button class="btn-court" id="btnSendCourt" onclick="sendToCourt()">🏛 ส่งสำนวนดำเนินการทางศาล</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: ลงรับสำนวน -->
+
+  <div class="tab-content" id="tabIntake">
+    <div class="card">
+      <div class="card-title">📥 ลงรับสำนวนใหม่</div>
+      <div class="form-group">
+        <label class="form-label">ยิงบาร์โค้ดหรือพิมพ์เลขคดี</label>
+        <div class="scan-wrap">
+          <input class="scan-input" id="intakeQR" placeholder="ยิงบาร์โค้ด..."
+            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+            oninput="parseIntakeQR(this.value)"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();}">
+        </div>
+        <div class="scan-status" id="intakeQRStatus"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">เลขรับคดีที่ *</label>
+        <input class="form-input" id="iCaseId" placeholder="เช่น 1254/2569">
+      </div>
+      <div class="form-group">
+        <label class="form-label">ชื่อคดี *</label>
+        <input class="form-input" id="iName" placeholder="ชื่อผู้ต้องหา หรือชื่อคดี">
+      </div>
+      <div class="form-group">
+        <label class="form-label">ประเภทคดี</label>
+        <select class="form-select" id="iCategory">
+          <option value="">-- เลือก --</option>
+          <option value="แพ่ง">⚖️ แพ่ง</option>
+          <option value="อาญา">🔒 อาญา</option>
+          <option value="ส.1">📋 ส.1</option>
+          <option value="ส.2">📋 ส.2</option>
+          <option value="ส.3">📋 ส.3</option>
+          <option value="ส.13">📋 ส.13</option>
+          <option value="คดี มร.">⚖️ คดี มร.</option>
+          <option value="ที่ดิน">🏠 ที่ดิน</option>
+          <option value="อื่นๆ">✏️ อื่นๆ</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ผู้รับผิดชอบ</label>
+        <input class="form-input" id="iAssigneeSearch" placeholder="🔍 พิมพ์ชื่อ..." autocomplete="off"
+          oninput="filterStaffAssignee(this.value)" onfocus="filterStaffAssignee(this.value)"
+          onblur="setTimeout(()=>document.getElementById('iAssigneeDropdown').style.display='none',200)">
+        <div id="iAssigneeDropdown" style="display:none;position:relative;background:#1c2128;border:1px solid #f0883e;border-radius:8px;z-index:99;max-height:180px;overflow-y:auto;margin-top:2px;"></div>
+        <input type="hidden" id="iAssignee">
+        <div id="iAssigneeSelected" style="font-size:0.75rem;color:#3fb950;margin-top:4px;"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">วันที่รับ</label>
+        <input class="form-input" type="date" id="iDate">
+      </div>
+      <div class="form-group">
+        <label class="form-label">🔒 สถานะผู้ต้องหา</label>
+        <select class="form-select" id="iCustody">
+          <option value="">-- เลือก --</option>
+          <option value="ขัง 1">🔒 ขัง 1</option>
+          <option value="ขัง 2">🔒 ขัง 2</option>
+          <option value="ขัง 3">🔒 ขัง 3</option>
+          <option value="ขัง 4">🚨 ขัง 4 (ใกล้ครบ)</option>
+          <option value="ขัง 5">⚠️ ขัง 5</option>
+          <option value="ขัง 6">⚠️ ขัง 6</option>
+          <option value="ขัง 7">🆘 ขัง 7 (ครั้งสุดท้าย!)</option>
+          <option value="ประกัน">✅ ประกัน</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">หมายเหตุ</label>
+        <textarea class="form-input" id="iNote" placeholder="บันทึกเพิ่มเติม..."></textarea>
+      </div>
+      <button class="btn-submit" id="btnIntake" onclick="submitIntake()">💾 บันทึกสำนวน</button>
+    </div>
+  </div>
+
+  <!-- TAB 3: ส่งงานคดี -->
+
+  <div class="tab-content" id="tabSend">
+    <div class="card">
+      <div class="card-title">📤 ส่งงานคดี</div>
+      <div class="form-group">
+        <label class="form-label">ยิงบาร์โค้ดหรือพิมพ์เลขคดี</label>
+        <div class="scan-wrap">
+          <input class="scan-input" id="sendInput" placeholder="ยิงบาร์โค้ด หรือพิมพ์เลขคดี..."
+            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();doSendScan();}">
+          <button class="btn-scan" onclick="doSendScan()">ค้นหา</button>
+        </div>
+        <div class="scan-status" id="sendStatus"></div>
+      </div>
+      <div class="detail-box" id="sendResult">
+        <div class="detail-row"><span class="detail-label">เลขคดี</span><span class="detail-value" id="sendCaseId">—</span></div>
+        <div class="detail-row"><span class="detail-label">ชื่อคดี</span><span class="detail-value" id="sendName">—</span></div>
+        <div class="detail-row"><span class="detail-label">สถานะปัจจุบัน</span><span class="detail-value" id="sendStatus2">—</span></div>
+        <div class="form-group" style="margin-top:12px;">
+          <label class="form-label">ส่งไปยัง</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+            <button class="btn-action btn-blue" onclick="doSendAction('review','⚖️ ส่ง อจ.พิจารณา')">⚖️ อจ.พิจารณา</button>
+            <button class="btn-action btn-blue" onclick="doSendAction('court','🏛 ส่งดำเนินการทางศาล')">🏛 ส่งศาล</button>
+            <button class="btn-action btn-orange" onclick="doSendAction('screening','🔍 ส่งผู้กลั่นกรอง')">🔍 ผู้กลั่นกรอง</button>
+            <button class="btn-action btn-orange" onclick="doSendAction('filing','📁 ส่งงานพิมพ์สำนวน')">📁 งานพิมพ์</button>
+            <button class="btn-action btn-green" onclick="doSendAction('done','✅ เสร็จสิ้น')">✅ เสร็จสิ้น</button>
+            <button class="btn-action btn-red" onclick="doSendAction('pending','🔍 สอบสวนเพิ่มเติม')">🔍 สอบสวนเพิ่ม</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">หมายเหตุ (ถ้ามี)</label>
+          <textarea class="form-input" id="sendNote" placeholder="บันทึกเพิ่มเติม..."></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
+import { getFirestore, collection, getDocs, addDoc, updateDoc, doc, query, where } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+
+const app = initializeApp({
+  apiKey:"AIzaSyDuyQeVuxcwKd-_fSgTHhmoBo56cZpUI3A",
+  authDomain:"korat-case.firebaseapp.com",
+  projectId:"korat-case",
+  storageBucket:"korat-case.firebasestorage.app",
+  messagingSenderId:"64254577929",
+  appId:"1:64254577929:web:7d38588fb2e40ede6697d8"
+});
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let people = [], cases = [];
+let currentUserId = '', currentUserEmail = '';
+let foundCase = null;
+
+// ===== AUTH =====
+onAuthStateChanged(auth, async function(user) {
+  if (!user) { window.location.href = 'login.html'; return; }
+  currentUserId = user.uid;
+  currentUserEmail = user.email;
+  document.getElementById('userEmail').textContent = user.email;
+  document.getElementById('btnLogout').onclick = function() {
+    signOut(auth).then(function(){ window.location.href = 'login.html'; });
+  };
+  try {
+    const [ps, cs] = await Promise.all([
+      getDocs(collection(db,'people')),
+      getDocs(collection(db,'cases'))
+    ]);
+    people = ps.docs.map(function(d){ return Object.assign({id:d.id},d.data()); });
+    cases = cs.docs.map(function(d){ return Object.assign({id:d.id},d.data()); });
+  } catch(e) { console.error(e); }
+  // Set today date
+  document.getElementById('iDate').value = new Date().toISOString().split('T')[0];
+  renderReview();
+});
+
+// ===== HELPERS =====
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (type==='error'?' error':'');
+  t.style.display = 'block';
+  setTimeout(function(){ t.style.display='none'; }, 3000);
+}
+
+function parseBarcodeInput(raw) {
+  const rcnum = raw.match(/rcnum[\s:]*(\d+)/i);
+  const rcyr  = raw.match(/rcyr[\s:]*(\d+)/i);
+  if (rcnum && rcyr) return rcnum[1] + '/' + rcyr[1];
+  return raw.replace(/^tel:/i,'').trim();
+}
+
+const STATUS_MAP = {
+  pending:'🔍 สอบสวนเพิ่มเติม', progress:'🔵 เจ้าของสำนวน',
+  screening:'🔍 รอกลั่นกรอง', review:'⚖️ อจ.พิจารณา',
+  filing:'📁 งานพิมพ์', done:'✅ เสร็จสิ้น', court:'🏛 ศาล'
+};
+
+// ===== TAB 1: SCAN + COURT =====
+window.switchTab = function(tabId, btn) {
+  document.querySelectorAll('.tab-content').forEach(function(t){ t.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById(tabId).classList.add('active');
+  btn.classList.add('active');
+  if (tabId === 'tabScan') setTimeout(function(){ document.getElementById('scanInput').focus(); }, 200);
+
+};
+
+window.doScan = function() {
+  const val = document.getElementById('scanInput').value.trim();
+  if (!val) return;
+  const code = parseBarcodeInput(val);
+  const norm = code.replace(/[-\s]/g,'');
+  const status = document.getElementById('scanStatus');
+  const result = document.getElementById('scanResult');
+
+  const found = cases.find(function(c){ return c.caseId && c.caseId.toLowerCase()===code.toLowerCase(); }) ||
+    cases.find(function(c){ return c.extQR && c.extQR.toString().replace(/[-\s]/g,'')===norm; }) ||
+    cases.find(function(c){ return c.extQRRaw && c.extQRRaw.toString().replace(/[-\s]/g,'')===norm; }) ||
+    cases.find(function(c){ return c.caseId && c.caseId.toLowerCase().includes(code.toLowerCase()); });
+
+  if (!found) {
+    status.innerHTML = '<span style="color:#f85149;">❌ ไม่พบสำนวน: ' + code + '</span>';
+    result.style.display = 'none';
+    foundCase = null;
+    return;
+  }
+
+  foundCase = found;
+  status.innerHTML = '<span style="color:#3fb950;">✅ พบสำนวน: ' + found.caseId + '</span>';
+  const per = people.find(function(p){ return p.id===found.assignee; });
+  document.getElementById('srCaseId').textContent = found.caseId || '—';
+  document.getElementById('srName').textContent = found.name || '—';
+  document.getElementById('srCat').textContent = found.category || '—';
+  document.getElementById('srAssignee').textContent = per ? per.name : '—';
+  document.getElementById('srStatus').textContent = STATUS_MAP[found.status] || found.status || '—';
+  document.getElementById('srNote').value = '';
+  result.style.display = 'block';
+
+  const btn = document.getElementById('btnSendCourt');
+  if (found.status === 'court' || found.status === 'done') {
+    btn.disabled = true;
+    btn.textContent = '✅ สำนวนนี้เสร็จสิ้นแล้ว';
+  } else {
+    btn.disabled = false;
+    btn.textContent = '🏛 ส่งสำนวนดำเนินการทางศาล';
+  }
+};
+
+window.sendToCourt = async function() {
+  if (!foundCase) return;
+  const note = document.getElementById('srNote').value.trim();
+  const btn = document.getElementById('btnSendCourt');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+  try {
+    await updateDoc(doc(db,'cases',foundCase.id), { status:'court', updatedAt: new Date().toISOString() });
+    await addDoc(collection(db,'tracking'), {
+      caseId: foundCase.id,
+      action: '🏛 ส่งสำนวนดำเนินการทางศาล',
+      dept: 'เจ้าหน้าที่',
+      person: currentUserEmail,
+      note: note || null,
+      timestamp: new Date()
+    });
+    // Update local
+    const idx = cases.findIndex(function(c){ return c.id===foundCase.id; });
+    if (idx >= 0) cases[idx].status = 'court';
+    showToast('✅ บันทึกสำเร็จ! ส่งสำนวน ' + foundCase.caseId + ' ไปศาลแล้ว');
+    document.getElementById('scanInput').value = '';
+    document.getElementById('scanStatus').innerHTML = '';
+    document.getElementById('scanResult').style.display = 'none';
+    foundCase = null;
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '🏛 ส่งสำนวนดำเนินการทางศาล';
+    showToast('❌ Error: ' + e.message, 'error');
+  }
+};
+
+// ===== TAB 2: INTAKE =====
+window.parseIntakeQR = function(val) {
+  if (!val) return;
+  const code = parseBarcodeInput(val.trim());
+  const norm = code.replace(/[-\s]/g,'');
+  const status = document.getElementById('intakeQRStatus');
+  const dup = cases.find(function(c){ return c.caseId && c.caseId.toLowerCase()===code.toLowerCase(); }) ||
+    cases.find(function(c){ return c.extQR && c.extQR.toString().replace(/[-\s]/g,'')===norm; });
+  if (dup) {
+    status.innerHTML = '<span style="color:#f85149;">⚠️ มีในระบบแล้ว: ' + dup.caseId + ' — ' + dup.name + '</span>';
+  } else {
+    status.innerHTML = '<span style="color:#3fb950;">✅ รหัส: ' + code + ' — พร้อมบันทึก</span>';
+    const el = document.getElementById('iCaseId');
+    if (!el.value) el.value = code;
+  }
+};
+
+window.filterStaffAssignee = function(q) {
+  const drop = document.getElementById('iAssigneeDropdown');
+  const query2 = q.toLowerCase().trim();
+  const filtered = query2 ? people.filter(function(p){ return p.name.toLowerCase().includes(query2); }) : people;
+  drop.innerHTML = filtered.map(function(p){
+    return '<div onmousedown="selectStaffAssignee(\'' + p.id + '\',\'' + p.name.replace(/'/g,"\\'") + '\')" style="padding:10px 14px;cursor:pointer;font-size:0.85rem;border-bottom:1px solid #30363d;color:#e6edf3;" onmouseover="this.style.background=\'#f0883e22\'" onmouseout="this.style.background=\'\'">' + p.name + (p.role ? '<span style="font-size:0.72rem;color:#6e7681;"> (' + p.role + ')</span>' : '') + '</div>';
+  }).join('') || '<div style="padding:10px;color:#6e7681;font-size:0.85rem;">ไม่พบชื่อ</div>';
+  drop.style.display = 'block';
+};
+
+window.selectStaffAssignee = function(id, name) {
+  document.getElementById('iAssignee').value = id;
+  document.getElementById('iAssigneeSearch').value = name;
+  document.getElementById('iAssigneeSelected').textContent = '✅ เลือก: ' + name;
+  document.getElementById('iAssigneeDropdown').style.display = 'none';
+};
+
+window.submitIntake = async function() {
+  const caseId = document.getElementById('iCaseId').value.trim();
+  const name = document.getElementById('iName').value.trim();
+  const date = document.getElementById('iDate').value;
+  if (!caseId || !name) { showToast('❌ กรุณากรอกเลขคดีและชื่อคดี', 'error'); return; }
+  const dup = cases.find(function(c){ return c.caseId && c.caseId.toLowerCase()===caseId.toLowerCase(); });
+  if (dup) { showToast('❌ เลขคดี ' + caseId + ' มีในระบบแล้ว', 'error'); return; }
+
+  const btn = document.getElementById('btnIntake');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+  try {
+    const newCase = {
+      caseId, name,
+      category: document.getElementById('iCategory').value || null,
+      assignee: document.getElementById('iAssignee').value || null,
+      status: 'progress',
+      date: date || new Date().toISOString().split('T')[0],
+      custody: document.getElementById('iCustody').value || null,
+      note: document.getElementById('iNote').value.trim() || null,
+      extQR: document.getElementById('intakeQR').value.trim() || null,
+      userId: currentUserId,
+      userEmail: currentUserEmail,
+      createdAt: new Date().toISOString()
+    };
+    const ref = await addDoc(collection(db,'cases'), newCase);
+    await addDoc(collection(db,'tracking'), {
+      caseId: ref.id,
+      action: '📥 ลงรับสำนวน',
+      dept: 'เจ้าหน้าที่',
+      person: currentUserEmail,
+      timestamp: new Date()
+    });
+    cases.push(Object.assign({id:ref.id}, newCase));
+    showToast('✅ บันทึกสำนวน ' + caseId + ' สำเร็จ!');
+    // Reset
+    ['iCaseId','iName','iNote','intakeQR','iAssigneeSearch','iAssigneeSelected'].forEach(function(id){
+      const el = document.getElementById(id);
+      if (el) el.value ? el.value='' : el.textContent='';
+    });
+    document.getElementById('iAssignee').value = '';
+    document.getElementById('iCategory').value = '';
+    document.getElementById('iCustody').value = '';
+    document.getElementById('iDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('intakeQRStatus').innerHTML = '';
+  } catch(e) {
+    showToast('❌ Error: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '💾 บันทึกสำนวน';
+  }
+};
+
+// ===== TAB 3: REVIEW =====
+function renderReview() {
+  const list = document.getElementById('reviewList');
+  const reviewCases = cases.filter(function(c){ return c.status==='review' || c.status==='screening'; });
+  if (!reviewCases.length) {
+    list.innerHTML = '<div class="empty">✅ ไม่มีสำนวนรอพิจารณา</div>';
+    return;
+  }
+  list.innerHTML = reviewCases.map(function(c) {
+    const per = people.find(function(p){ return p.id===c.assignee; });
+    const badgeCls = c.status==='review' ? 'badge-review' : 'badge-screening';
+    const badgeTxt = c.status==='review' ? '⚖️ อจ.พิจารณา' : '🔍 รอกลั่นกรอง';
+    return '<div class="review-case">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
+      '<div><div class="review-case-id">' + (c.caseId||'') + '</div>' +
+      '<div class="review-case-name">' + (c.name||'') + '</div>' +
+      '<div style="font-size:0.75rem;color:#6e7681;margin-top:2px;">' + (per?per.name:'') + (c.category?' · '+c.category:'') + '</div></div>' +
+      '<span class="badge ' + badgeCls + '">' + badgeTxt + '</span></div>' +
+      '<div class="review-actions">' +
+      '<button class="btn-action btn-green" onclick="rvwAction(\'' + c.id + '\',\'done\',\'✅ อนุมัติ/เสร็จสิ้น\')">✅ อนุมัติ</button>' +
+      '<button class="btn-action btn-blue" onclick="rvwAction(\'' + c.id + '\',\'court\',\'🏛 ส่งดำเนินการทางศาล\')">🏛 ส่งศาล</button>' +
+      '<button class="btn-action btn-orange" onclick="rvwAction(\'' + c.id + '\',\'progress\',\'📤 ส่งคืนเจ้าของสำนวน\')">📤 ส่งคืน</button>' +
+      '<button class="btn-action btn-red" onclick="rvwAction(\'' + c.id + '\',\'pending\',\'🔍 สอบสวนเพิ่มเติม\')">🔍 สอบสวนเพิ่ม</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+window.rvwAction = async function(caseId, newStatus, actionLabel) {
+  try {
+    await updateDoc(doc(db,'cases',caseId), { status: newStatus, updatedAt: new Date().toISOString() });
+    await addDoc(collection(db,'tracking'), {
+      caseId, action: actionLabel, dept: 'เจ้าหน้าที่',
+      person: currentUserEmail, timestamp: new Date()
+    });
+    const idx = cases.findIndex(function(c){ return c.id===caseId; });
+    if (idx >= 0) cases[idx].status = newStatus;
+    showToast('✅ บันทึกสำเร็จ!');
+    renderReview();
+  } catch(e) {
+    showToast('❌ Error: ' + e.message, 'error');
+  }
+};
+</script>
+
+</body>
+</html>
