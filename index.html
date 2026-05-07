@@ -245,6 +245,31 @@ td{padding:11px 14px;font-size:0.85rem;}
 .tl-input::placeholder{color:var(–text3);}
 .btn-tl-save{width:100%;padding:10px;border-radius:8px;border:none;background:var(–accent);color:#fff;font-family:‘Kanit’,sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer;margin-top:6px;}
 .btn-tl-save:hover{opacity:0.88;}
+
+/* Fix input/button/select text visibility */
+input[type=“text”], input[type=“date”], input[type=“search”],
+input[type=“number”], textarea {
+color: var(–text) !important;
+background: var(–surface2) !important;
+}
+input[type=“date”]::-webkit-calendar-picker-indicator {
+filter: invert(1) !important;
+}
+select option {
+background: #1c2128 !important;
+color: #e6edf3 !important;
+}
+.btn-scan, .scan-input {
+color: var(–text) !important;
+}
+.form-input, .form-select {
+color: var(–text) !important;
+background: var(–surface2) !important;
+}
+/* Fix date picker visibility */
+input[type=“date”] {
+color-scheme: dark;
+}
 </style>
 
 </head>
@@ -1231,7 +1256,7 @@ function renderTable() {
       'ขัง 1': { bg:'#2d2a00', color:'#e3b341', icon:'🔒', txt:'ขัง 1' },
       'ขัง 2': { bg:'#2d2a00', color:'#e3b341', icon:'🔒', txt:'ขัง 2' },
       'ขัง 3': { bg:'#2d2a00', color:'#e3b341', icon:'🔒', txt:'ขัง 3' },
-      'ขัง 4': { bg:'#3d1a00', color:'#f85149', icon:'🚨', txt:'ขัง 4 (ใกล้หมด)' },
+      'ขัง 4': { bg:'#3d1a00', color:'#f85149', icon:'🚨', txt:'ขัง 4 (ใกล้ครบ)' },
       'ขัง 5': { bg:'#2d1800', color:'#f0883e', icon:'⚠️', txt:'ขัง 5' },
       'ขัง 6': { bg:'#2d1800', color:'#f0883e', icon:'⚠️', txt:'ขัง 6' },
       'ขัง 7': { bg:'#3d0000', color:'#ff4444', icon:'🆘', txt:'ขัง 7 (ครั้งสุดท้าย!)' },
