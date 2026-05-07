@@ -602,8 +602,8 @@ function getCatEmoji(cat) { return CAT_EMOJI[cat] || '📁'; }
 
 const ymOf    = d => d ? d.slice(0,7) : '';
 const prevYM  = m => { const [y,mo] = m.split('-').map(Number); return mo===1 ? `${y-1}-12` : `${y}-${String(mo-1).padStart(2,'0')}`; };
-const ymFull  = m => { const [y,mo] = m.split('-').map(Number); return `${TH_F[mo-1]} ${y+543}`; };
-const ymShort = m => { const [y,mo] = m.split('-').map(Number); return `${TH_S[mo-1]} ${y+543}`; };
+const ymFull  = m => { const [y,mo] = m.split('-').map(Number); const yr = y > 2400 ? y : y+543; return `${TH_F[mo-1]} ${yr}`; };
+const ymShort = m => { const [y,mo] = m.split('-').map(Number); const yr = y > 2400 ? y : y+543; return `${TH_S[mo-1]} ${yr}`; };
 const inMonth = m => cases.filter(c => ymOf(c.date) === m);
 const allYMs  = () => [...new Set(cases.map(c => ymOf(c.date)).filter(Boolean))].sort();
 
