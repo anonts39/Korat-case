@@ -427,7 +427,7 @@ td{padding:11px 14px;font-size:0.85rem;}
     </div>
     <div class="cases-table">
       <table>
-        <thead><tr><th>เลขรับคดีที่</th><th>ชื่อคดี</th><th>ประเภท</th><th>🔒 ผู้ต้องหา</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>Deadline</th><th>วันที่รับ</th><th></th></tr></thead>
+        <thead><tr><th>เลขรับคดีที่</th><th>ชื่อคดี / สถานะผู้ต้องหา</th><th>ประเภท</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>Deadline</th><th>วันที่รับ</th><th></th></tr></thead>
         <tbody id="caseTableBody"></tbody>
       </table>
       <div class="empty-state" id="emptyState" style="display:none">ไม่มีรายการคดีในระบบ</div>
@@ -1226,11 +1226,12 @@ function renderTable() {
     const ownerLabel = isAdminUser && c.userEmail ? `<div style="font-size:0.68rem;color:var(--purple)">👤 ${c.userEmail}</div>` : '';
     const noteLabel  = c.note ? `<div style="font-size:0.72rem;color:var(--text3)">📝 ${c.note}</div>` : '';
     const canDelete  = isAdminUser || c.userId === currentUserId;
+    const custodyLabel = c.custody ? `<div style="margin-top:3px;"><span style="font-size:0.72rem;padding:2px 8px;border-radius:10px;font-weight:${c.custody==='ขัง 4'||c.custody==='ขัง 7'?'700':'500'};background:${c.custody==='ประกัน'?'#1a2d1a':c.custody==='ขัง 7'?'#3d0000':c.custody==='ขัง 4'?'#3d1a00':'#2d1a0d'};color:${c.custody==='ประกัน'?'#3fb950':c.custody==='ขัง 7'?'#ff4444':c.custody==='ขัง 4'?'#f85149':'#f0883e'};">${c.custody==='ขัง 7'?'⚠️ ขัง 7 (ครั้งสุดท้าย)':c.custody==='ขัง 4'?'🚨 ขัง 4 (ใกล้หมด)':c.custody}</span></div>` : '';
     return `<tr class="${rowCls}" id="case-row-${c.id}">
       <td><div class="case-id">${c.caseId}</div></td>
       <td>
         <div class="case-name">${c.name}</div>
-        ${ownerLabel}${noteLabel}
+        ${ownerLabel}${noteLabel}${custodyLabel}
         ${(c.relatedCases&&c.relatedCases.length) ? `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;">
           ${c.relatedCases.map(r=>{
             // Find the related case to get its category
@@ -1243,7 +1244,7 @@ function renderTable() {
         </div>` : ''}
       </td>
       <td>${catBadge(c.category)}</td>
-      <td>${c.custody ? `<span style="font-size:0.75rem;padding:3px 8px;border-radius:10px;font-weight:${c.custody==='ขัง 4'||c.custody==='ขัง 7'?'700':'500'};background:${c.custody==='ประกัน'?'#1a2d1a':c.custody==='ขัง 7'?'#3d0000':c.custody==='ขัง 4'?'#3d1a00':'#2d1a0d'};color:${c.custody==='ประกัน'?'#3fb950':c.custody==='ขัง 7'?'#ff4444':c.custody==='ขัง 4'?'#f85149':'#f0883e'};">${c.custody==='ขัง 7'?'⚠️ ขัง 7':c.custody==='ขัง 4'?'🚨 ขัง 4':c.custody}</span>` : '<span style="color:var(--text3)">—</span>'}</td>
+
       <td style="font-size:0.82rem">${per?per.name:'-'}</td>
       <td><span class="badge ${cls}">${lbl}</span></td>
       <td>${dlLabel(c.deadline,c.status)}</td>
