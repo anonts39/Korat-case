@@ -846,6 +846,10 @@ function buildCategorySelect() {
 
 // ===== INIT =====
 function init() {
+  // Fix date input visibility - hardcode styles
+  document.querySelectorAll('input[type="date"]').forEach(function(el) {
+    el.style.cssText += ';color:#111111!important;background:#ffffff!important;border:1px solid #888888!important;color-scheme:light!important;';
+  });
   document.getElementById('dateDisplay') && (document.getElementById('dateDisplay').textContent =
     NOW.toLocaleDateString('th-TH', { year:'numeric', month:'long', day:'numeric' }));
   document.getElementById('fDate').value = NOW.toISOString().split('T')[0];
