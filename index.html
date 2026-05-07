@@ -1243,7 +1243,7 @@ function renderTable() {
         </div>` : ''}
       </td>
       <td>${catBadge(c.category)}</td>
-      <td><span class="pri ${c.priority||'medium'}">${PRI_LABEL[c.priority||'medium']}</span></td>
+      <td>${c.custody ? `<span style="font-size:0.75rem;padding:3px 8px;border-radius:10px;font-weight:${c.custody==='ขัง 4'||c.custody==='ขัง 7'?'700':'500'};background:${c.custody==='ประกัน'?'#1a2d1a':c.custody==='ขัง 7'?'#3d0000':c.custody==='ขัง 4'?'#3d1a00':'#2d1a0d'};color:${c.custody==='ประกัน'?'#3fb950':c.custody==='ขัง 7'?'#ff4444':c.custody==='ขัง 4'?'#f85149':'#f0883e'};">${c.custody==='ขัง 7'?'⚠️ ขัง 7 (ครั้งสุดท้าย)':c.custody==='ขัง 4'?'🚨 ขัง 4 (ใกล้หมด)':c.custody}</span>` : '<span style="font-size:0.75rem;color:var(--text3);">—</span>'}</td>
       <td style="font-size:0.82rem">${per?per.name:'-'}</td>
       <td><span class="badge ${cls}">${lbl}</span></td>
       <td>${dlLabel(c.deadline,c.status)}</td>
