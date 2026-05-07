@@ -480,6 +480,19 @@ td{padding:11px 14px;font-size:0.85rem;}
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">📅 Deadline</label><input class="form-input" type="date" id="fDeadline"></div>
+      <div class="form-group"><label class="form-label">🔒 สถานะผู้ต้องหา</label>
+        <select class="form-select" id="fCustody">
+          <option value="">-- เลือก --</option>
+          <option value="ขัง 1">🔒 ขัง 1</option>
+          <option value="ขัง 2">🔒 ขัง 2</option>
+          <option value="ขัง 3">🔒 ขัง 3</option>
+          <option value="ขัง 4">🔒 ขัง 4</option>
+          <option value="ขัง 5">🔒 ขัง 5</option>
+          <option value="ขัง 6">🔒 ขัง 6</option>
+          <option value="ขัง 7">🔒 ขัง 7</option>
+          <option value="ประกัน">✅ ประกัน</option>
+        </select>
+      </div>
       <div class="form-group"><label class="form-label">หมายเหตุ</label><input class="form-input" id="fNote" placeholder="หมายเหตุ"></div>
     </div>
     <div class="form-group">
@@ -1313,6 +1326,7 @@ window.openModal = function() {
   document.getElementById('fStatus').value = 'pending';
   document.getElementById('fDate').value = NOW.toISOString().split('T')[0];
   document.getElementById('fDeadline').value = '';
+  if (document.getElementById('fCustody')) document.getElementById('fCustody').value = '';
   resetPri('medium');
   document.getElementById('modalOverlay').classList.add('show');
 };
@@ -1326,6 +1340,7 @@ window.editCase = function(id) {
   document.getElementById('fStatus').value   = c.status;
   document.getElementById('fDate').value     = c.date;
   document.getElementById('fDeadline').value = c.deadline || '';
+  if (document.getElementById('fCustody')) document.getElementById('fCustody').value = c.custody || '';
   document.getElementById('fNote').value     = c.note || '';
   document.getElementById('fExtQR').value    = c.extQR || '';
   document.getElementById('fRelated').value  = (c.relatedCases||[]).join(', ');
