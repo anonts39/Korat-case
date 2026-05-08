@@ -94,6 +94,20 @@ tr:hover td{background:#1c2128;}
   <select class="select" id="filterCategory" onchange="renderReport()">
     <option value="">📁 ทุกประเภท</option>
   </select>
+  <select class="select" id="filterDeadline" onchange="renderReport()" style="border:1px solid #888;border-radius:6px;padding:5px 8px;">
+    <option value="">📅 Deadline ทั้งหมด</option>
+    <option value="today">🔴 ถึงกำหนดวันนี้</option>
+    <option value="overdue">⚠️ เกินกำหนดแล้ว</option>
+    <option value="3days">🟠 ภายใน 3 วัน</option>
+    <option value="7days">🟡 ภายใน 7 วัน</option>
+    <option value="30days">🟢 ภายใน 30 วัน</option>
+    <option value="custom">📆 ระบุ Deadline เอง</option>
+  </select>
+  <div id="customDeadlineWrap" style="display:none;display:flex;gap:6px;align-items:center;">
+    <input type="date" id="dlFrom" onchange="renderReport()" style="padding:5px 8px;background:#fff;border:1px solid #888;border-radius:6px;color:#111;font-size:0.82rem;color-scheme:light;">
+    <span style="font-size:0.75rem;color:#8b949e;">ถึง</span>
+    <input type="date" id="dlTo" onchange="renderReport()" style="padding:5px 8px;background:#fff;border:1px solid #888;border-radius:6px;color:#111;font-size:0.82rem;color-scheme:light;">
+  </div>
   <input type="text" class="select" id="searchInput" placeholder="🔍 ค้นหา..." oninput="renderReport()" style="min-width:180px;">
 </div>
 
@@ -178,12 +192,54 @@ window.renderReport = function() {
   const dateFrom = document.getElementById('dateFrom')?.value || '';
   const dateTo = document.getElementById('dateTo')?.value || '';
 
+  const dlFilter = document.getElementById('filterDeadline')?.value || '';
+  const dlFrom = document.getElementById('dlFrom')?.value || '';
+  const dlTo = document.getElementById('dlTo')?.value || '';
+  const todayStr = new Date().toISOString().split('T')[0];
+  const in3 = new Date(); in3.setDate(in3.getDate()+3); const in3Str = in3.toISOString().split('T')[0];
+  const in7 = new Date(); in7.setDate(in7.getDate()+7); const in7Str = in7.toISOString().split('T')[0];
+  const in30 = new Date(); in30.setDate(in30.getDate()+30); const in30Str = in30.toISOString().split('T')[0];
+
+  // Show/hide custom deadline
+  const wrap = document.getElementById('customDeadlineWrap');
+  if (wrap) wrap.style.display = (dlFilter==='custom'||dlFilter==='specific') ? 'flex' : 'none';
+  const spInput = document.getElementById('dlSpecific');
+  if (spInput) {
+    spInput.style.display = dlFilter==='specific' ? 'block' : 'none';
+  }
+  const dlFromEl = document.getElementById('dlFrom');
+  const dlToEl = document.getElementById('dlTo');
+  const dlSep = document.querySelector('#customDeadlineWrap span');
+  if (dlFromEl) dlFromEl.style.display = dlFilter==='custom' ? 'block' : 'none';
+  if (dlToEl) dlToEl.style.display = dlFilter==='custom' ? 'block' : 'none';
+  if (dlSep) dlSep.style.display = dlFilter==='custom' ? 'inline' : 'none';
+
   let filtered = cases.filter(c => {
     // Date range filter
     if (dateFrom || dateTo) {
       const cDate = c.date ? c.date.slice(0,10) : '';
       if (dateFrom && cDate < dateFrom) return false;
       if (dateTo && cDate > dateTo) return false;
+    }
+    // Deadline filter
+    if (dlFilter && !['done','court'].includes(c.status)) {
+      const dl = c.deadline ? c.deadline.slice(0,10) : '';
+      if (!dl) return dlFilter ? false : true;
+      if (dlFilter === 'today'   && dl !== todayStr) return false;
+      if (dlFilter === 'specific') {
+        const sp = document.getElementById('dlSpecific')?.value || '';
+        if (!sp || dl !== sp) return false;
+      }
+      if (dlFilter === 'overdue' && dl >= todayStr)  return false;
+      if (dlFilter === '3days'   && (dl < todayStr || dl > in3Str)) return false;
+      if (dlFilter === '7days'   && (dl < todayStr || dl > in7Str)) return false;
+      if (dlFilter === '30days'  && (dl < todayStr || dl > in30Str)) return false;
+      if (dlFilter === 'custom') {
+        if (dlFrom && dl < dlFrom) return false;
+        if (dlTo && dl > dlTo) return false;
+      }
+    } else if (dlFilter) {
+      return false; // done/court cases don't have active deadlines
     }
     if (status === 'active') { if (['done','court'].includes(c.status)) return false; }
     else if (status !== 'all') { if (c.status !== status) return false; }
