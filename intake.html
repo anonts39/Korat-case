@@ -267,6 +267,21 @@ header{background:#161b22;border-bottom:1px solid #30363d;padding:14px 20px;disp
   </div>
 </div>
 
+<div class="form-group">
+  <label class="form-label">🔒 สถานะผู้ต้องหา</label>
+  <select class="form-select" id="fCustody">
+    <option value="">-- เลือก --</option>
+    <option value="ขัง 1">🔒 ขัง 1</option>
+    <option value="ขัง 2">🔒 ขัง 2</option>
+    <option value="ขัง 3">🔒 ขัง 3</option>
+    <option value="ขัง 4">🚨 ขัง 4 (ใกล้ครบ)</option>
+    <option value="ขัง 5">⚠️ ขัง 5</option>
+    <option value="ขัง 6">⚠️ ขัง 6</option>
+    <option value="ขัง 7">🆘 ขัง 7 (ครั้งสุดท้าย!)</option>
+    <option value="ประกัน">✅ ประกัน</option>
+  </select>
+</div>
+
 <label class="form-label">ผู้รับผิดชอบ (เจ้าของสำนวน)</label>
 <div style="position:relative;">
   <input id="fAssigneeSearch" placeholder="🔍 พิมพ์ชื่อเพื่อค้นหา..."
@@ -616,6 +631,7 @@ window.submitCase = async function() {
       note: document.getElementById('fNote').value.trim(),
       extQR: currentQR || null,
       extQRRaw: document.getElementById('qrInput').value.trim() || null,
+      custody: document.getElementById('fCustody')?.value || null,
       relatedCases: (document.getElementById('fRelated').value.trim() || '').split(',').map(s=>s.trim()).filter(Boolean),
       currentDept: 'อัยการเจ้าของเรื่อง',
       currentPerson: assigneePerson?.name || null,
@@ -692,6 +708,7 @@ window.resetForm = function() {
   document.getElementById('fAssignee').value = '';
   document.getElementById('fAssigneeSearch').value = '';
   document.getElementById('fAssigneeSelected').textContent = '';
+  if (document.getElementById('fCustody')) document.getElementById('fCustody').value = '';
   document.getElementById('fDeadline').value = '';
   document.getElementById('fNote').value = '';
   document.getElementById('fRelated').value = '';
