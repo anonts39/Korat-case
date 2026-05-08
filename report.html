@@ -83,9 +83,9 @@ tr:hover td{background:#1c2128;}
   </select>
   <div style="display:flex;align-items:center;gap:6px;background:#21262d;border:1px solid #30363d;border-radius:8px;padding:6px 10px;">
     <span style="font-size:0.75rem;color:#8b949e;white-space:nowrap;">📅 จาก</span>
-    <select class="select" id="dateFrom" onchange="renderReport()" style="border:none;background:transparent;padding:4px;min-width:120px;"></select>
+    <input type="date" id="dateFrom" onchange="renderReport()" style="padding:5px 8px;background:#ffffff;border:1px solid #888;border-radius:6px;color:#111;font-family:'Sarabun',sans-serif;font-size:0.82rem;color-scheme:light;">
     <span style="font-size:0.75rem;color:#8b949e;">ถึง</span>
-    <select class="select" id="dateTo" onchange="renderReport()" style="border:none;background:transparent;padding:4px;min-width:120px;"></select>
+    <input type="date" id="dateTo" onchange="renderReport()" style="padding:5px 8px;background:#ffffff;border:1px solid #888;border-radius:6px;color:#111;font-family:'Sarabun',sans-serif;font-size:0.82rem;color-scheme:light;">
     <button onclick="resetDates()" style="padding:4px 8px;border-radius:6px;border:1px solid #30363d;background:transparent;color:#8b949e;font-size:0.72rem;cursor:pointer;white-space:nowrap;">รีเซ็ต</button>
   </div>
   <select class="select" id="filterPerson" onchange="renderReport()">
@@ -158,37 +158,6 @@ onAuthStateChanged(auth, async user => {
     catSel.appendChild(opt);
   });
 
-  // Populate dateFrom and dateTo with months from cases
-  const TH_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
-                     'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
-  const months = [...new Set(cases.map(c => {
-    if (!c.date) return null;
-    const d = c.date.slice(0,7);
-    const y = parseInt(d.split('-')[0]);
-    const m = d.split('-')[1];
-    return y > 2400 ? (y-543)+'-'+m : d;
-  }).filter(Boolean))].sort();
-
-  const fromSel = document.getElementById('dateFrom');
-  const toSel = document.getElementById('dateTo');
-  fromSel.innerHTML = '<option value="">-- ทั้งหมด --</option>';
-  toSel.innerHTML = '<option value="">-- ปัจจุบัน --</option>';
-  months.forEach(m => {
-    const [y, mo] = m.split('-').map(Number);
-    const label = TH_MONTHS[mo-1] + ' ' + (y+543);
-    const optF = document.createElement('option');
-    optF.value = m; optF.textContent = label;
-    fromSel.appendChild(optF);
-    const optT = document.createElement('option');
-    optT.value = m; optT.textContent = label;
-    toSel.appendChild(optT);
-  });
-  // Set default to current month
-  const now = new Date();
-  const curYM = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
-  if ([...fromSel.options].some(o => o.value === months[0])) fromSel.value = months[0];
-  if ([...toSel.options].some(o => o.value === curYM)) toSel.value = curYM;
-
   document.getElementById('reportDate').textContent =
     'ดึงข้อมูล: ' + new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
 
@@ -196,10 +165,8 @@ onAuthStateChanged(auth, async user => {
 });
 
 window.resetDates = function() {
-  const fromSel = document.getElementById('dateFrom');
-  const toSel = document.getElementById('dateTo');
-  if (fromSel) fromSel.value = '';
-  if (toSel) toSel.value = '';
+  document.getElementById('dateFrom').value = '';
+  document.getElementById('dateTo').value = '';
   renderReport();
 };
 
@@ -212,6 +179,12 @@ window.renderReport = function() {
   const dateTo = document.getElementById('dateTo')?.value || '';
 
   let filtered = cases.filter(c => {
+    // Date range filter
+    if (dateFrom || dateTo) {
+      const cDate = c.date ? c.date.slice(0,10) : '';
+      if (dateFrom && cDate < dateFrom) return false;
+      if (dateTo && cDate > dateTo) return false;
+    }
     if (status === 'active') { if (['done','court'].includes(c.status)) return false; }
     else if (status !== 'all') { if (c.status !== status) return false; }
     if (personId && c.assignee !== personId) return false;
