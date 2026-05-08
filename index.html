@@ -655,7 +655,7 @@ const NOW = new Date(); NOW.setHours(0,0,0,0);
 
 // ===== STATE =====
 let people = [], cases = [], customCategories = [];
-let currentUserId = '', currentUserEmail = '', currentUserName = '', currentPersonId = null, isAdminUser = false, isScreener = false, myTeam = null;
+let currentUserId = '', currentUserEmail = '', currentUserName = '', currentPersonId = null, isAdminUser = false, isScreener = false, myTeam = null, isStaff = false;
 let editingId = null, filterStatus = 'active', filterPerson = null;
 let filterOverdue = false, filterCategory = null, selYM = '';
 let catColorMap = {};
@@ -749,6 +749,13 @@ onAuthStateChanged(auth, async (user) => {
     const tv = document.getElementById('btnTeamView');
     if (tv) tv.style.display = 'inline-flex';
   }
+  // Hide buttons for staff
+  if (isStaff) {
+    ['btnOwnerModal','btnReviewModal','btnTeamMgmt','btnTeamView','btnReceiveModal'].forEach(function(id) {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+  }
   document.getElementById('logoutBtn').onclick = () =>
     signOut(auth).then(() => window.location.href = 'login.html');
 
@@ -770,9 +777,10 @@ onAuthStateChanged(auth, async (user) => {
     currentUserName = currentUserEmail;
     currentPersonId = null;
   }
-  // Check screener role
+  // Check roles
   const _myPerson2 = people.find(function(p){ return p.id === currentPersonId; });
   isScreener = !isAdminUser && (_myPerson2 ? (_myPerson2.role||'').includes('ผู้กลั่นกรอง') : false);
+  isStaff = !isAdminUser && !isScreener && (_myPerson2 ? (_myPerson2.role||'').includes('เจ้าหน้าที่') : false);
   myTeam = isScreener
     ? (teams.find(function(t){ return t.screenerId === currentPersonId; }) || null)
     : (teams.find(function(t){ return (t.memberIds||[]).includes(currentPersonId); }) || null);
@@ -1069,7 +1077,7 @@ window.toggleCatFilter = function(cat) {
 function renderPeople() {
   const grid = document.getElementById('peopleGrid');
   grid.innerHTML = '';
-  if (!isAdminUser) {
+  if (!isAdminUser || isStaff) {
     document.querySelector('.people-section').style.display = 'none';
     return;
   }
@@ -1227,7 +1235,9 @@ function renderTable() {
       const _vt = _wt.find(function(t){ return t.id === _teamViewId; });
       if (!_vt || !(_vt.memberIds||[]).includes(c.assignee)) return false;
     } else if (!isAdminUser) {
-      if (isScreener && myTeam) {
+      if (isStaff) {
+        // เจ้าหน้าที่เห็นทุกคดี
+      } else if (isScreener && myTeam) {
         if (!(myTeam.memberIds||[]).includes(c.assignee)) return false;
       } else if (currentPersonId && c.assignee !== currentPersonId) {
         return false;
