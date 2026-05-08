@@ -191,6 +191,14 @@ textarea.form-input{resize:vertical;min-height:70px;}
         </select>
       </div>
       <div class="form-group">
+        <label class="form-label">📅 Deadline</label>
+        <input class="form-input" type="date" id="iDeadline" style="color:#111;background:#fff;color-scheme:light;">
+      </div>
+      <div class="form-group">
+        <label class="form-label">🔗 สำนวนที่เกี่ยวข้อง (เลขคดี คั่นด้วยจุลภาค)</label>
+        <input class="form-input" id="iRelated" placeholder="เช่น 1001/2569, 1002/2569">
+      </div>
+      <div class="form-group">
         <label class="form-label">หมายเหตุ</label>
         <textarea class="form-input" id="iNote" placeholder="บันทึกเพิ่มเติม..."></textarea>
       </div>
@@ -436,6 +444,10 @@ window.submitIntake = async function() {
       status: 'progress',
       date: date || new Date().toISOString().split('T')[0],
       custody: document.getElementById('iCustody').value || null,
+      deadline: document.getElementById('iDeadline').value || null,
+      relatedCases: document.getElementById('iRelated').value.trim()
+        ? document.getElementById('iRelated').value.split(',').map(s=>s.trim()).filter(Boolean)
+        : null,
       note: document.getElementById('iNote').value.trim() || null,
       extQR: document.getElementById('intakeQR').value.trim() || null,
       userId: currentUserId,
@@ -453,13 +465,14 @@ window.submitIntake = async function() {
     cases.push(Object.assign({id:ref.id}, newCase));
     showToast('✅ บันทึกสำนวน ' + caseId + ' สำเร็จ!');
     // Reset
-    ['iCaseId','iName','iNote','intakeQR','iAssigneeSearch','iAssigneeSelected'].forEach(function(id){
+    ['iCaseId','iName','iNote','intakeQR','iAssigneeSearch','iAssigneeSelected','iRelated'].forEach(function(id){
       const el = document.getElementById(id);
       if (el) el.value ? el.value='' : el.textContent='';
     });
     document.getElementById('iAssignee').value = '';
     document.getElementById('iCategory').value = '';
     document.getElementById('iCustody').value = '';
+    document.getElementById('iDeadline').value = '';
     document.getElementById('iDate').value = new Date().toISOString().split('T')[0];
     document.getElementById('intakeQRStatus').innerHTML = '';
   } catch(e) {
