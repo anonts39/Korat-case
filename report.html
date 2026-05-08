@@ -158,6 +158,37 @@ onAuthStateChanged(auth, async user => {
     catSel.appendChild(opt);
   });
 
+  // Populate dateFrom and dateTo with months from cases
+  const TH_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+                     'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const months = [...new Set(cases.map(c => {
+    if (!c.date) return null;
+    const d = c.date.slice(0,7);
+    const y = parseInt(d.split('-')[0]);
+    const m = d.split('-')[1];
+    return y > 2400 ? (y-543)+'-'+m : d;
+  }).filter(Boolean))].sort();
+
+  const fromSel = document.getElementById('dateFrom');
+  const toSel = document.getElementById('dateTo');
+  fromSel.innerHTML = '<option value="">-- ทั้งหมด --</option>';
+  toSel.innerHTML = '<option value="">-- ปัจจุบัน --</option>';
+  months.forEach(m => {
+    const [y, mo] = m.split('-').map(Number);
+    const label = TH_MONTHS[mo-1] + ' ' + (y+543);
+    const optF = document.createElement('option');
+    optF.value = m; optF.textContent = label;
+    fromSel.appendChild(optF);
+    const optT = document.createElement('option');
+    optT.value = m; optT.textContent = label;
+    toSel.appendChild(optT);
+  });
+  // Set default to current month
+  const now = new Date();
+  const curYM = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  if ([...fromSel.options].some(o => o.value === months[0])) fromSel.value = months[0];
+  if ([...toSel.options].some(o => o.value === curYM)) toSel.value = curYM;
+
   document.getElementById('reportDate').textContent =
     'ดึงข้อมูล: ' + new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
 
