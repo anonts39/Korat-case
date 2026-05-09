@@ -1442,8 +1442,8 @@ function renderProsecutorCharts() {
 function renderProsSingle() {
   // Source: current selYM month, filtered by role
   const src = inMonth(selYM).filter(c => {
-    if (isStaff) return false;
-    return true; // admin, อัยการ, ผู้กลั่นกรอง เห็นทั้งหมด
+    if (isAdminUser) return true;
+    return c.assignee === currentPersonId;
   });
 
   const prosData = people.map((p, idx) => {
@@ -1492,7 +1492,10 @@ function renderProsSingle() {
 function renderProsMulti() {
   const months = _chartSelectedMonths.length ? _chartSelectedMonths : allYMs().slice(-3);
   function srcForMonth(m) {
-    return inMonth(m); // ทุก role ที่เข้าถึงกราฟได้เห็นทั้งหมด (เจ้าหน้าที่ถูกกรองออกก่อนถึงฟังก์ชันนี้)
+    return inMonth(m).filter(c => {
+      if (isAdminUser) return true;
+      return c.assignee === currentPersonId;
+    });
   }
   const peopleFiltered = people.filter(p => months.some(m => srcForMonth(m).some(c => c.assignee === p.id)));
   const labels = peopleFiltered.map(p => shortName(p.name));
