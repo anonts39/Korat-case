@@ -1693,6 +1693,15 @@ function renderCharts() {
   const section = document.getElementById('chartSection');
   if (isStaff) { section.style.display = 'none'; return; }
   section.style.display = 'block';
+
+  // Sync single/multi view visibility for both panels
+  ['pros','team'].forEach(t => {
+    const sv = document.getElementById(t + 'SingleView');
+    const mv = document.getElementById(t + 'MultiView');
+    if (sv) sv.style.display = _chartMode === 'single' ? 'block' : 'none';
+    if (mv) mv.style.display = _chartMode === 'multi'  ? 'block' : 'none';
+  });
+
   if (_chartTab === 'team') renderTeamCharts();
   else renderProsecutorCharts();
 }
