@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="th">
 <head>
 <meta charset="UTF-8">
@@ -38,7 +37,7 @@ video{width:100%;max-height:280px;display:block;}
 .case-result{display:none;background:#161b22;border:1px solid #30363d;border-radius:14px;padding:20px;margin-bottom:16px;}
 .case-result.show{display:block;}
 .case-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
-.case-id{font-family:‘Kanit’,sans-serif;font-size:0.85rem;color:#8b949e;}
+.case-id{font-family:'Kanit',sans-serif;font-size:0.85rem;color:#8b949e;}
 .case-name{font-weight:600;font-size:1rem;color:#e6edf3;margin:4px 0;}
 .case-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
 .badge{padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600;}
@@ -50,7 +49,7 @@ video{width:100%;max-height:280px;display:block;}
 
 .action-title{font-size:0.8rem;color:#8b949e;font-weight:600;margin-bottom:10px;}
 .action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
-.action-btn{padding:14px 12px;border-radius:10px;border:2px solid #30363d;background:#21262d;color:#e6edf3;font-family:‘Sarabun’,sans-serif;font-size:0.88rem;cursor:pointer;text-align:center;transition:all 0.15s;}
+.action-btn{padding:14px 12px;border-radius:10px;border:2px solid #30363d;background:#21262d;color:#e6edf3;font-family:'Sarabun',sans-serif;font-size:0.88rem;cursor:pointer;text-align:center;transition:all 0.15s;}
 .action-btn:hover,.action-btn.selected{border-color:#f0883e;background:#1f1a12;color:#f0883e;}
 .action-btn#actionReceive{border-color:#58a6ff;color:#58a6ff;}
 .action-btn#actionReceive.selected{border-color:#f0883e;background:#1f1a12;color:#f0883e;}
@@ -58,17 +57,16 @@ video{width:100%;max-height:280px;display:block;}
 .action-btn .ab-label{font-weight:600;font-size:0.85rem;display:block;}
 .action-btn .ab-sub{font-size:0.7rem;color:#8b949e;margin-top:2px;display:block;}
 .action-btn.selected .ab-sub{color:#8b949e;}
-.note-input{width:100%;padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-family:‘Sarabun’,sans-serif;font-size:0.85rem;outline:none;margin-bottom:10px;}
+.note-input{width:100%;padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-family:'Sarabun',sans-serif;font-size:0.85rem;outline:none;margin-bottom:10px;}
 .note-input::placeholder{color:#6e7681;}
-.btn-confirm{width:100%;padding:14px;border-radius:10px;border:none;background:#f0883e;color:#fff;font-family:‘Kanit’,sans-serif;font-size:1rem;font-weight:600;cursor:pointer;}
+.btn-confirm{width:100%;padding:14px;border-radius:10px;border:none;background:#f0883e;color:#fff;font-family:'Kanit',sans-serif;font-size:1rem;font-weight:600;cursor:pointer;}
 .btn-confirm:disabled{opacity:0.4;cursor:not-allowed;}
 .btn-confirm:hover:not(:disabled){opacity:0.88;}
-.btn-rescan{width:100%;padding:10px;border-radius:8px;border:1px solid #30363d;background:transparent;color:#8b949e;font-family:‘Sarabun’,sans-serif;font-size:0.85rem;cursor:pointer;margin-top:8px;}
+.btn-rescan{width:100%;padding:10px;border-radius:8px;border:1px solid #30363d;background:transparent;color:#8b949e;font-family:'Sarabun',sans-serif;font-size:0.85rem;cursor:pointer;margin-top:8px;}
 
 .toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1a2d1a;border:1px solid #3fb950;color:#3fb950;padding:12px 24px;border-radius:8px;font-size:0.88rem;z-index:999;display:none;}
 .toast.show{display:block;}
 </style>
-
 </head>
 <body>
 
@@ -101,7 +99,6 @@ video{width:100%;max-height:280px;display:block;}
   </div>
 
   <!-- Case Result -->
-
   <div class="case-result" id="caseResult">
     <div class="case-header">
       <div>
@@ -407,6 +404,5 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 </script>
-
 </body>
 </html>
