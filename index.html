@@ -1702,8 +1702,11 @@ function renderCharts() {
     if (mv) mv.style.display = _chartMode === 'multi'  ? 'block' : 'none';
   });
 
-  if (_chartTab === 'team') renderTeamCharts();
-  else renderProsecutorCharts();
+  // Wait for DOM to apply visibility before Chart.js draws
+  requestAnimationFrame(() => {
+    if (_chartTab === 'team') renderTeamCharts();
+    else renderProsecutorCharts();
+  });
 }
 
 // ===== TABLE =====
