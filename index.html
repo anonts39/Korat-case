@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ระบบติดตามคดี</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root{
   --bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;
@@ -271,7 +272,19 @@ input[type=“date”] {
 color-scheme: dark;
 }
 
-/* ===== DATE INPUT FIX ===== */
+/* ===== CHART SECTION ===== */
+.chart-section{margin-bottom:28px;}
+.chart-tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.chart-tab-btn{padding:7px 18px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.82rem;cursor:pointer;transition:all 0.2s;}
+.chart-tab-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+.chart-panel{display:none;}
+.chart-panel.active{display:block;}
+.chart-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;}
+.chart-card-title{font-family:'Kanit',sans-serif;font-size:0.88rem;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+.chart-canvas-wrap{position:relative;width:100%;height:260px;}
+@media(max-width:700px){.chart-grid-2{grid-template-columns:1fr;}}
+
 input[type=“date”] {
 color: #222222 !important;
 background: #ffffff !important;
@@ -447,6 +460,113 @@ font-weight: 700 !important;
     <div class="cat-grid" id="catGrid"></div>
   </div>
   <div class="people-section"><div class="section-title">📋 สถิติรายบุคคล</div><div class="people-grid" id="peopleGrid"></div></div>
+  <!-- ===== CHART SECTION ===== -->
+  <div class="chart-section" id="chartSection" style="display:none;">
+    <div class="section-title">📊 กราฟเปรียบเทียบ</div>
+
+    <!-- Top controls row -->
+    <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+      <!-- Tab buttons -->
+      <div class="chart-tabs" style="margin-bottom:0;">
+        <button class="chart-tab-btn active" id="chartTabPros" onclick="switchChartTab('prosecutor',this)">👤 เปรียบเทียบอัยการ</button>
+        <button class="chart-tab-btn" id="chartTabTeam" onclick="switchChartTab('team',this)">👥 เปรียบเทียบทีม</button>
+      </div>
+      <!-- Mode toggle -->
+      <div style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 10px;">
+        <span style="font-size:0.75rem;color:var(--text3);white-space:nowrap;">โหมด:</span>
+        <button class="chart-tab-btn active" id="chartModeSingle" style="padding:5px 12px;font-size:0.78rem;" onclick="switchChartMode('single',this)">📅 เดือนเดียว</button>
+        <button class="chart-tab-btn" id="chartModeMulti" style="padding:5px 12px;font-size:0.78rem;" onclick="switchChartMode('multi',this)">📆 เปรียบเทียบข้ามเดือน</button>
+      </div>
+    </div>
+
+    <!-- Month picker for multi-month mode -->
+    <div id="chartMonthPicker" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:14px;">
+      <div style="font-size:0.78rem;color:var(--text3);margin-bottom:8px;">เลือกเดือนที่ต้องการเปรียบเทียบ (เลือกได้หลายเดือน)</div>
+      <div id="chartMonthCheckboxes" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      <div style="margin-top:10px;display:flex;gap:8px;">
+        <button onclick="chartSelectAllMonths()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">เลือกทั้งหมด</button>
+        <button onclick="chartClearMonths()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">ล้าง</button>
+        <button onclick="renderCharts()" style="padding:5px 16px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;font-weight:600;">🔄 อัปเดตกราฟ</button>
+      </div>
+    </div>
+
+    <!-- Prosecutor Panel -->
+    <div class="chart-panel active" id="chartPanelProsecutor">
+      <!-- Single month view -->
+      <div id="prosSingleView">
+        <div class="chart-grid-2">
+          <div class="chart-card">
+            <div class="chart-card-title">📁 จำนวนคดีทั้งหมดรายอัยการ</div>
+            <div class="chart-canvas-wrap"><canvas id="chartProsTotal"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">📊 ค้าง vs เสร็จ รายอัยการ</div>
+            <div class="chart-canvas-wrap"><canvas id="chartProsPendingDone"></canvas></div>
+          </div>
+        </div>
+        <div style="margin-top:16px;" class="chart-card">
+          <div class="chart-card-title">🚨 เสร็จ / ค้าง / เกินกำหนด (ทุกอัยการ)</div>
+          <div class="chart-canvas-wrap" style="height:220px;"><canvas id="chartProsStacked"></canvas></div>
+        </div>
+      </div>
+      <!-- Multi month view -->
+      <div id="prosMultiView" style="display:none;">
+        <div class="chart-card" style="margin-bottom:16px;">
+          <div class="chart-card-title">📅 จำนวนคดีรวมแต่ละอัยการ แยกตามเดือนที่เลือก</div>
+          <div class="chart-canvas-wrap" style="height:300px;"><canvas id="chartProsMultiTotal"></canvas></div>
+        </div>
+        <div class="chart-grid-2">
+          <div class="chart-card">
+            <div class="chart-card-title">📊 คดีค้างรายอัยการ (เปรียบเทียบเดือน)</div>
+            <div class="chart-canvas-wrap" style="height:260px;"><canvas id="chartProsMultiPending"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">✅ คดีเสร็จรายอัยการ (เปรียบเทียบเดือน)</div>
+            <div class="chart-canvas-wrap" style="height:260px;"><canvas id="chartProsMultiDone"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team Panel -->
+    <div class="chart-panel" id="chartPanelTeam">
+      <!-- Single month view -->
+      <div id="teamSingleView">
+        <div class="chart-grid-2">
+          <div class="chart-card">
+            <div class="chart-card-title">👥 จำนวนคดีทั้งหมดรายทีม</div>
+            <div class="chart-canvas-wrap"><canvas id="chartTeamTotal"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">📊 สัดส่วนค้าง vs เสร็จ (รายทีม)</div>
+            <div class="chart-canvas-wrap"><canvas id="chartTeamPendingDone"></canvas></div>
+          </div>
+        </div>
+        <div style="margin-top:16px;" class="chart-card">
+          <div class="chart-card-title">🏆 ภาระงานรายทีม (ค้าง / เสร็จ / เกินกำหนด)</div>
+          <div class="chart-canvas-wrap" style="height:220px;"><canvas id="chartTeamStacked"></canvas></div>
+        </div>
+      </div>
+      <!-- Multi month view -->
+      <div id="teamMultiView" style="display:none;">
+        <div class="chart-card" style="margin-bottom:16px;">
+          <div class="chart-card-title">📅 จำนวนคดีรวมแต่ละทีม แยกตามเดือนที่เลือก</div>
+          <div class="chart-canvas-wrap" style="height:300px;"><canvas id="chartTeamMultiTotal"></canvas></div>
+        </div>
+        <div class="chart-grid-2">
+          <div class="chart-card">
+            <div class="chart-card-title">📊 คดีค้างรายทีม (เปรียบเทียบเดือน)</div>
+            <div class="chart-canvas-wrap" style="height:260px;"><canvas id="chartTeamMultiPending"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">✅ คดีเสร็จรายทีม (เปรียบเทียบเดือน)</div>
+            <div class="chart-canvas-wrap" style="height:260px;"><canvas id="chartTeamMultiDone"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="cases-section">
     <div class="section-title">📁 รายการคดี</div>
     <div class="toolbar">
@@ -974,6 +1094,7 @@ function renderAll() {
   renderCategoryStats();
   renderCategoryFilters();
   renderPeople();
+  renderCharts();
   renderTable();
   populateAssigneeSelect();
 }
@@ -1218,6 +1339,328 @@ function renderPeople() {
   grid.appendChild(add);
 }
 
+
+
+// ===== CHARTS =====
+let _chartInstances = {};
+let _chartMode = 'single'; // 'single' | 'multi'
+let _chartTab  = 'prosecutor'; // 'prosecutor' | 'team'
+let _chartSelectedMonths = []; // for multi mode
+
+function destroyChart(id) {
+  if (_chartInstances[id]) { _chartInstances[id].destroy(); delete _chartInstances[id]; }
+}
+
+// Month label helper (short display)
+function ymLabel(ym) {
+  const [y, mo] = ym.split('-').map(Number);
+  const TH_S2 = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return TH_S2[(mo-1)] + ' ' + (y+543);
+}
+
+window.switchChartTab = function(tab, btn) {
+  _chartTab = tab;
+  document.querySelectorAll('.chart-tab-btn[id^="chartTab"]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.chart-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('chartPanel' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  renderCharts();
+};
+
+window.switchChartMode = function(mode, btn) {
+  _chartMode = mode;
+  document.getElementById('chartModeSingle').classList.toggle('active', mode === 'single');
+  document.getElementById('chartModeMulti').classList.toggle('active', mode === 'multi');
+  document.getElementById('chartMonthPicker').style.display = mode === 'multi' ? 'block' : 'none';
+  // Show/hide single vs multi views
+  ['pros','team'].forEach(t => {
+    const sv = document.getElementById(t + 'SingleView');
+    const mv = document.getElementById(t + 'MultiView');
+    if (sv) sv.style.display = mode === 'single' ? 'block' : 'none';
+    if (mv) mv.style.display = mode === 'multi' ? 'block' : 'none';
+  });
+  if (mode === 'multi') buildChartMonthPicker();
+  renderCharts();
+};
+
+function buildChartMonthPicker() {
+  const months = allYMs();
+  // Pre-select last 3 months if nothing selected
+  if (!_chartSelectedMonths.length) {
+    _chartSelectedMonths = months.slice(-3);
+  }
+  const wrap = document.getElementById('chartMonthCheckboxes');
+  wrap.innerHTML = months.map(m => {
+    const checked = _chartSelectedMonths.includes(m) ? 'checked' : '';
+    return `<label style="display:flex;align-items:center;gap:5px;padding:5px 10px;background:var(--surface2);border:1px solid ${checked?'var(--accent)':'var(--border)'};border-radius:20px;cursor:pointer;font-size:0.78rem;color:${checked?'var(--accent)':'var(--text2)'};">
+      <input type="checkbox" value="${m}" ${checked} onchange="chartToggleMonth('${m}',this)" style="accent-color:var(--accent);">${ymLabel(m)}
+    </label>`;
+  }).join('');
+}
+
+window.chartToggleMonth = function(m, cb) {
+  if (cb.checked) { if (!_chartSelectedMonths.includes(m)) _chartSelectedMonths.push(m); }
+  else { _chartSelectedMonths = _chartSelectedMonths.filter(x => x !== m); }
+  _chartSelectedMonths.sort();
+  buildChartMonthPicker();
+};
+window.chartSelectAllMonths = function() {
+  _chartSelectedMonths = [...allYMs()];
+  buildChartMonthPicker();
+};
+window.chartClearMonths = function() {
+  _chartSelectedMonths = [];
+  buildChartMonthPicker();
+};
+
+const CHART_COLORS = ['#58a6ff','#3fb950','#f0883e','#bc8cff','#ff6b81','#00d2d3','#e3b341','#ff9f43','#a29bfe','#55efc4'];
+const MONTH_COLORS = ['#58a6ff','#f0883e','#3fb950','#bc8cff','#ff6b81','#00d2d3','#e3b341','#ff9f43','#a29bfe','#55efc4','#fd79a8','#74b9ff'];
+
+function shortName(name) {
+  return name.replace('นาย','').replace('นางสาว','').replace('นาง','').trim();
+}
+
+// Get cases for a given month string (YYYY-MM), or all if ym is null
+function casesForMonth(ym) {
+  return ym ? cases.filter(c => ymOf(c.date) === ym) : cases;
+}
+
+function getChartDefaults() {
+  return { responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { color:'#8b949e', font:{ family:'Sarabun', size:11 } } } },
+    scales: { x: { ticks:{ color:'#8b949e', font:{family:'Sarabun',size:10} }, grid:{color:'#21262d'} },
+              y: { ticks:{ color:'#8b949e', font:{family:'Sarabun',size:10} }, grid:{color:'#21262d'}, beginAtZero:true } }
+  };
+}
+
+// ---- PROSECUTOR CHARTS ----
+function renderProsecutorCharts() {
+  if (_chartMode === 'single') renderProsSingle();
+  else renderProsMulti();
+}
+
+function renderProsSingle() {
+  // Source: current selYM month, filtered by role
+  const src = inMonth(selYM).filter(c => {
+    if (isStaff) return false;
+    return true; // admin, อัยการ, ผู้กลั่นกรอง เห็นทั้งหมด
+  });
+
+  const prosData = people.map((p, idx) => {
+    const mine = src.filter(c => c.assignee === p.id);
+    const pending = mine.filter(c => !['done','court'].includes(c.status)).length;
+    const done = mine.filter(c => c.status === 'done').length;
+    const overdue = mine.filter(c => !['done','court'].includes(c.status) && dlStatus(c.deadline, c.status) === 'overdue').length;
+    return { name: shortName(p.name), total: mine.length, pending, done, overdue, color: CHART_COLORS[idx % CHART_COLORS.length] };
+  }).filter(p => p.total > 0);
+
+  if (!prosData.length) { document.getElementById('prosSingleView').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3);">ไม่มีข้อมูลคดีในเดือนนี้</div>'; return; }
+
+  const labels = prosData.map(p => p.name);
+  const cd = getChartDefaults();
+
+  destroyChart('chartProsTotal');
+  _chartInstances['chartProsTotal'] = new Chart(document.getElementById('chartProsTotal'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label:'ทั้งหมด', data: prosData.map(p=>p.total),
+      backgroundColor: prosData.map(p=>p.color+'bb'), borderColor: prosData.map(p=>p.color), borderWidth:1, borderRadius:6 }] },
+    options: { ...cd, plugins: { ...cd.plugins, legend:{display:false} } }
+  });
+
+  destroyChart('chartProsPendingDone');
+  _chartInstances['chartProsPendingDone'] = new Chart(document.getElementById('chartProsPendingDone'), {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label:'ค้าง', data: prosData.map(p=>p.pending), backgroundColor:'#f8514988', borderColor:'#f85149', borderWidth:1, borderRadius:4 },
+      { label:'เสร็จ', data: prosData.map(p=>p.done), backgroundColor:'#3fb95088', borderColor:'#3fb950', borderWidth:1, borderRadius:4 }
+    ]},
+    options: { ...cd, scales: { ...cd.scales, x:{...cd.scales.x,stacked:true}, y:{...cd.scales.y,stacked:true} } }
+  });
+
+  destroyChart('chartProsStacked');
+  _chartInstances['chartProsStacked'] = new Chart(document.getElementById('chartProsStacked'), {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label:'เสร็จสิ้น', data: prosData.map(p=>p.done), backgroundColor:'#3fb95088', borderColor:'#3fb950', borderWidth:1 },
+      { label:'ค้างปกติ', data: prosData.map(p=>Math.max(0,p.pending-p.overdue)), backgroundColor:'#58a6ff88', borderColor:'#58a6ff', borderWidth:1 },
+      { label:'เกินกำหนด', data: prosData.map(p=>p.overdue), backgroundColor:'#f8514988', borderColor:'#f85149', borderWidth:1 }
+    ]},
+    options: { ...cd, scales: { ...cd.scales, x:{...cd.scales.x,stacked:true}, y:{...cd.scales.y,stacked:true} } }
+  });
+}
+
+function renderProsMulti() {
+  const months = _chartSelectedMonths.length ? _chartSelectedMonths : allYMs().slice(-3);
+  function srcForMonth(m) {
+    return inMonth(m); // ทุก role ที่เข้าถึงกราฟได้เห็นทั้งหมด (เจ้าหน้าที่ถูกกรองออกก่อนถึงฟังก์ชันนี้)
+  }
+  const peopleFiltered = people.filter(p => months.some(m => srcForMonth(m).some(c => c.assignee === p.id)));
+  const labels = peopleFiltered.map(p => shortName(p.name));
+
+  if (!labels.length) { return; }
+  const cd = getChartDefaults();
+
+  // Chart: Total per person per month (grouped bar)
+  const totalDatasets = months.map((m, mi) => ({
+    label: ymLabel(m),
+    data: peopleFiltered.map(p => srcForMonth(m).filter(c => c.assignee === p.id).length),
+    backgroundColor: MONTH_COLORS[mi % MONTH_COLORS.length] + '99',
+    borderColor: MONTH_COLORS[mi % MONTH_COLORS.length],
+    borderWidth: 1, borderRadius: 4
+  }));
+  destroyChart('chartProsMultiTotal');
+  _chartInstances['chartProsMultiTotal'] = new Chart(document.getElementById('chartProsMultiTotal'), {
+    type: 'bar', data: { labels, datasets: totalDatasets },
+    options: { ...cd, plugins: { ...cd.plugins } }
+  });
+
+  // Chart: Pending per person per month
+  const pendingDatasets = months.map((m, mi) => ({
+    label: ymLabel(m),
+    data: peopleFiltered.map(p => srcForMonth(m).filter(c => c.assignee === p.id && !['done','court'].includes(c.status)).length),
+    backgroundColor: MONTH_COLORS[mi % MONTH_COLORS.length] + '88',
+    borderColor: MONTH_COLORS[mi % MONTH_COLORS.length],
+    borderWidth: 1, borderRadius: 4
+  }));
+  destroyChart('chartProsMultiPending');
+  _chartInstances['chartProsMultiPending'] = new Chart(document.getElementById('chartProsMultiPending'), {
+    type: 'bar', data: { labels, datasets: pendingDatasets },
+    options: { ...cd, plugins: { ...cd.plugins } }
+  });
+
+  // Chart: Done per person per month
+  const doneDatasets = months.map((m, mi) => ({
+    label: ymLabel(m),
+    data: peopleFiltered.map(p => srcForMonth(m).filter(c => c.assignee === p.id && c.status === 'done').length),
+    backgroundColor: MONTH_COLORS[mi % MONTH_COLORS.length] + '88',
+    borderColor: MONTH_COLORS[mi % MONTH_COLORS.length],
+    borderWidth: 1, borderRadius: 4
+  }));
+  destroyChart('chartProsMultiDone');
+  _chartInstances['chartProsMultiDone'] = new Chart(document.getElementById('chartProsMultiDone'), {
+    type: 'bar', data: { labels, datasets: doneDatasets },
+    options: { ...cd, plugins: { ...cd.plugins } }
+  });
+}
+
+// ---- TEAM CHARTS ----
+function renderTeamCharts() {
+  if (_chartMode === 'single') renderTeamSingle();
+  else renderTeamMulti();
+}
+
+function renderTeamSingle() {
+  const _ts = window._teams || [];
+  if (!_ts.length) {
+    document.getElementById('teamSingleView').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3);">⚠️ ยังไม่มีข้อมูลทีม กรุณาตั้งค่าทีมก่อน</div>';
+    return;
+  }
+  const src = inMonth(selYM);
+  const teamNames = ['ทีม 1','ทีม 2','ทีม 3'];
+  const teamData = teamNames.map((tname, idx) => {
+    const team = _ts.find(t => t.name === tname);
+    const memberIds = team ? (team.memberIds || []) : [];
+    const mine = src.filter(c => memberIds.includes(c.assignee));
+    const pending = mine.filter(c => !['done','court'].includes(c.status)).length;
+    const done = mine.filter(c => c.status === 'done').length;
+    const overdue = mine.filter(c => !['done','court'].includes(c.status) && dlStatus(c.deadline, c.status) === 'overdue').length;
+    return { name: tname, total: mine.length, pending, done, overdue, color: CHART_COLORS[idx] };
+  });
+
+  const labels = teamData.map(t => t.name);
+  const cd = getChartDefaults();
+
+  destroyChart('chartTeamTotal');
+  _chartInstances['chartTeamTotal'] = new Chart(document.getElementById('chartTeamTotal'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label:'ทั้งหมด', data: teamData.map(t=>t.total),
+      backgroundColor: teamData.map(t=>t.color+'bb'), borderColor: teamData.map(t=>t.color), borderWidth:2, borderRadius:8 }] },
+    options: { ...cd, plugins: { ...cd.plugins, legend:{display:false} } }
+  });
+
+  destroyChart('chartTeamPendingDone');
+  _chartInstances['chartTeamPendingDone'] = new Chart(document.getElementById('chartTeamPendingDone'), {
+    type: 'doughnut',
+    data: {
+      labels: teamData.flatMap(t => [`${t.name} ค้าง`, `${t.name} เสร็จ`]),
+      datasets: [{ data: teamData.flatMap(t => [t.pending, t.done]),
+        backgroundColor: teamData.flatMap(t => [t.color+'88', t.color+'ee']),
+        borderColor: teamData.flatMap(t => [t.color, t.color]), borderWidth: 1 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position:'right', labels:{ color:'#8b949e', font:{family:'Sarabun',size:10}, boxWidth:12 } } } }
+  });
+
+  destroyChart('chartTeamStacked');
+  _chartInstances['chartTeamStacked'] = new Chart(document.getElementById('chartTeamStacked'), {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label:'เสร็จสิ้น', data: teamData.map(t=>t.done), backgroundColor:'#3fb95088', borderColor:'#3fb950', borderWidth:1 },
+      { label:'ค้างปกติ', data: teamData.map(t=>Math.max(0,t.pending-t.overdue)), backgroundColor:'#58a6ff88', borderColor:'#58a6ff', borderWidth:1 },
+      { label:'เกินกำหนด', data: teamData.map(t=>t.overdue), backgroundColor:'#f8514988', borderColor:'#f85149', borderWidth:1 }
+    ]},
+    options: { ...cd, scales: { ...cd.scales, x:{...cd.scales.x,stacked:true}, y:{...cd.scales.y,stacked:true} } }
+  });
+}
+
+function renderTeamMulti() {
+  const _ts = window._teams || [];
+  if (!_ts.length) { return; }
+  const months = _chartSelectedMonths.length ? _chartSelectedMonths : allYMs().slice(-3);
+  const teamNames = ['ทีม 1','ทีม 2','ทีม 3'];
+  const labels = teamNames;
+  const cd = getChartDefaults();
+
+  function teamCases(tname, ym) {
+    const team = _ts.find(t => t.name === tname);
+    const memberIds = team ? (team.memberIds || []) : [];
+    return inMonth(ym).filter(c => memberIds.includes(c.assignee));
+  }
+
+  const totalDatasets = months.map((m, mi) => ({
+    label: ymLabel(m),
+    data: teamNames.map(tn => teamCases(tn, m).length),
+    backgroundColor: MONTH_COLORS[mi % MONTH_COLORS.length] + '99',
+    borderColor: MONTH_COLORS[mi % MONTH_COLORS.length],
+    borderWidth: 1, borderRadius: 6
+  }));
+  destroyChart('chartTeamMultiTotal');
+  _chartInstances['chartTeamMultiTotal'] = new Chart(document.getElementById('chartTeamMultiTotal'), {
+    type: 'bar', data: { labels, datasets: totalDatasets }, options: { ...cd }
+  });
+
+  const pendingDatasets = months.map((m, mi) => ({
+    label: ymLabel(m),
+    data: teamNames.map(tn => teamCases(tn, m).filter(c => !['done','court'].includes(c.status)).length),
+    backgroundColor: MONTH_COLORS[mi % MONTH_COLORS.length] + '88',
+    borderColor: MONTH_COLORS[mi % MONTH_COLORS.length],
+    borderWidth: 1, borderRadius: 4
+  }));
+  destroyChart('chartTeamMultiPending');
+  _chartInstances['chartTeamMultiPending'] = new Chart(document.getElementById('chartTeamMultiPending'), {
+    type: 'bar', data: { labels, datasets: pendingDatasets }, options: { ...cd }
+  });
+
+  const doneDatasets = months.map((m, mi) => ({
+    label: ymLabel(m),
+    data: teamNames.map(tn => teamCases(tn, m).filter(c => c.status === 'done').length),
+    backgroundColor: MONTH_COLORS[mi % MONTH_COLORS.length] + '88',
+    borderColor: MONTH_COLORS[mi % MONTH_COLORS.length],
+    borderWidth: 1, borderRadius: 4
+  }));
+  destroyChart('chartTeamMultiDone');
+  _chartInstances['chartTeamMultiDone'] = new Chart(document.getElementById('chartTeamMultiDone'), {
+    type: 'bar', data: { labels, datasets: doneDatasets }, options: { ...cd }
+  });
+}
+
+function renderCharts() {
+  const section = document.getElementById('chartSection');
+  if (isStaff) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  if (_chartTab === 'team') renderTeamCharts();
+  else renderProsecutorCharts();
+}
 
 // ===== TABLE =====
 window.toggleOverdueFilter = function(btn) { filterOverdue = !filterOverdue; btn.classList.toggle('active', filterOverdue); renderTable(); };
