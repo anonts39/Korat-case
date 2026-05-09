@@ -884,6 +884,7 @@ onAuthStateChanged(auth, async (user) => {
     await loadPeople();
     await loadCases();
     await loadCustomCategories();
+    await loadTeams();
   } catch(loadErr) {
     console.error('Load error:', loadErr);
   }
