@@ -480,13 +480,14 @@ font-weight: 700 !important;
     </div>
 
     <!-- Month picker for multi-month mode -->
-    <div id="chartMonthPicker" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:14px;">
-      <div style="font-size:0.78rem;color:var(--text3);margin-bottom:8px;">เลือกเดือนที่ต้องการเปรียบเทียบ (เลือกได้หลายเดือน)</div>
-      <div id="chartMonthCheckboxes" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
-      <div style="margin-top:10px;display:flex;gap:8px;">
+    <div id="chartMonthPicker" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+      <div style="font-size:0.78rem;color:var(--text3);margin-bottom:10px;">เลือกเดือนที่ต้องการเปรียบเทียบ <span style="color:var(--accent)">(กดเพื่อเลือก/ยกเลิก)</span></div>
+      <div id="chartCalendarWrap"></div>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
         <button onclick="chartSelectAllMonths()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">เลือกทั้งหมด</button>
         <button onclick="chartClearMonths()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">ล้าง</button>
         <button onclick="renderCharts()" style="padding:5px 16px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;font-weight:600;">🔄 อัปเดตกราฟ</button>
+        <span id="chartSelectedCount" style="font-size:0.75rem;color:var(--text3);margin-left:4px;"></span>
       </div>
     </div>
 
@@ -1352,11 +1353,7 @@ function destroyChart(id) {
 }
 
 // Month label helper (short display)
-function ymLabel(ym) {
-  const [y, mo] = ym.split('-').map(Number);
-  const TH_S2 = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-  return TH_S2[(mo-1)] + ' ' + (y+543);
-}
+function ymLabel(ym) { return ymShort(ym); }
 
 window.switchChartTab = function(tab, btn) {
   _chartTab = tab;
@@ -1385,23 +1382,58 @@ window.switchChartMode = function(mode, btn) {
 
 function buildChartMonthPicker() {
   const months = allYMs();
-  // Pre-select last 3 months if nothing selected
   if (!_chartSelectedMonths.length) {
     _chartSelectedMonths = months.slice(-3);
   }
-  const wrap = document.getElementById('chartMonthCheckboxes');
-  wrap.innerHTML = months.map(m => {
-    const checked = _chartSelectedMonths.includes(m) ? 'checked' : '';
-    return `<label style="display:flex;align-items:center;gap:5px;padding:5px 10px;background:var(--surface2);border:1px solid ${checked?'var(--accent)':'var(--border)'};border-radius:20px;cursor:pointer;font-size:0.78rem;color:${checked?'var(--accent)':'var(--text2)'};">
-      <input type="checkbox" value="${m}" ${checked} onchange="chartToggleMonth('${m}',this)" style="accent-color:var(--accent);">${ymLabel(m)}
-    </label>`;
-  }).join('');
+
+  // Group months by year
+  const byYear = {};
+  months.forEach(m => {
+    const [y, mo] = m.split('-').map(Number);
+    const yr = y + 543; // แปลง CE → BE
+    if (!byYear[yr]) byYear[yr] = {};
+    byYear[yr][mo] = m; // mo = 1-12
+  });
+
+  const TH_M = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+  let html = '';
+  Object.keys(byYear).sort().forEach(yr => {
+    html += `<div style="margin-bottom:10px;">
+      <div style="font-size:0.75rem;font-weight:600;color:var(--accent);margin-bottom:6px;font-family:'Kanit',sans-serif;">พ.ศ. ${yr}</div>
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:5px;max-width:340px;">`;
+    for (let mo = 1; mo <= 12; mo++) {
+      const ym = byYear[yr][mo];
+      if (!ym) {
+        html += `<div></div>`; // empty slot
+      } else {
+        const sel = _chartSelectedMonths.includes(ym);
+        html += `<div onclick="chartToggleMonth('${ym}')"
+          style="padding:5px 2px;border-radius:6px;border:1px solid ${sel ? 'var(--accent)' : 'var(--border)'};
+          background:${sel ? '#1f1a12' : 'var(--surface2)'};color:${sel ? 'var(--accent)' : 'var(--text3)'};
+          font-size:0.72rem;text-align:center;cursor:pointer;font-family:'Sarabun',sans-serif;
+          font-weight:${sel ? '700' : '400'};transition:all 0.15s;user-select:none;"
+          title="${ymFull(ym)}">${TH_M[mo-1]}</div>`;
+      }
+    }
+    html += `</div></div>`;
+  });
+
+  if (!html) html = '<div style="color:var(--text3);font-size:0.8rem;">ยังไม่มีข้อมูลคดีในระบบ</div>';
+
+  document.getElementById('chartCalendarWrap').innerHTML = html;
+
+  const cnt = document.getElementById('chartSelectedCount');
+  if (cnt) cnt.textContent = _chartSelectedMonths.length ? `เลือกแล้ว ${_chartSelectedMonths.length} เดือน` : '';
 }
 
-window.chartToggleMonth = function(m, cb) {
-  if (cb.checked) { if (!_chartSelectedMonths.includes(m)) _chartSelectedMonths.push(m); }
-  else { _chartSelectedMonths = _chartSelectedMonths.filter(x => x !== m); }
-  _chartSelectedMonths.sort();
+window.chartToggleMonth = function(m) {
+  if (_chartSelectedMonths.includes(m)) {
+    _chartSelectedMonths = _chartSelectedMonths.filter(x => x !== m);
+  } else {
+    _chartSelectedMonths.push(m);
+    _chartSelectedMonths.sort();
+  }
   buildChartMonthPicker();
 };
 window.chartSelectAllMonths = function() {
