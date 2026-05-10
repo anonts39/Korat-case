@@ -1127,7 +1127,7 @@ function renderSummary() {
   const curYM2 = String(now2.getFullYear())+'-'+String(now2.getMonth()+1).padStart(2,'0');
   const activeSelYM = selYM || curYM2;
   const c = (_df || _dt)
-    ? cases.filter(x => { const d = x.date?x.date.slice(0,10):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
+    ? cases.filter(x => { const dt2=x.date?new Date(x.date):null; const d=dt2?dt2.getFullYear()+'-'+String(dt2.getMonth()+1).padStart(2,'0')+'-'+String(dt2.getDate()).padStart(2,'0'):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
     : (_teamViewMode && _teamViewId)
       ? cases.filter(x => { const _wt=(window._teams||[]); const _vt=_wt.find(t=>t.id===_teamViewId); return _vt&&(_vt.memberIds||[]).includes(x.assignee); })
       : cases;
@@ -1217,7 +1217,7 @@ function renderPeople() {
   people.forEach((p, idx) => {
     const [col, bg] = COLORS[idx % COLORS.length];
     const allCur = ((_df || _dt)
-      ? cases.filter(x => { const d = x.date?x.date.slice(0,10):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
+      ? cases.filter(x => { const dt2=x.date?new Date(x.date):null; const d=dt2?dt2.getFullYear()+'-'+String(dt2.getMonth()+1).padStart(2,'0')+'-'+String(dt2.getDate()).padStart(2,'0'):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
       : cases).filter(c => c.assignee === p.id && c.category !== 'ส.1 (ยกคดี)');
     const allPrv = inMonth(prevYM(selYM)).filter(c => c.assignee === p.id && c.category !== 'ส.1 (ยกคดี)');
     const pendingCur = cases.filter(c => c.currentPerson === p.name && !['done','court'].includes(c.status));
@@ -1818,7 +1818,16 @@ function renderTable() {
 
     // Date range filter (only if user set dates)
     if (_df || _dt) {
-      const d = c.date ? c.date.slice(0,10) : '';
+      // slice(0,10) แต่ต้องระวัง timezone — ใช้ toLocaleDateString แทน
+      let d = '';
+      if (c.date) {
+        const dt = new Date(c.date);
+        // แปลงเป็น YYYY-MM-DD ตาม local time ไม่ใช่ UTC
+        const yy = dt.getFullYear();
+        const mm = String(dt.getMonth()+1).padStart(2,'0');
+        const dd = String(dt.getDate()).padStart(2,'0');
+        d = `${yy}-${mm}-${dd}`;
+      }
       if (_df && d < _df) return false;
       if (_dt && d > _dt) return false;
     }
