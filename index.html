@@ -3053,9 +3053,19 @@ window.exitTeamView = function() {
 // ===== DATE RANGE =====
 let _df = '', _dt = '';
 
+// แปลงวันที่จาก input — ถ้า year > 2400 แสดงว่าเป็น BE ให้ลบ 543
+function normDateInput(val) {
+  if (!val) return '';
+  const parts = val.split('-');
+  if (parts.length !== 3) return val;
+  let y = parseInt(parts[0], 10);
+  if (y > 2400) y -= 543; // BE → CE
+  return y + '-' + parts[1] + '-' + parts[2];
+}
+
 window.applyDateRange = function() {
-  _df = document.getElementById('dateFrom')?.value || '';
-  _dt = document.getElementById('dateTo')?.value || '';
+  _df = normDateInput(document.getElementById('dateFrom')?.value || '');
+  _dt = normDateInput(document.getElementById('dateTo')?.value || '');
   renderAll();
 };
 
