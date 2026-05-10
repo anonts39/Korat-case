@@ -351,8 +351,8 @@ font-weight: 700 !important;
       <a id="adminLink" href="admin.html" style="display:none;padding:4px 10px;border-radius:6px;border:1px solid var(--accent);color:var(--accent);font-size:0.72rem;text-decoration:none;background:#1f1a12;">👑 Admin</a>
       <button id="logoutBtn" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:0.72rem;cursor:pointer;font-family:'Sarabun',sans-serif;">ออกจากระบบ</button>
     </div>
-    <button class="bell-btn" id="btnTeamMgmt" onclick="openTeamModal()" title="จัดการทีม" style="display:none;font-size:1rem;">👥</button>
-    <button class="bell-btn" id="btnTeamView" onclick="openTeamViewPicker()" title="ดูมุมมองทีม" style="display:none;font-size:1rem;">👁</button>
+    <button class="bell-btn" id="btnTeamMgmt" onclick="openTeamModal()" title="จัดการทีม" style="display:none;font-size:1rem;color:#58a6ff;">👥</button>
+    <button class="bell-btn" id="btnTeamView" onclick="openTeamViewPicker()" title="ดูมุมมองทีม" style="display:none;font-size:1rem;color:#3fb950;">👁</button>
 
 ```
 <a href="report.html" class="bell-btn" title="รายงาน/Export" style="font-size:1rem;display:inline-flex;align-items:center;text-decoration:none;">📊</a>
@@ -397,6 +397,14 @@ font-weight: 700 !important;
 
 <div class="main">
   <div class="month-bar">
+    <span class="month-label">📅 ช่วงเวลา:</span>
+    <span style="font-size:0.78rem;color:var(--text3);">จาก</span>
+    <input type="date" id="dateFrom" onchange="applyDateRange()"
+      style="padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.82rem;outline:none;">
+    <span style="font-size:0.78rem;color:var(--text3);">ถึง</span>
+    <input type="date" id="dateTo" onchange="applyDateRange()"
+      style="padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.82rem;outline:none;">
+    <button onclick="clearDateRange()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">ทั้งหมด</button>
     <span class="mbadge cur" id="curBadge"></span>
     <select class="month-select" id="monthSelect" onchange="renderAll()" style="display:none;"></select>
     <span class="mbadge prev" id="prevBadge" style="display:none;"></span>
@@ -1106,7 +1114,9 @@ function renderSummary() {
   const now2 = new Date();
   const curYM2 = String(now2.getFullYear())+'-'+String(now2.getMonth()+1).padStart(2,'0');
   const activeSelYM = selYM || curYM2;
-  const c = (_teamViewMode && _teamViewId)
+  const c = (_df || _dt)
+    ? cases.filter(x => { const dt2=x.date?new Date(x.date):null; const d=dt2?dt2.getFullYear()+'-'+String(dt2.getMonth()+1).padStart(2,'0')+'-'+String(dt2.getDate()).padStart(2,'0'):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
+    : (_teamViewMode && _teamViewId)
       ? cases.filter(x => { const _wt=(window._teams||[]); const _vt=_wt.find(t=>t.id===_teamViewId); return _vt&&(_vt.memberIds||[]).includes(x.assignee); })
       : inMonth(selYM);
   const p = inMonth(prevYM(activeSelYM));
@@ -1194,7 +1204,9 @@ function renderPeople() {
 
   people.forEach((p, idx) => {
     const [col, bg] = COLORS[idx % COLORS.length];
-    const allCur = inMonth(selYM).filter(c => c.assignee === p.id && c.category !== 'ส.1 (ยกคดี)');
+    const allCur = ((_df || _dt)
+      ? cases.filter(x => { const dt2=x.date?new Date(x.date):null; const d=dt2?dt2.getFullYear()+'-'+String(dt2.getMonth()+1).padStart(2,'0')+'-'+String(dt2.getDate()).padStart(2,'0'):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
+      : cases).filter(c => c.assignee === p.id && c.category !== 'ส.1 (ยกคดี)');
     const allPrv = inMonth(prevYM(selYM)).filter(c => c.assignee === p.id && c.category !== 'ส.1 (ยกคดี)');
     const pendingCur = cases.filter(c => c.currentPerson === p.name && !['done','court'].includes(c.status));
     const cur = allCur, prv = allPrv;
@@ -1792,8 +1804,16 @@ function renderTable() {
       }
     }
 
+    // Date range filter
+    if (_df || _dt) {
+      const dt2 = c.date ? new Date(c.date) : null;
+      const d = dt2 ? dt2.getFullYear()+'-'+String(dt2.getMonth()+1).padStart(2,'0')+'-'+String(dt2.getDate()).padStart(2,'0') : '';
+      if (_df && d < _df) return false;
+      if (_dt && d > _dt) return false;
+    }
+
     const inSelectedMonth = ymOf(c.date) === selYM;
-    const monthOk = inSelectedMonth;
+    const monthOk = (_df || _dt) ? true : inSelectedMonth;
     const statusMatch =
       filterStatus === 'all'    ? true :
       filterStatus === 'active'   ? (monthOk && !['done','court'].includes(c.status)) :
@@ -3022,6 +3042,32 @@ window.exitTeamView = function() {
 
 // ===== DATE RANGE =====
 // (date range removed)
+
+let _df = '', _dt = '';
+
+function normDateInput(val) {
+  if (!val) return '';
+  const parts = val.split('-');
+  if (parts.length !== 3) return val;
+  let y = parseInt(parts[0], 10);
+  if (y > 2400) y -= 543;
+  return y + '-' + parts[1] + '-' + parts[2];
+}
+
+window.applyDateRange = function() {
+  _df = normDateInput(document.getElementById('dateFrom')?.value || '');
+  _dt = normDateInput(document.getElementById('dateTo')?.value || '');
+  renderAll();
+};
+
+window.clearDateRange = function() {
+  _df = ''; _dt = '';
+  const f = document.getElementById('dateFrom');
+  const t = document.getElementById('dateTo');
+  if (f) f.value = '';
+  if (t) t.value = '';
+  renderAll();
+};
 
 window.quickScanSearch = function(q) {
   if (!q || !q.trim()) return;
