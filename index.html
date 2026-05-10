@@ -482,7 +482,7 @@ font-weight: 700 !important;
           <button onclick="chartSelectAllMonths()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">เลือกทั้งหมด</button>
           <button onclick="chartClearMonths()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">ล้าง</button>
         </div>
-        <button onclick="renderCharts()" style="padding:5px 16px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;font-weight:600;">🔄 อัปเดตกราฟ</button>
+        <button onclick="drawCharts()" style="padding:5px 16px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;font-weight:600;">🔄 อัปเดตกราฟ</button>
         <span id="chartSelectedCount" style="font-size:0.75rem;color:var(--text3);margin-left:4px;"></span>
       </div>
     </div>
@@ -1344,9 +1344,18 @@ let _chartMode = 'single';
 let _chartTab  = 'prosecutor';
 let _chartSelectedMonths = [];
 let _chartSingleMonth = '';
+let _chartPickerBuilt = false;
 
 function destroyChart(id) {
   if (_chartInstances[id]) { _chartInstances[id].destroy(); delete _chartInstances[id]; }
+  // Re-create canvas to avoid Chart.js reuse bugs on hidden elements
+  const old = document.getElementById(id);
+  if (old) {
+    const wrap = old.parentNode;
+    const newCanvas = document.createElement('canvas');
+    newCanvas.id = id;
+    wrap.replaceChild(newCanvas, old);
+  }
 }
 
 // Month label helper (short display)
@@ -1363,6 +1372,7 @@ window.switchChartTab = function(tab, btn) {
 
 window.switchChartMode = function(mode, btn) {
   _chartMode = mode;
+  _chartPickerBuilt = false; // force picker rebuild on mode change
   document.getElementById('chartModeSingle').classList.toggle('active', mode === 'single');
   document.getElementById('chartModeMulti').classList.toggle('active', mode === 'multi');
 
@@ -1725,9 +1735,13 @@ function renderCharts() {
   const ma = document.getElementById('chartMultiActions');
   if (ma) ma.style.display = _chartMode === 'multi' ? 'flex' : 'none';
 
-  buildChartMonthPicker();
+  // Only build picker on first load (don't reset user selection on re-render)
+  if (!_chartPickerBuilt) {
+    buildChartMonthPicker();
+    _chartPickerBuilt = true;
+  }
 
-  // Sync single/multi view visibility for both panels
+  // Sync single/multi view visibility
   ['pros','team'].forEach(t => {
     const sv = document.getElementById(t + 'SingleView');
     const mv = document.getElementById(t + 'MultiView');
@@ -1735,11 +1749,12 @@ function renderCharts() {
     if (mv) mv.style.display = _chartMode === 'multi'  ? 'block' : 'none';
   });
 
-  // Wait for DOM to fully apply visibility before Chart.js draws
-  setTimeout(() => {
-    if (_chartTab === 'team') renderTeamCharts();
-    else renderProsecutorCharts();
-  }, 50);
+  drawCharts();
+}
+
+function drawCharts() {
+  if (_chartTab === 'team') renderTeamCharts();
+  else renderProsecutorCharts();
 }
 
 // ===== TABLE =====
