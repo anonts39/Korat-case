@@ -448,13 +448,6 @@ font-weight: 700 !important;
     <div class="summary-card overdue"><div class="card-label">เกินกำหนด</div><div class="card-number yellow" id="totalOverdue">0</div><div class="mom-row" id="momRowOverdue"></div><div class="card-sub">คดีที่เลย deadline</div></div>
     <div class="summary-card" style="border-color:#e3b341;"><div class="card-label">สอบสวนเพิ่มเติม</div><div class="card-number" style="color:#e3b341;" id="totalReinvestigate">0</div><div class="mom-row"></div><div class="card-sub" id="reinvestigateOverdue" style="color:#f85149;"></div></div>
   </div>
-  <div class="compare-section">
-    <div class="section-title">📊 เปรียบเทียบเดือนนี้ vs เดือนก่อน</div>
-    <div class="compare-grid">
-      <div class="compare-card"><div class="compare-month-title">🗓 <span id="titleCur"></span></div><div class="compare-rows" id="barsCur"></div></div>
-      <div class="compare-card"><div class="compare-month-title">🗓 <span id="titlePrev"></span></div><div class="compare-rows" id="barsPrev"></div></div>
-    </div>
-  </div>
   <div class="cat-section">
     <div class="section-title">🗂 สถิติตามประเภทคดี <span style="font-size:0.72rem;color:var(--text3);font-family:'Sarabun';font-weight:400;">(กดเพื่อกรอง)</span></div>
     <div class="cat-grid" id="catGrid"></div>
@@ -994,6 +987,7 @@ function init() {
   document.getElementById('fDate').value = NOW.toISOString().split('T')[0];
   buildMonthSelect();
   renderAll();
+  renderCharts();
   buildAlerts();
 }
 function buildMonthSelect() {
@@ -1095,11 +1089,9 @@ function renderAll() {
   const _prevBadge = document.getElementById('prevBadge');
   if (_prevBadge) _prevBadge.textContent = '';
   renderSummary();
-  renderCompare();
   renderCategoryStats();
   renderCategoryFilters();
   renderPeople();
-  renderCharts();
   renderTable();
   populateAssigneeSelect();
 }
@@ -1552,17 +1544,20 @@ function renderProsSingle() {
 
 function renderProsMulti() {
   const months = _chartSelectedMonths.length ? _chartSelectedMonths : allYMs().slice(-3);
-  function srcForMonth(m) {
-    return inMonth(m).filter(c => {
-      if (isAdminUser) return true;
-      return c.assignee === currentPersonId;
-    });
-  }
-  const peopleFiltered = people.filter(p => months.some(m => srcForMonth(m).some(c => c.assignee === p.id)));
-  const labels = peopleFiltered.map(p => shortName(p.name));
 
+  // For non-admin: only show own data as single bar
+  // For admin: show all prosecutors
+  const peopleFiltered = isAdminUser
+    ? people.filter(p => months.some(m => inMonth(m).some(c => c.assignee === p.id)))
+    : people.filter(p => p.id === currentPersonId);
+
+  const labels = peopleFiltered.map(p => shortName(p.name));
   if (!labels.length) { return; }
   const cd = getChartDefaults();
+
+  function srcForMonth(m) {
+    return isAdminUser ? inMonth(m) : inMonth(m).filter(c => c.assignee === currentPersonId);
+  }
 
   // Chart: Total per person per month (grouped bar)
   const totalDatasets = months.map((m, mi) => ({
@@ -1740,11 +1735,11 @@ function renderCharts() {
     if (mv) mv.style.display = _chartMode === 'multi'  ? 'block' : 'none';
   });
 
-  // Wait for DOM to apply visibility before Chart.js draws
-  requestAnimationFrame(() => {
+  // Wait for DOM to fully apply visibility before Chart.js draws
+  setTimeout(() => {
     if (_chartTab === 'team') renderTeamCharts();
     else renderProsecutorCharts();
-  });
+  }, 50);
 }
 
 // ===== TABLE =====
