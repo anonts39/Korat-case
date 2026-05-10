@@ -1130,25 +1130,6 @@ function renderSummary() {
 }
 
 // ===== COMPARE =====
-function renderCompare() {
-  const cl = inMonth(selYM), pl = inMonth(prevYM(selYM));
-  document.getElementById('titleCur').textContent  = ymFull(selYM);
-  document.getElementById('titlePrev').textContent = ymFull(prevYM(selYM));
-  const maxV = Math.max(cl.length, pl.length, 1);
-  function bars(list, id) {
-    const rows = [
-      { l:'ทั้งหมด',   v:list.length, c:'var(--blue)' },
-      { l:'ค้าง',      v:list.filter(c=>c.status==='pending').length, c:'var(--red)' },
-      { l:'เจ้าของสำนวน', v:list.filter(c=>c.status==='progress').length, c:'var(--blue)' },
-      { l:'เสร็จสิ้น', v:list.filter(c=>c.status==='done').length, c:'var(--green)' },
-      { l:'เกินกำหนด', v:list.filter(c=>c.status!=='done'&&dlStatus(c.deadline,c.status)==='overdue').length, c:'var(--yellow)' },
-    ];
-    document.getElementById(id).innerHTML = rows.map(r =>
-      `<div class="compare-row"><div class="compare-row-label">${r.l}</div><div class="compare-bar-wrap"><div class="compare-bar" style="width:${Math.round(r.v/maxV*100)}%;background:${r.c}"></div></div><div class="compare-row-val" style="color:${r.c}">${r.v}</div></div>`
-    ).join('');
-  }
-  bars(cl, 'barsCur'); bars(pl, 'barsPrev');
-}
 
 // ===== CATEGORY STATS =====
 function renderCategoryStats() {
