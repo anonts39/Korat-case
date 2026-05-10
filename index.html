@@ -629,7 +629,7 @@ font-weight: 700 !important;
         <option value="ส.1">📋 ส.1</option>
         <option value="ส.2">📋 ส.2</option>
         <option value="ส.3">📋 ส.3</option>
-        <option value="ครอบครัว">👨‍👩‍👧 ครอบครัว</option>
+        <option value="ส.1 (ยกคดีขึ้นพิจารณา)">⚖️ ส.1 (ยกคดีขึ้นพิจารณา)</option>
         <option value="ทรัพย์สินทางปัญญา">💡 ทรัพย์สินทางปัญญา</option>
         <option value="ที่ดิน">🏠 ที่ดิน</option>
         <option value="custom">✏️ กำหนดเอง...</option>
@@ -667,9 +667,9 @@ font-weight: 700 !important;
         <option value="ขัง 6">🔒 ขัง 6</option>
         <option value="ขัง 7" style="color:#ff4444;font-weight:700;">⚠️ ขัง 7 (ครั้งสุดท้าย)</option>
         <option value="ประกัน">✅ ประกัน</option>
+        <option value="นัด">📅 นัด</option>
       </select>
       <input type="hidden" id="fPriority" value="medium">
-    </div>
 
 ```
   <div class="form-group"><label class="form-label">หมายเหตุ</label><input class="form-input" id="fNote" placeholder="หมายเหตุ"></div>
@@ -766,7 +766,7 @@ const TH_S = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','ม�
 const TH_F = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 const PRI_ORDER = { critical:0, high:1, medium:2, low:3 };
 const PRI_LABEL = { critical:'🔴 วิกฤต', high:'🟠 สูง', medium:'🔵 ปานกลาง', low:'🟢 ต่ำ' };
-const CAT_EMOJI = { แพ่ง:'⚖️', อาญา:'🔒', แรงงาน:'📋', ปกครอง:'📋', ภาษี:'📋', ครอบครัว:'👨‍👩‍👧', ทรัพย์สินทางปัญญา:'💡', ที่ดิน:'🏠' };
+const CAT_EMOJI = { แพ่ง:'⚖️', อาญา:'🔒', แรงงาน:'📋', ปกครอง:'📋', ภาษี:'📋', 'ส.1 (ยกคดีขึ้นพิจารณา)':'⚖️', ทรัพย์สินทางปัญญา:'💡', ที่ดิน:'🏠' };
 const CAT_PALETTE = ['#58a6ff','#3fb950','#f0883e','#bc8cff','#ff6b81','#00d2d3','#e3b341','#ff9f43','#a29bfe','#55efc4'];
 const NOW = new Date(); NOW.setHours(0,0,0,0);
 
@@ -955,7 +955,7 @@ async function loadCustomCategories() {
   buildCategorySelect();
 }
 
-const DEFAULT_CATS = ['แพ่ง','อาญา','ส.1','ส.2','ส.3','ครอบครัว','ทรัพย์สินทางปัญญา','ที่ดิน'];
+const DEFAULT_CATS = ['แพ่ง','อาญา','ส.1','ส.2','ส.3','ส.1 (ยกคดีขึ้นพิจารณา)','ทรัพย์สินทางปัญญา','ที่ดิน'];
 
 function buildCategorySelect() {
   const sel = document.getElementById('fCategory');
@@ -1854,6 +1854,7 @@ function renderTable() {
       'ขัง 6': { bg:'#2d1800', color:'#f0883e', icon:'⚠️', txt:'ขัง 6' },
       'ขัง 7': { bg:'#3d0000', color:'#ff4444', icon:'🆘', txt:'ขัง 7 (ครั้งสุดท้าย!)' },
       'ประกัน': { bg:'#1a2d1a', color:'#3fb950', icon:'✅', txt:'ประกัน' },
+      'นัด':    { bg:'#1a1f2d', color:'#58a6ff', icon:'📅', txt:'นัด' },
     };
     const _cd = c.custody ? _custodyColor[c.custody] : null;
     const custodyLabel = _cd ? '<div style="margin-top:4px;"><span style="font-size:0.72rem;padding:3px 10px;border-radius:20px;font-weight:600;background:'+_cd.bg+';color:'+_cd.color+';border:1px solid '+_cd.color+'33;">'+_cd.icon+' '+_cd.txt+'</span></div>' : '';
@@ -3720,7 +3721,7 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
       <option value="ส.1">📋 ส.1</option>
       <option value="ส.2">📋 ส.2</option>
       <option value="ส.3">📋 ส.3</option>
-      <option value="ครอบครัว">👨‍👩‍👧 ครอบครัว</option>
+      <option value="ส.1 (ยกคดีขึ้นพิจารณา)">⚖️ ส.1 (ยกคดีขึ้นพิจารณา)</option>
       <option value="ทรัพย์สินทางปัญญา">💡 ทรัพย์สินทางปัญญา</option>
       <option value="ที่ดิน">🏠 ที่ดิน</option>
       <option value="custom">✏️ กำหนดเอง...</option>
@@ -3750,6 +3751,7 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
     <option value="ขัง 6">🔒 ขัง 6</option>
     <option value="ขัง 7" style="color:#ff4444;font-weight:700;">⚠️ ขัง 7</option>
     <option value="ประกัน">✅ ประกัน</option>
+    <option value="นัด">📅 นัด</option>
   </select>
   <input type="hidden" id="rcvPriority" value="medium">
 </div>
