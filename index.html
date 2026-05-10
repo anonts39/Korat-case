@@ -279,6 +279,7 @@ color-scheme: dark;
 .chart-tab-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
 .chart-panel{display:none;}
 .chart-panel.active{display:block;}
+.chart-view-hidden{display:none!important;}
 .chart-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;}
 .chart-card-title{font-family:'Kanit',sans-serif;font-size:0.88rem;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;gap:6px;}
@@ -1346,9 +1347,8 @@ window.switchChartTab = function(tab, btn) {
   _chartTab = tab;
   document.querySelectorAll('.chart-tab-btn[id^="chartTab"]').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  document.querySelectorAll('.chart-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('chartPanel' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
   buildChartMonthPicker();
+  drawCharts();
 };
 
 window.switchChartMode = function(mode, btn) {
@@ -1373,7 +1373,7 @@ window.switchChartMode = function(mode, btn) {
   });
 
   buildChartMonthPicker();
-  // Don't auto-render — wait for user to pick month and click update
+  drawCharts();
 };
 
 function buildChartMonthPicker() {
@@ -1734,6 +1734,25 @@ function renderCharts() {
 }
 
 function drawCharts() {
+  // Step 1: make the correct panel active (visible)
+  document.querySelectorAll('.chart-panel').forEach(p => p.classList.remove('active'));
+  const activePanel = document.getElementById(_chartTab === 'team' ? 'chartPanelTeam' : 'chartPanelProsecutor');
+  if (activePanel) activePanel.classList.add('active');
+
+  // Step 2: show correct single/multi view inside each panel
+  ['pros','team'].forEach(t => {
+    const sv = document.getElementById(t + 'SingleView');
+    const mv = document.getElementById(t + 'MultiView');
+    if (sv) sv.style.display = _chartMode === 'single' ? 'block' : 'none';
+    if (mv) mv.style.display = _chartMode === 'multi'  ? 'block' : 'none';
+  });
+
+  // Step 3: destroy old charts
+  Object.keys(_chartInstances).forEach(id => {
+    if (_chartInstances[id]) { _chartInstances[id].destroy(); delete _chartInstances[id]; }
+  });
+
+  // Step 4: draw — canvas must be visible at this point
   if (_chartTab === 'team') renderTeamCharts();
   else renderProsecutorCharts();
 }
