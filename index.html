@@ -1130,10 +1130,14 @@ function renderSummary() {
   const pp = p.filter(x => x.category !== S1_CAT && !DONE_STATUSES.includes(x.status)).length;
   const pd = p.filter(x => x.category !== S1_CAT && x.status==='done').length;
   const po = p.filter(x => x.category !== S1_CAT && !DONE_STATUSES.includes(x.status) && dlStatus(x.deadline,x.status)==='overdue').length;
-  document.getElementById('totalCases').textContent   = ct; // คดีที่ยังค้างอยู่
+  const cr = c.filter(x => x.category !== S1_CAT && x.status === 'pending').length;
+  document.getElementById('totalCases').textContent   = ct;
   document.getElementById('totalPending').textContent = cp;
   document.getElementById('totalDone').textContent    = cd;
   document.getElementById('totalOverdue').textContent = co;
+  if (document.getElementById('totalReinvestigate')) {
+    document.getElementById('totalReinvestigate').textContent = cr;
+  }
   document.getElementById('pendingPct').textContent   = `${ct?Math.round(cp/ct*100):0}% ของคดีทั้งหมด`;
   document.getElementById('donePct').textContent      = `${ct?Math.round(cd/ct*100):0}% ของคดีทั้งหมด`;
   document.getElementById('pendingBar').style.width   = `${ct?Math.round(cp/ct*100):0}%`;
