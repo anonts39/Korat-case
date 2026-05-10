@@ -479,13 +479,16 @@ font-weight: 700 !important;
       </div>
     </div>
 
-    <!-- Month picker for multi-month mode -->
+    <!-- Month picker (ใช้ทั้ง single และ multi mode) -->
     <div id="chartMonthPicker" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px;">
-      <div style="font-size:0.78rem;color:var(--text3);margin-bottom:10px;">เลือกเดือนที่ต้องการเปรียบเทียบ <span style="color:var(--accent)">(กดเพื่อเลือก/ยกเลิก)</span></div>
+      <div id="chartPickerLabelSingle" style="font-size:0.78rem;color:var(--text3);margin-bottom:10px;">เลือกเดือนที่ต้องการแสดง</div>
+      <div id="chartPickerLabelMulti" style="display:none;font-size:0.78rem;color:var(--text3);margin-bottom:10px;">เลือกเดือนที่ต้องการเปรียบเทียบ <span style="color:var(--accent)">(กดเพื่อเลือก/ยกเลิก)</span></div>
       <div id="chartCalendarWrap"></div>
-      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
-        <button onclick="chartSelectAllMonths()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">เลือกทั้งหมด</button>
-        <button onclick="chartClearMonths()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">ล้าง</button>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <div id="chartMultiActions" style="display:none;gap:8px;display:none;">
+          <button onclick="chartSelectAllMonths()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">เลือกทั้งหมด</button>
+          <button onclick="chartClearMonths()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">ล้าง</button>
+        </div>
         <button onclick="renderCharts()" style="padding:5px 16px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;font-weight:600;">🔄 อัปเดตกราฟ</button>
         <span id="chartSelectedCount" style="font-size:0.75rem;color:var(--text3);margin-left:4px;"></span>
       </div>
@@ -1345,9 +1348,10 @@ function renderPeople() {
 
 // ===== CHARTS =====
 let _chartInstances = {};
-let _chartMode = 'single'; // 'single' | 'multi'
-let _chartTab  = 'prosecutor'; // 'prosecutor' | 'team'
-let _chartSelectedMonths = []; // for multi mode
+let _chartMode = 'single';
+let _chartTab  = 'prosecutor';
+let _chartSelectedMonths = [];
+let _chartSingleMonth = '';
 
 function destroyChart(id) {
   if (_chartInstances[id]) { _chartInstances[id].destroy(); delete _chartInstances[id]; }
@@ -1362,14 +1366,21 @@ window.switchChartTab = function(tab, btn) {
   btn.classList.add('active');
   document.querySelectorAll('.chart-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('chartPanel' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
-  renderCharts();
+  buildChartMonthPicker();
 };
 
 window.switchChartMode = function(mode, btn) {
   _chartMode = mode;
   document.getElementById('chartModeSingle').classList.toggle('active', mode === 'single');
   document.getElementById('chartModeMulti').classList.toggle('active', mode === 'multi');
-  document.getElementById('chartMonthPicker').style.display = mode === 'multi' ? 'block' : 'none';
+
+  // Show picker for both modes
+  document.getElementById('chartMonthPicker').style.display = 'block';
+  document.getElementById('chartPickerLabelSingle').style.display = mode === 'single' ? 'block' : 'none';
+  document.getElementById('chartPickerLabelMulti').style.display = mode === 'multi' ? 'block' : 'none';
+  const ma = document.getElementById('chartMultiActions');
+  if (ma) ma.style.display = mode === 'multi' ? 'flex' : 'none';
+
   // Show/hide single vs multi views
   ['pros','team'].forEach(t => {
     const sv = document.getElementById(t + 'SingleView');
@@ -1377,23 +1388,33 @@ window.switchChartMode = function(mode, btn) {
     if (sv) sv.style.display = mode === 'single' ? 'block' : 'none';
     if (mv) mv.style.display = mode === 'multi' ? 'block' : 'none';
   });
-  if (mode === 'multi') buildChartMonthPicker();
-  renderCharts();
+
+  buildChartMonthPicker();
+  // Don't auto-render — wait for user to pick month and click update
 };
 
 function buildChartMonthPicker() {
   const months = allYMs();
-  if (!_chartSelectedMonths.length) {
-    _chartSelectedMonths = months.slice(-3);
+
+  if (_chartMode === 'single') {
+    // Single mode: pre-select current selYM, radio-style
+    if (!_chartSingleMonth || !months.includes(_chartSingleMonth)) {
+      _chartSingleMonth = selYM || months[months.length - 1];
+    }
+  } else {
+    // Multi mode: pre-select last 3 if nothing selected
+    if (!_chartSelectedMonths.length) {
+      _chartSelectedMonths = months.slice(-3);
+    }
   }
 
   // Group months by year
   const byYear = {};
   months.forEach(m => {
     const [y, mo] = m.split('-').map(Number);
-    const yr = y + 543; // แปลง CE → BE
+    const yr = y + 543;
     if (!byYear[yr]) byYear[yr] = {};
-    byYear[yr][mo] = m; // mo = 1-12
+    byYear[yr][mo] = m;
   });
 
   const TH_M = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
@@ -1405,35 +1426,41 @@ function buildChartMonthPicker() {
       <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:5px;max-width:340px;">`;
     for (let mo = 1; mo <= 12; mo++) {
       const ym = byYear[yr][mo];
-      if (!ym) {
-        html += `<div></div>`; // empty slot
-      } else {
-        const sel = _chartSelectedMonths.includes(ym);
-        html += `<div onclick="chartToggleMonth('${ym}')"
-          style="padding:5px 2px;border-radius:6px;border:1px solid ${sel ? 'var(--accent)' : 'var(--border)'};
-          background:${sel ? '#1f1a12' : 'var(--surface2)'};color:${sel ? 'var(--accent)' : 'var(--text3)'};
-          font-size:0.72rem;text-align:center;cursor:pointer;font-family:'Sarabun',sans-serif;
-          font-weight:${sel ? '700' : '400'};transition:all 0.15s;user-select:none;"
-          title="${ymFull(ym)}">${TH_M[mo-1]}</div>`;
-      }
+      if (!ym) { html += `<div></div>`; continue; }
+
+      const sel = _chartMode === 'single'
+        ? ym === _chartSingleMonth
+        : _chartSelectedMonths.includes(ym);
+
+      html += `<div onclick="chartToggleMonth('${ym}')"
+        style="padding:5px 2px;border-radius:6px;border:1px solid ${sel ? 'var(--accent)' : 'var(--border)'};
+        background:${sel ? '#1f1a12' : 'var(--surface2)'};color:${sel ? 'var(--accent)' : 'var(--text3)'};
+        font-size:0.72rem;text-align:center;cursor:pointer;font-family:'Sarabun',sans-serif;
+        font-weight:${sel ? '700' : '400'};transition:all 0.15s;user-select:none;">${TH_M[mo-1]}</div>`;
     }
     html += `</div></div>`;
   });
 
   if (!html) html = '<div style="color:var(--text3);font-size:0.8rem;">ยังไม่มีข้อมูลคดีในระบบ</div>';
-
   document.getElementById('chartCalendarWrap').innerHTML = html;
 
   const cnt = document.getElementById('chartSelectedCount');
-  if (cnt) cnt.textContent = _chartSelectedMonths.length ? `เลือกแล้ว ${_chartSelectedMonths.length} เดือน` : '';
+  if (cnt) {
+    cnt.textContent = _chartMode === 'multi' && _chartSelectedMonths.length
+      ? `เลือกแล้ว ${_chartSelectedMonths.length} เดือน` : '';
+  }
 }
 
 window.chartToggleMonth = function(m) {
-  if (_chartSelectedMonths.includes(m)) {
-    _chartSelectedMonths = _chartSelectedMonths.filter(x => x !== m);
+  if (_chartMode === 'single') {
+    _chartSingleMonth = m; // radio — เลือกเดือนเดียว
   } else {
-    _chartSelectedMonths.push(m);
-    _chartSelectedMonths.sort();
+    if (_chartSelectedMonths.includes(m)) {
+      _chartSelectedMonths = _chartSelectedMonths.filter(x => x !== m);
+    } else {
+      _chartSelectedMonths.push(m);
+      _chartSelectedMonths.sort();
+    }
   }
   buildChartMonthPicker();
 };
@@ -1474,7 +1501,8 @@ function renderProsecutorCharts() {
 
 function renderProsSingle() {
   // Source: current selYM month, filtered by role
-  const src = inMonth(selYM).filter(c => {
+  const activeYM = _chartSingleMonth || selYM;
+  const src = inMonth(activeYM).filter(c => {
     if (isAdminUser) return true;
     return c.assignee === currentPersonId;
   });
@@ -1591,7 +1619,7 @@ function renderTeamSingle() {
     document.getElementById('teamSingleView').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3);">⚠️ ยังไม่มีข้อมูลทีม กรุณาตั้งค่าทีมก่อน</div>';
     return;
   }
-  const src = inMonth(selYM);
+  const src = inMonth(_chartSingleMonth || selYM);
   const teamNames = ['ทีม 1','ทีม 2','ทีม 3'];
   const teamData = teamNames.map((tname, idx) => {
     const team = _ts.find(t => t.name === tname);
@@ -1694,6 +1722,15 @@ function renderCharts() {
   const section = document.getElementById('chartSection');
   if (isStaff) { section.style.display = 'none'; return; }
   section.style.display = 'block';
+
+  // Show picker always
+  document.getElementById('chartMonthPicker').style.display = 'block';
+  document.getElementById('chartPickerLabelSingle').style.display = _chartMode === 'single' ? 'block' : 'none';
+  document.getElementById('chartPickerLabelMulti').style.display  = _chartMode === 'multi'  ? 'block' : 'none';
+  const ma = document.getElementById('chartMultiActions');
+  if (ma) ma.style.display = _chartMode === 'multi' ? 'flex' : 'none';
+
+  buildChartMonthPicker();
 
   // Sync single/multi view visibility for both panels
   ['pros','team'].forEach(t => {
