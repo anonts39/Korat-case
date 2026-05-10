@@ -1833,11 +1833,13 @@ function renderTable() {
     }
 
     const inSelectedMonth = ymOf(c.date) === selYM;
+    // ถ้าตั้งช่วงวันที่ไว้แล้ว ไม่ต้องกรองเดือน
+    const monthOk = (_df || _dt) ? true : inSelectedMonth;
     const statusMatch =
       filterStatus === 'all'    ? true :
-      filterStatus === 'active'   ? (!['done','court'].includes(c.status)) :
-      filterStatus === 'progress' ? (['progress','pending'].includes(c.status)) :
-                                    (c.status === filterStatus);
+      filterStatus === 'active'   ? (monthOk && !['done','court'].includes(c.status)) :
+      filterStatus === 'progress' ? (monthOk && ['progress','pending'].includes(c.status)) :
+                                    (monthOk && c.status === filterStatus);
     return statusMatch &&
       (filterPerson === null || c.assignee === filterPerson ||
        (() => { const fp = people.find(x=>x.id===filterPerson); return fp && c.currentPerson===fp.name && !['done','court'].includes(c.status); })()) &&
