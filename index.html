@@ -397,14 +397,6 @@ font-weight: 700 !important;
 
 <div class="main">
   <div class="month-bar">
-    <span class="month-label">📅 ช่วงเวลา:</span>
-    <span style="font-size:0.78rem;color:var(--text3);">จาก</span>
-    <input type="date" id="dateFrom" onchange="applyDateRange()"
-      style="padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.82rem;outline:none;">
-    <span style="font-size:0.78rem;color:var(--text3);">ถึง</span>
-    <input type="date" id="dateTo" onchange="applyDateRange()"
-      style="padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.82rem;outline:none;">
-    <button onclick="clearDateRange()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">ทั้งหมด</button>
     <span class="mbadge cur" id="curBadge"></span>
     <select class="month-select" id="monthSelect" onchange="renderAll()" style="display:none;"></select>
     <span class="mbadge prev" id="prevBadge" style="display:none;"></span>
@@ -1097,20 +1089,8 @@ window.scrollToCase = function(id) {
 function renderAll() {
   selYM = document.getElementById('monthSelect').value || selYM;
   buildMonthSelect();
-  // Show date range badge or nothing
   const _badge = document.getElementById('curBadge');
-  if (_badge) {
-    if (_df || _dt) {
-      const _fmtB = function(d) {
-        if (!d) return '';
-        var m = d.match(/(\d{4})-(\d{2})-(\d{2})/);
-        return m ? m[3]+'/'+m[2]+'/'+(parseInt(m[1])+543) : d;
-      };
-      _badge.textContent = (_fmtB(_df)||'ทั้งหมด') + ' — ' + (_fmtB(_dt)||'ปัจจุบัน');
-    } else {
-      _badge.textContent = '';
-    }
-  }
+  if (_badge) _badge.textContent = '';
   const _prevBadge = document.getElementById('prevBadge');
   if (_prevBadge) _prevBadge.textContent = '';
   renderSummary();
@@ -1126,11 +1106,9 @@ function renderSummary() {
   const now2 = new Date();
   const curYM2 = String(now2.getFullYear())+'-'+String(now2.getMonth()+1).padStart(2,'0');
   const activeSelYM = selYM || curYM2;
-  const c = (_df || _dt)
-    ? cases.filter(x => { const dt2=x.date?new Date(x.date):null; const d=dt2?dt2.getFullYear()+'-'+String(dt2.getMonth()+1).padStart(2,'0')+'-'+String(dt2.getDate()).padStart(2,'0'):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
-    : (_teamViewMode && _teamViewId)
+  const c = (_teamViewMode && _teamViewId)
       ? cases.filter(x => { const _wt=(window._teams||[]); const _vt=_wt.find(t=>t.id===_teamViewId); return _vt&&(_vt.memberIds||[]).includes(x.assignee); })
-      : cases;
+      : inMonth(selYM);
   const p = inMonth(prevYM(activeSelYM));
   const DONE_STATUSES = ['done','court'];
   const S1_CAT = 'ส.1 (ยกคดี)';
@@ -1216,9 +1194,7 @@ function renderPeople() {
 
   people.forEach((p, idx) => {
     const [col, bg] = COLORS[idx % COLORS.length];
-    const allCur = ((_df || _dt)
-      ? cases.filter(x => { const dt2=x.date?new Date(x.date):null; const d=dt2?dt2.getFullYear()+'-'+String(dt2.getMonth()+1).padStart(2,'0')+'-'+String(dt2.getDate()).padStart(2,'0'):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
-      : cases).filter(c => c.assignee === p.id && c.category !== 'ส.1 (ยกคดี)');
+    const allCur = inMonth(selYM).filter(c => c.assignee === p.id && c.category !== 'ส.1 (ยกคดี)');
     const allPrv = inMonth(prevYM(selYM)).filter(c => c.assignee === p.id && c.category !== 'ส.1 (ยกคดี)');
     const pendingCur = cases.filter(c => c.currentPerson === p.name && !['done','court'].includes(c.status));
     const cur = allCur, prv = allPrv;
@@ -1816,25 +1792,8 @@ function renderTable() {
       }
     }
 
-    // Date range filter (only if user set dates)
-    if (_df || _dt) {
-      // slice(0,10) แต่ต้องระวัง timezone — ใช้ toLocaleDateString แทน
-      let d = '';
-      if (c.date) {
-        const dt = new Date(c.date);
-        // แปลงเป็น YYYY-MM-DD ตาม local time ไม่ใช่ UTC
-        const yy = dt.getFullYear();
-        const mm = String(dt.getMonth()+1).padStart(2,'0');
-        const dd = String(dt.getDate()).padStart(2,'0');
-        d = `${yy}-${mm}-${dd}`;
-      }
-      if (_df && d < _df) return false;
-      if (_dt && d > _dt) return false;
-    }
-
     const inSelectedMonth = ymOf(c.date) === selYM;
-    // ถ้าตั้งช่วงวันที่ไว้แล้ว ไม่ต้องกรองเดือน
-    const monthOk = (_df || _dt) ? true : inSelectedMonth;
+    const monthOk = inSelectedMonth;
     const statusMatch =
       filterStatus === 'all'    ? true :
       filterStatus === 'active'   ? (monthOk && !['done','court'].includes(c.status)) :
@@ -3062,32 +3021,7 @@ window.exitTeamView = function() {
 };
 
 // ===== DATE RANGE =====
-let _df = '', _dt = '';
-
-// แปลงวันที่จาก input — ถ้า year > 2400 แสดงว่าเป็น BE ให้ลบ 543
-function normDateInput(val) {
-  if (!val) return '';
-  const parts = val.split('-');
-  if (parts.length !== 3) return val;
-  let y = parseInt(parts[0], 10);
-  if (y > 2400) y -= 543; // BE → CE
-  return y + '-' + parts[1] + '-' + parts[2];
-}
-
-window.applyDateRange = function() {
-  _df = normDateInput(document.getElementById('dateFrom')?.value || '');
-  _dt = normDateInput(document.getElementById('dateTo')?.value || '');
-  renderAll();
-};
-
-window.clearDateRange = function() {
-  _df = ''; _dt = '';
-  const f = document.getElementById('dateFrom');
-  const t = document.getElementById('dateTo');
-  if (f) f.value = '';
-  if (t) t.value = '';
-  renderAll();
-};
+// (date range removed)
 
 window.quickScanSearch = function(q) {
   if (!q || !q.trim()) return;
