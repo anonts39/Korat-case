@@ -1436,7 +1436,9 @@ function buildChartMonthPicker() {
 
 window.chartToggleMonth = function(m) {
   if (_chartMode === 'single') {
-    _chartSingleMonth = m; // radio — เลือกเดือนเดียว
+    _chartSingleMonth = m;
+    buildChartMonthPicker(); // update highlight
+    drawCharts();            // draw immediately
   } else {
     if (_chartSelectedMonths.includes(m)) {
       _chartSelectedMonths = _chartSelectedMonths.filter(x => x !== m);
@@ -1444,8 +1446,8 @@ window.chartToggleMonth = function(m) {
       _chartSelectedMonths.push(m);
       _chartSelectedMonths.sort();
     }
+    buildChartMonthPicker(); // update highlight only, user presses update to draw
   }
-  buildChartMonthPicker();
 };
 window.chartSelectAllMonths = function() {
   _chartSelectedMonths = [...allYMs()];
