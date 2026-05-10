@@ -223,10 +223,6 @@ window.renderReport = function() {
     else if (status !== 'all') { if (c.status !== status) return false; }
     if (personId && c.assignee !== personId) return false;
     if (category && c.category !== category) return false;
-    // Date range filter
-    const ym = c.date ? c.date.slice(0,7) : '';
-    if (dateFrom && ym < dateFrom) return false;
-    if (dateTo && ym > dateTo) return false;
     if (search) {
       const match = (c.caseId||'').toLowerCase().includes(search) ||
                     (c.name||'').toLowerCase().includes(search) ||
