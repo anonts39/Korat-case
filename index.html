@@ -286,6 +286,24 @@ color-scheme: dark;
 .chart-canvas-wrap{position:relative;width:100%;height:260px;}
 @media(max-width:700px){.chart-grid-2{grid-template-columns:1fr;}}
 
+/* ===== S1 TIMELINE =====*/
+.s1-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600;cursor:pointer;border:1px solid #bc8cff44;background:#1a1228;color:#bc8cff;margin-top:4px;}
+.s1-badge:hover{background:#2a1a3a;}
+.s1-tmodal{display:none;position:fixed;inset:0;z-index:9000;background:#000a;}
+.s1-tmodal.open{display:flex;align-items:center;justify-content:center;}
+.s1-tbox{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;width:min(500px,94vw);max-height:88vh;overflow-y:auto;}
+.s1-step{display:flex;align-items:flex-start;gap:12px;margin-bottom:20px;position:relative;}
+.s1-step:not(:last-child)::after{content:"";position:absolute;left:15px;top:34px;bottom:-6px;width:2px;background:var(--border);}
+.s1-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.95rem;flex-shrink:0;border:2px solid;z-index:1;}
+.s1-dot.done{background:#1a2d3a;border-color:#58a6ff;}
+.s1-dot.current{background:#1a2d1a;border-color:#3fb950;box-shadow:0 0 8px #3fb95066;}
+.s1-dot.pending{background:var(--surface2);border-color:var(--border);}
+.s1-body{flex:1;padding-top:4px;}
+.s1-label{font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:5px;}
+.s1-date-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.s1-dinput{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text);font-family:"Sarabun",sans-serif;font-size:0.78rem;width:145px;}
+.s1-saved{font-size:0.75rem;color:var(--text3);}
+
 input[type=“date”] {
 color: #222222 !important;
 background: #ffffff !important;
@@ -774,6 +792,13 @@ const NOW = new Date(); NOW.setHours(0,0,0,0);
 let people = [], cases = [], customCategories = [];
 let currentUserId = '', currentUserEmail = '', currentUserName = '', currentPersonId = null, isAdminUser = false, isScreener = false, myTeam = null, isStaff = false;
 let editingId = null, filterStatus = 'active', filterPerson = null;
+
+const S1_STEPS = [
+  { key:'received',  icon:'📥', label:'ลงรับเป็นสำนวน ส.1' },
+  { key:'screener',  icon:'🔍', label:'ส่งผู้กลั่นกรอง' },
+  { key:'chief',     icon:'⚖️', label:'ส่ง อจ.' },
+  { key:'court',     icon:'🏛️', label:'ดำเนินการทางศาล' },
+];
 let filterOverdue = false, filterCategory = null, selYM = '';
 let catColorMap = {};
 
@@ -1108,14 +1133,15 @@ function renderSummary() {
       : cases;
   const p = inMonth(prevYM(activeSelYM));
   const DONE_STATUSES = ['done','court'];
-  const ct = c.length;
-  const cp = c.filter(x => !DONE_STATUSES.includes(x.status)).length; // ค้าง = ทุกที่ไม่ใช่ done/court
-  const cd = c.filter(x => x.status==='done').length;
-  const co = c.filter(x => !DONE_STATUSES.includes(x.status) && dlStatus(x.deadline,x.status)==='overdue').length;
-  const pt = p.length;
-  const pp = p.filter(x => !DONE_STATUSES.includes(x.status)).length;
-  const pd = p.filter(x => x.status==='done').length;
-  const po = p.filter(x => !DONE_STATUSES.includes(x.status) && dlStatus(x.deadline,x.status)==='overdue').length;
+  const S1_CAT = 'ส.1 (ยกคดีขึ้นพิจารณา)';
+  const ct = c.filter(x => x.category !== S1_CAT).length;
+  const cp = c.filter(x => x.category !== S1_CAT && !DONE_STATUSES.includes(x.status)).length;
+  const cd = c.filter(x => x.category !== S1_CAT && x.status==='done').length;
+  const co = c.filter(x => x.category !== S1_CAT && !DONE_STATUSES.includes(x.status) && dlStatus(x.deadline,x.status)==='overdue').length;
+  const pt = p.filter(x => x.category !== S1_CAT).length;
+  const pp = p.filter(x => x.category !== S1_CAT && !DONE_STATUSES.includes(x.status)).length;
+  const pd = p.filter(x => x.category !== S1_CAT && x.status==='done').length;
+  const po = p.filter(x => x.category !== S1_CAT && !DONE_STATUSES.includes(x.status) && dlStatus(x.deadline,x.status)==='overdue').length;
   document.getElementById('totalCases').textContent   = ct; // คดีที่ยังค้างอยู่
   document.getElementById('totalPending').textContent = cp;
   document.getElementById('totalDone').textContent    = cd;
@@ -1192,8 +1218,8 @@ function renderPeople() {
     const [col, bg] = COLORS[idx % COLORS.length];
     const allCur = ((_df || _dt)
       ? cases.filter(x => { const d = x.date?x.date.slice(0,10):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
-      : cases).filter(c => c.assignee === p.id);
-    const allPrv = inMonth(prevYM(selYM)).filter(c => c.assignee === p.id);
+      : cases).filter(c => c.assignee === p.id && c.category !== 'ส.1 (ยกคดีขึ้นพิจารณา)');
+    const allPrv = inMonth(prevYM(selYM)).filter(c => c.assignee === p.id && c.category !== 'ส.1 (ยกคดีขึ้นพิจารณา)');
     const pendingCur = cases.filter(c => c.currentPerson === p.name && !['done','court'].includes(c.status));
     const cur = allCur, prv = allPrv;
     const ct = cur.length;
@@ -1858,11 +1884,20 @@ function renderTable() {
     };
     const _cd = c.custody ? _custodyColor[c.custody] : null;
     const custodyLabel = _cd ? '<div style="margin-top:4px;"><span style="font-size:0.72rem;padding:3px 10px;border-radius:20px;font-weight:600;background:'+_cd.bg+';color:'+_cd.color+';border:1px solid '+_cd.color+'33;">'+_cd.icon+' '+_cd.txt+'</span></div>' : '';
+
+    // S1 Timeline badge
+    let s1Label = '';
+    if (c.category === 'ส.1 (ยกคดีขึ้นพิจารณา)') {
+      const tl = c.s1Timeline || {};
+      const currentStep = S1_STEPS.slice().reverse().find(s => tl[s.key]);
+      const stepTxt = currentStep ? `${currentStep.icon} ${currentStep.label}` : '📋 ยังไม่เริ่ม';
+      s1Label = `<div><span class="s1-badge" onclick="openS1Modal('${c.id}');event.stopPropagation();">${stepTxt} ▸ ดูไทม์ไลน์</span></div>`;
+    }
     return `<tr class="${rowCls}" id="case-row-${c.id}">
       <td><div class="case-id">${c.caseId}</div></td>
       <td>
         <div class="case-name">${c.name}</div>
-        ${ownerLabel}${noteLabel}${custodyLabel}
+        ${ownerLabel}${noteLabel}${custodyLabel}${s1Label}
         ${(c.relatedCases&&c.relatedCases.length) ? `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;">
           ${c.relatedCases.map(r=>{
             // Find the related case to get its category
@@ -4001,6 +4036,96 @@ window.saveTeams = async function() {
     if (typeof renderAll === 'function') renderAll();
   } catch(e) { alert('Error: '+e.message); }
 };
+</script>
+
+<!-- ===== S1 TIMELINE MODAL ===== -->
+<div class="s1-tmodal" id="s1Modal">
+  <div class="s1-tbox">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <div style="font-family:'Kanit',sans-serif;font-size:1rem;font-weight:600;color:#bc8cff;">⚖️ ส.1 — ไทม์ไลน์คดี</div>
+      <button onclick="closeS1Modal()" style="background:none;border:none;color:var(--text3);font-size:1.3rem;cursor:pointer;padding:4px;">✕</button>
+    </div>
+    <div id="s1CaseName" style="font-size:0.82rem;color:var(--text2);margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border);"></div>
+    <div id="s1Steps"></div>
+    <div style="margin-top:18px;display:flex;justify-content:flex-end;gap:8px;">
+      <button onclick="closeS1Modal()" style="padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.85rem;cursor:pointer;">ปิด</button>
+      <button onclick="saveS1Timeline()" style="padding:8px 20px;border-radius:8px;border:none;background:#bc8cff;color:#fff;font-family:'Sarabun',sans-serif;font-size:0.85rem;cursor:pointer;font-weight:600;">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== S1 TIMELINE =====
+let _s1CaseId = null;
+let _s1Dates  = {};
+
+window.openS1Modal = function(caseId) {
+  const c = cases.find(x => x.id === caseId);
+  if (!c) return;
+  _s1CaseId = caseId;
+  _s1Dates  = { ...(c.s1Timeline || {}) };
+
+  document.getElementById('s1CaseName').innerHTML =
+    `<strong>${c.caseId}</strong> &nbsp;${c.name}`;
+
+  // Find current step (last one that has a date)
+  let currentIdx = -1;
+  S1_STEPS.forEach((s, i) => { if (_s1Dates[s.key]) currentIdx = i; });
+
+  document.getElementById('s1Steps').innerHTML = S1_STEPS.map((s, i) => {
+    const val   = _s1Dates[s.key] || '';
+    const state = val ? (i < S1_STEPS.length - 1 && _s1Dates[S1_STEPS[i+1]?.key] ? 'done' : 'current') : 'pending';
+    const dotCls= val ? (i === currentIdx ? 'current' : 'done') : 'pending';
+    return `<div class="s1-step">
+      <div class="s1-dot ${dotCls}">${s.icon}</div>
+      <div class="s1-body">
+        <div class="s1-label">${s.label}</div>
+        <div class="s1-date-row">
+          <input type="date" class="s1-dinput" id="s1d_${s.key}" value="${val}"
+            onchange="_s1Dates['${s.key}']=this.value">
+          ${val ? `<span class="s1-saved">✅ ${formatDateTH(val)}</span>` : '<span class="s1-saved" style="color:var(--border);">ยังไม่ระบุ</span>'}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('s1Modal').classList.add('open');
+};
+
+window.closeS1Modal = function() {
+  document.getElementById('s1Modal').classList.remove('open');
+  _s1CaseId = null;
+};
+
+window.saveS1Timeline = async function() {
+  if (!_s1CaseId) return;
+  // Read current input values
+  S1_STEPS.forEach(s => {
+    const el = document.getElementById('s1d_' + s.key);
+    if (el) _s1Dates[s.key] = el.value || null;
+  });
+  // Remove nulls
+  const clean = {};
+  Object.keys(_s1Dates).forEach(k => { if (_s1Dates[k]) clean[k] = _s1Dates[k]; });
+  try {
+    await updateDoc(doc(db, 'cases', _s1CaseId), { s1Timeline: clean });
+    await loadCases();
+    renderAll();
+    closeS1Modal();
+  } catch(e) { alert('บันทึกไม่สำเร็จ: ' + e.message); }
+};
+
+function formatDateTH(d) {
+  if (!d) return '';
+  const [y, m, day] = d.split('-').map(Number);
+  const TH_S = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return `${day} ${TH_S[m-1]} ${y+543}`;
+}
+
+// Close on backdrop click
+document.getElementById('s1Modal').addEventListener('click', function(e) {
+  if (e.target === this) closeS1Modal();
+});
 </script>
 
 </body>
