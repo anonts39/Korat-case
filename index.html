@@ -647,7 +647,7 @@ font-weight: 700 !important;
         <option value="ส.1">📋 ส.1</option>
         <option value="ส.2">📋 ส.2</option>
         <option value="ส.3">📋 ส.3</option>
-        <option value="ส.1 (ยกคดีขึ้นพิจารณา)">⚖️ ส.1 (ยกคดีขึ้นพิจารณา)</option>
+        <option value="ส.1 (ยกคดี)">⚖️ ส.1 (ยกคดี)</option>
         <option value="ทรัพย์สินทางปัญญา">💡 ทรัพย์สินทางปัญญา</option>
         <option value="ที่ดิน">🏠 ที่ดิน</option>
         <option value="custom">✏️ กำหนดเอง...</option>
@@ -784,7 +784,7 @@ const TH_S = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','ม�
 const TH_F = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 const PRI_ORDER = { critical:0, high:1, medium:2, low:3 };
 const PRI_LABEL = { critical:'🔴 วิกฤต', high:'🟠 สูง', medium:'🔵 ปานกลาง', low:'🟢 ต่ำ' };
-const CAT_EMOJI = { แพ่ง:'⚖️', อาญา:'🔒', แรงงาน:'📋', ปกครอง:'📋', ภาษี:'📋', 'ส.1 (ยกคดีขึ้นพิจารณา)':'⚖️', ทรัพย์สินทางปัญญา:'💡', ที่ดิน:'🏠' };
+const CAT_EMOJI = { แพ่ง:'⚖️', อาญา:'🔒', แรงงาน:'📋', ปกครอง:'📋', ภาษี:'📋', 'ส.1 (ยกคดี)':'⚖️', ทรัพย์สินทางปัญญา:'💡', ที่ดิน:'🏠' };
 const CAT_PALETTE = ['#58a6ff','#3fb950','#f0883e','#bc8cff','#ff6b81','#00d2d3','#e3b341','#ff9f43','#a29bfe','#55efc4'];
 const NOW = new Date(); NOW.setHours(0,0,0,0);
 
@@ -980,7 +980,7 @@ async function loadCustomCategories() {
   buildCategorySelect();
 }
 
-const DEFAULT_CATS = ['แพ่ง','อาญา','ส.1','ส.2','ส.3','ส.1 (ยกคดีขึ้นพิจารณา)','ทรัพย์สินทางปัญญา','ที่ดิน'];
+const DEFAULT_CATS = ['แพ่ง','อาญา','ส.1','ส.2','ส.3','ส.1 (ยกคดี)','ทรัพย์สินทางปัญญา','ที่ดิน'];
 
 function buildCategorySelect() {
   const sel = document.getElementById('fCategory');
@@ -1133,7 +1133,7 @@ function renderSummary() {
       : cases;
   const p = inMonth(prevYM(activeSelYM));
   const DONE_STATUSES = ['done','court'];
-  const S1_CAT = 'ส.1 (ยกคดีขึ้นพิจารณา)';
+  const S1_CAT = 'ส.1 (ยกคดี)';
   const ct = c.filter(x => x.category !== S1_CAT).length;
   const cp = c.filter(x => x.category !== S1_CAT && !DONE_STATUSES.includes(x.status)).length;
   const cd = c.filter(x => x.category !== S1_CAT && x.status==='done').length;
@@ -1218,8 +1218,8 @@ function renderPeople() {
     const [col, bg] = COLORS[idx % COLORS.length];
     const allCur = ((_df || _dt)
       ? cases.filter(x => { const d = x.date?x.date.slice(0,10):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
-      : cases).filter(c => c.assignee === p.id && c.category !== 'ส.1 (ยกคดีขึ้นพิจารณา)');
-    const allPrv = inMonth(prevYM(selYM)).filter(c => c.assignee === p.id && c.category !== 'ส.1 (ยกคดีขึ้นพิจารณา)');
+      : cases).filter(c => c.assignee === p.id && c.category !== 'ส.1 (ยกคดี)');
+    const allPrv = inMonth(prevYM(selYM)).filter(c => c.assignee === p.id && c.category !== 'ส.1 (ยกคดี)');
     const pendingCur = cases.filter(c => c.currentPerson === p.name && !['done','court'].includes(c.status));
     const cur = allCur, prv = allPrv;
     const ct = cur.length;
@@ -1887,7 +1887,7 @@ function renderTable() {
 
     // S1 Timeline badge
     let s1Label = '';
-    if (c.category === 'ส.1 (ยกคดีขึ้นพิจารณา)') {
+    if (c.category === 'ส.1 (ยกคดี)') {
       const tl = c.s1Timeline || {};
       const currentStep = S1_STEPS.slice().reverse().find(s => tl[s.key]);
       const stepTxt = currentStep ? `${currentStep.icon} ${currentStep.label}` : '📋 ยังไม่เริ่ม';
@@ -3756,7 +3756,7 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
       <option value="ส.1">📋 ส.1</option>
       <option value="ส.2">📋 ส.2</option>
       <option value="ส.3">📋 ส.3</option>
-      <option value="ส.1 (ยกคดีขึ้นพิจารณา)">⚖️ ส.1 (ยกคดีขึ้นพิจารณา)</option>
+      <option value="ส.1 (ยกคดี)">⚖️ ส.1 (ยกคดี)</option>
       <option value="ทรัพย์สินทางปัญญา">💡 ทรัพย์สินทางปัญญา</option>
       <option value="ที่ดิน">🏠 ที่ดิน</option>
       <option value="custom">✏️ กำหนดเอง...</option>
