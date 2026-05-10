@@ -479,11 +479,10 @@ font-weight: 700 !important;
       <div id="chartPickerLabelMulti" style="display:none;font-size:0.78rem;color:var(--text3);margin-bottom:10px;">เลือกเดือนที่ต้องการเปรียบเทียบ <span style="color:var(--accent)">(กดเพื่อเลือก/ยกเลิก)</span></div>
       <div id="chartCalendarWrap"></div>
       <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <div id="chartMultiActions" style="display:none;gap:8px;display:none;">
+        <div id="chartMultiActions" style="display:none;gap:8px;">
           <button onclick="chartSelectAllMonths()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">เลือกทั้งหมด</button>
           <button onclick="chartClearMonths()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">ล้าง</button>
         </div>
-        <button onclick="drawCharts()" style="padding:5px 16px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;font-weight:600;">🔄 อัปเดตกราฟ</button>
         <span id="chartSelectedCount" style="font-size:0.75rem;color:var(--text3);margin-left:4px;"></span>
       </div>
     </div>
@@ -1437,8 +1436,8 @@ function buildChartMonthPicker() {
 window.chartToggleMonth = function(m) {
   if (_chartMode === 'single') {
     _chartSingleMonth = m;
-    buildChartMonthPicker(); // update highlight
-    drawCharts();            // draw immediately
+    buildChartMonthPicker();
+    drawCharts();
   } else {
     if (_chartSelectedMonths.includes(m)) {
       _chartSelectedMonths = _chartSelectedMonths.filter(x => x !== m);
@@ -1446,7 +1445,8 @@ window.chartToggleMonth = function(m) {
       _chartSelectedMonths.push(m);
       _chartSelectedMonths.sort();
     }
-    buildChartMonthPicker(); // update highlight only, user presses update to draw
+    buildChartMonthPicker();
+    drawCharts(); // วาดทันทีเหมือน single mode
   }
 };
 window.chartSelectAllMonths = function() {
