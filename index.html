@@ -3279,38 +3279,37 @@ window.submitReceive = async function() {
   if (!caseId || !name) { alert('กรุณากรอกเลขคดีและชื่อคดี'); return; }
   if (!date) { alert('กรุณาเลือกวันที่รับสำนวน'); return; }
 
-  // capture extQR จาก input ตอน submit เสมอ
   const rawQR = document.getElementById('rcvQR').value.trim();
   if (rawQR) rcvCurrentQR = parseBarcodeInput(rawQR);
-  console.log('[DEBUG] rcvQR input:', rawQR, '| rcvCurrentQR:', rcvCurrentQR);
 
   const assigneeId = document.getElementById('rcvAssignee').value;
   const assigneePerson = people.find(p => p.id === assigneeId);
 
+  const newCase = {
+    caseId,
+    name,
+    category:      document.getElementById('rcvCategory').value || null,
+    assignee:      assigneeId || null,
+    status:        'progress',
+    date,
+    deadline:      document.getElementById('rcvDeadline').value || null,
+    priority:      'medium',
+    note:          document.getElementById('rcvNote').value.trim(),
+    extQR:         rcvCurrentQR || null,
+    custody:       document.getElementById('rcvCustody').value || null,
+    userId:        currentUserId,
+    userEmail:     currentUserEmail,
+    createdAt:     new Date().toISOString(),
+    currentDept:   'อัยการเจ้าของเรื่อง',
+    currentPerson: assigneePerson?.name || null,
+  };
+
   try {
-    const newCase = {
-      caseId,
-      name,
-      category:      document.getElementById('rcvCategory').value || null,
-      assignee:      assigneeId || null,
-      status:        'progress',
-      date,
-      deadline:      document.getElementById('rcvDeadline').value || null,
-      priority:      document.getElementById('rcvPriority').value || 'medium',
-      note:          document.getElementById('rcvNote').value.trim(),
-      extQR: rcvCurrentQR || parseBarcodeInput(document.getElementById('rcvQR').value.trim()) || null,
-      userId:        currentUserId,
-      userEmail:     currentUserEmail,
-      createdAt:     new Date().toISOString(),
-      currentDept:   'อัยการเจ้าของเรื่อง',
-      currentPerson: assigneePerson?.name || null,
-    };
-
+    // บันทึก case
     const docRef = await addDoc(collection(db, 'cases'), newCase);
-    console.log('[DEBUG] addDoc success, id=', docRef.id, 'extQR=', newCase.extQR);
 
-    // Tracking record
-    await addDoc(collection(db, 'tracking'), {
+    // บันทึก tracking (ไม่ await เพื่อไม่ให้ block)
+    addDoc(collection(db, 'tracking'), {
       caseId:      docRef.id,
       caseCode:    caseId,
       dept:        'อัยการเจ้าของเรื่อง',
@@ -3320,24 +3319,26 @@ window.submitReceive = async function() {
       statusLabel: '🔵 เจ้าของสำนวน',
       by:          currentUserEmail,
       timestamp:   new Date()
-    });
+    }).catch(e => console.warn('tracking error:', e));
 
-    await loadCases();
-    selYM = ymOf(date);
-    buildMonthSelect();
-    document.getElementById('monthSelect').value = selYM;
-    renderAll(); buildAlerts();
     closeReceiveModal();
 
-    // Flash success
     const flash = document.createElement('div');
     flash.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1a2d1a;border:1px solid var(--green);color:var(--green);padding:12px 28px;border-radius:8px;font-size:0.9rem;z-index:9999;font-family:"Sarabun",sans-serif;';
     flash.textContent = `✅ บันทึกสำเร็จ! สำนวน ${caseId} เข้าระบบแล้ว`;
     document.body.appendChild(flash);
     setTimeout(() => flash.remove(), 3000);
 
+    await loadCases();
+    selYM = ymOf(date);
+    buildMonthSelect();
+    document.getElementById('monthSelect').value = selYM;
+    renderAll();
+    buildAlerts();
+
   } catch(e) {
     alert('เกิดข้อผิดพลาด: ' + e.message);
+    console.error('submitReceive error:', e);
   }
 };
 
