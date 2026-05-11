@@ -3129,17 +3129,24 @@ window.quickScanSearch = function(q) {
   let scanBuffer = '';
   let scanTimer = null;
   document.addEventListener('keydown', function(e) {
-    // Only if no modal is open and no input is focused (except searchInput)
     const active = document.activeElement;
     const isSearchInput = active && active.id === 'searchInput';
+    const isRcvQR = active && active.id === 'rcvQR';
     const isModalOpen = document.querySelector('.modal-overlay.show');
-    if (isModalOpen && active.id !== 'searchInput') return;
+
+    // ถ้า modal เปิดอยู่ อนุญาตเฉพาะ searchInput และ rcvQR
+    if (isModalOpen && !isSearchInput && !isRcvQR) return;
 
     if (e.key === 'Enter' && isSearchInput) {
       const val = document.getElementById('searchInput').value.trim();
-      if (val && val.length > 3) {
-        quickScanSearch(val);
-      }
+      if (val && val.length > 3) quickScanSearch(val);
+    }
+
+    // barcode scanner ใน rcvQR — กด Enter อัตโนมัติ
+    if (e.key === 'Enter' && isRcvQR) {
+      e.preventDefault();
+      const val = document.getElementById('rcvQR').value.trim();
+      if (val) rcvCheckQR();
     }
   });
 })();
@@ -3273,7 +3280,7 @@ window.submitReceive = async function() {
       deadline:      document.getElementById('rcvDeadline').value || null,
       priority:      document.getElementById('rcvPriority').value || 'medium',
       note:          document.getElementById('rcvNote').value.trim(),
-      extQR:         rcvCurrentQR || null,
+      extQR:         rcvCurrentQR || document.getElementById('rcvQR').value.trim() || null,
       userId:        currentUserId,
       userEmail:     currentUserEmail,
       createdAt:     new Date().toISOString(),
