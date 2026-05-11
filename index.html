@@ -3307,6 +3307,7 @@ window.submitReceive = async function() {
     };
 
     const docRef = await addDoc(collection(db, 'cases'), newCase);
+    console.log('[DEBUG] addDoc success, id=', docRef.id, 'extQR=', newCase.extQR);
 
     // Tracking record
     await addDoc(collection(db, 'tracking'), {
