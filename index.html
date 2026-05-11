@@ -3282,6 +3282,7 @@ window.submitReceive = async function() {
   // capture extQR จาก input ตอน submit เสมอ
   const rawQR = document.getElementById('rcvQR').value.trim();
   if (rawQR) rcvCurrentQR = parseBarcodeInput(rawQR);
+  console.log('[DEBUG] rcvQR input:', rawQR, '| rcvCurrentQR:', rcvCurrentQR);
 
   const assigneeId = document.getElementById('rcvAssignee').value;
   const assigneePerson = people.find(p => p.id === assigneeId);
