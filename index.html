@@ -2917,10 +2917,15 @@ window.handleBarcodeInput = function(input) {
 
 window.scanBarcode = function(code) {
   if (!code || !code.trim()) return;
-  const q = code.trim().replace(/^tel:/i,'');
+  let q = code.trim().replace(/^tel:/i,'');
+
+  // Parse JSON barcode: {rcnum:1265,rcyr:2569,...}
+  const rcnum = q.match(/rcnum[\s:]*(\d+)/i);
+  const rcyr  = q.match(/rcyr[\s:]*(\d+)/i);
+  if (rcnum && rcyr) q = rcnum[1] + '/' + rcyr[1];
+
   const phoneNorm = q.replace(/[-\s]/g,'');
 
-  // ค้นหาคดีจาก extQR, caseId หรือรหัสอื่นๆ
   let found =
     cases.find(c => c.id === q) ||
     cases.find(c => c.caseId && c.caseId.toLowerCase() === q.toLowerCase()) ||
@@ -3075,7 +3080,12 @@ window.clearDateRange = function() {
 
 window.quickScanSearch = function(q) {
   if (!q || !q.trim()) return;
-  const code = q.trim().replace(/^tel:/i,'');
+  let code = q.trim().replace(/^tel:/i,'');
+
+  // Parse JSON barcode: {rcnum:1265,rcyr:2569,...}
+  const rcnum = code.match(/rcnum[\s:]*(\d+)/i);
+  const rcyr  = code.match(/rcyr[\s:]*(\d+)/i);
+  if (rcnum && rcyr) code = rcnum[1] + '/' + rcyr[1];
 
   const phoneNorm = code.replace(/[-\s]/g,'');
   let found = null;
