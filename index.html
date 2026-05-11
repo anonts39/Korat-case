@@ -3077,7 +3077,6 @@ window.quickScanSearch = function(q) {
   if (!q || !q.trim()) return;
   const code = q.trim().replace(/^tel:/i,'');
 
-  // ค้นหาจาก extQR, caseId, phone
   const phoneNorm = code.replace(/[-\s]/g,'');
   let found = null;
 
@@ -3091,20 +3090,37 @@ window.quickScanSearch = function(q) {
   if (!found) found = cases.find(c => c.extQR && c.extQR.toString().includes(code));
 
   if (found) {
-    // เปิด timeline ทันที — คงค่าในช่องค้นหาไว้
     selYM = ymOf(found.date);
     document.getElementById('monthSelect').value = selYM;
-    // ไม่ล้างช่องค้นหา ให้ตารางยังกรองอยู่
     renderAll();
     setTimeout(() => openTimeline(found.id), 300);
   } else {
-    // แสดง flash แจ้งว่าไม่พบ
-    const flash = document.createElement('div');
-    flash.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#2d0d0d;border:1px solid var(--red);color:var(--red);padding:10px 24px;border-radius:8px;font-size:0.88rem;z-index:9999;font-family:"Sarabun",sans-serif;';
-    flash.textContent = `❌ ไม่พบสำนวนรหัส: ${code}`;
-    document.body.appendChild(flash);
-    setTimeout(() => flash.remove(), 2500);
-    document.getElementById('searchInput').select();
+    // ลองโหลดข้อมูลใหม่ก่อน เผื่อเพิ่งบันทึกสำนวนใหม่
+    loadCases().then(() => {
+      let found2 = null;
+      if (code.includes('?case=')) {
+        const id = code.split('?case=')[1];
+        found2 = cases.find(c => c.id === id);
+      }
+      if (!found2) found2 = cases.find(c => c.caseId && c.caseId.toLowerCase() === code.toLowerCase());
+      if (!found2) found2 = cases.find(c => c.extQR && c.extQR.toString().replace(/[-\s]/g,'') === phoneNorm);
+      if (!found2) found2 = cases.find(c => c.caseId && c.caseId.toLowerCase().includes(code.toLowerCase()));
+      if (!found2) found2 = cases.find(c => c.extQR && c.extQR.toString().includes(code));
+
+      if (found2) {
+        selYM = ymOf(found2.date);
+        document.getElementById('monthSelect').value = selYM;
+        renderAll();
+        setTimeout(() => openTimeline(found2.id), 300);
+      } else {
+        const flash = document.createElement('div');
+        flash.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#2d0d0d;border:1px solid var(--red);color:var(--red);padding:10px 24px;border-radius:8px;font-size:0.88rem;z-index:9999;font-family:"Sarabun",sans-serif;';
+        flash.textContent = `❌ ไม่พบสำนวนรหัส: ${code}`;
+        document.body.appendChild(flash);
+        setTimeout(() => flash.remove(), 2500);
+        document.getElementById('searchInput').select();
+      }
+    });
   }
 };
 
