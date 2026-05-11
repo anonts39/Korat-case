@@ -2368,19 +2368,19 @@ function handleScannedCode(code) {
 }
 
 window.searchByCode = function(code) {
-  const q = code || document.getElementById('manualCode').value.trim();
+  let q = code || document.getElementById('manualCode').value.trim();
   if (!q) { alert('กรุณาใส่รหัสหรือเลขคดี'); return; }
 
-  // ค้นหาจาก caseId, extQR, เบอร์โทร หรือ URL ที่มี ?case=
-  let found = null;
+  // Parse JSON barcode: {rcnum:1265,rcyr:2569,...}
+  const rcnum = q.match(/rcnum[\s:]*(\d+)/i);
+  const rcyr  = q.match(/rcyr[\s:]*(\d+)/i);
+  if (rcnum && rcyr) q = rcnum[1] + '/' + rcyr[1];
 
-  // ถ้าเป็น URL ของระบบ ดึง case id ออกมา
+  let found = null;
   if (q.includes('?case=')) {
     const id = q.split('?case=')[1];
     found = cases.find(c => c.id === id);
   }
-
-  // ถ้าเป็น tel: link เช่น tel:2-560-4830 หรือ 2-560-4830
   const phoneNorm = q.replace(/^tel:/i,'').replace(/[-\s]/g,'');
 
   // ค้นหาจาก caseId (ตรงทั้งหมด)
@@ -3374,7 +3374,13 @@ window.closeReviewModal = function() {
 window.rvwSearch = async function() {
   const val = document.getElementById('rvwQR').value.trim();
   if (!val) return;
-  const code = val.replace(/^tel:/i,'');
+  let code = val.replace(/^tel:/i,'');
+
+  // Parse JSON barcode: {rcnum:1265,rcyr:2569,...}
+  const rcnum = code.match(/rcnum[\s:]*(\d+)/i);
+  const rcyr  = code.match(/rcyr[\s:]*(\d+)/i);
+  if (rcnum && rcyr) code = rcnum[1] + '/' + rcyr[1];
+
   const phoneNorm = code.replace(/[-\s]/g,'');
   let found = cases.find(c => c.id === code) ||
     cases.find(c => c.caseId && c.caseId.toLowerCase() === code.toLowerCase()) ||
