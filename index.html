@@ -3151,94 +3151,25 @@ window.quickScanSearch = function(q) {
   });
 })();
 
-// ===== RECEIVE MODAL =====
+// ===== RECEIVE MODAL (NEW) =====
 let rcvCurrentQR = '';
 
 window.openReceiveModal = function() {
   rcvCurrentQR = '';
-  document.getElementById('rcvQR').value = '';
+  ['rcvQR','rcvCaseId','rcvCaseName','rcvNote','rcvRelated'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
   document.getElementById('rcvQRStatus').textContent = '';
-  document.getElementById('rcvCaseId').value = '';
-  document.getElementById('rcvCaseName').value = '';
-
-  // Auto-trigger rcvCheckQR เมื่อ barcode scanner พิมพ์เสร็จ
-  const rcvQREl = document.getElementById('rcvQR');
-  let rcvDebounce = null;
-  rcvQREl.oninput = function() {
-    // Set rcvCurrentQR ทันทีที่มีค่า ไม่รอ debounce
-    const v = parseBarcodeInput(this.value.trim());
-    if (v) rcvCurrentQR = v;
-    clearTimeout(rcvDebounce);
-    rcvDebounce = setTimeout(() => {
-      if (this.value.trim().length > 2) rcvCheckQR();
-    }, 300);
-  };
   document.getElementById('rcvCategory').value = '';
-  document.getElementById('rcvNote').value = '';
-  document.getElementById('rcvRelated') && (document.getElementById('rcvRelated').value = '');
+  document.getElementById('rcvCustody').value = '';
+  document.getElementById('rcvDate').value = new Date().toISOString().slice(0,10);
   document.getElementById('rcvDeadline').value = '';
-  document.getElementById('rcvDate').value = new Date().toISOString().split('T')[0];
-  document.getElementById('rcvPriority').value = 'medium';
-  if (document.getElementById('rcvCustody')) document.getElementById('rcvCustody').value = '';
-  // Populate assignee
-  const selR = document.getElementById('rcvAssignee');
-  selR.innerHTML = '<option value="">-- เลือกผู้รับผิดชอบ --</option>' +
-    people.map(p => `<option value="${p.id}">${p.name}${p.role?' ('+p.role+')':''}</option>`).join('');
   document.getElementById('receiveModalOverlay').classList.add('show');
   setTimeout(() => document.getElementById('rcvQR').focus(), 300);
 };
 
 window.closeReceiveModal = function() {
   document.getElementById('receiveModalOverlay').classList.remove('show');
-};
-
-function parseBarcodeInput(raw) {
-  // Handle JSON barcode: {rcnum:1254,rcyr:2569,...}
-  const rcnum = raw.match(/rcnum[\s:]*(\d+)/i);
-  const rcyr  = raw.match(/rcyr[\s:]*(\d+)/i);
-  if (rcnum && rcyr) return rcnum[1] + '/' + rcyr[1];
-  // Handle tel: prefix
-  return raw.replace(/^tel:/i,'').trim();
-}
-
-window.rcvCheckQR = function() {
-  const val = document.getElementById('rcvQR').value.trim();
-  if (!val) return;
-  const code = parseBarcodeInput(val);
-  const phoneNorm = code.replace(/[-\s]/g,'');
-  const status = document.getElementById('rcvQRStatus');
-
-  // Check if already exists
-  const existing = cases.find(c =>
-    (c.extQR && c.extQR.toString().replace(/[-\s]/g,'') === phoneNorm) ||
-    (c.caseId && c.caseId.toLowerCase() === code.toLowerCase())
-  );
-
-  rcvCurrentQR = code;
-  if (existing) {
-    status.innerHTML = `⚠️ มีสำนวนนี้ในระบบแล้ว: <strong>${existing.caseId} — ${existing.name}</strong>`;
-    status.style.color = 'var(--yellow)';
-    // Pre-fill form with existing data
-    document.getElementById('rcvCaseId').value = existing.caseId;
-    document.getElementById('rcvCaseName').value = existing.name;
-  } else {
-    status.innerHTML = `✅ รหัส QR: <strong>${code}</strong> — ยังไม่มีในระบบ พร้อมบันทึก`;
-    status.style.color = 'var(--green)';
-    // Auto-fill case ID with parsed barcode
-    const rcvCaseIdEl = document.getElementById('rcvCaseId');
-    if (!rcvCaseIdEl.value) rcvCaseIdEl.value = code;
-  }
-  document.getElementById('rcvCaseId').focus();
-};
-
-window.updateNpStatus = function(radio) {
-  const txt = document.getElementById('npStatusText');
-  if (!txt) return;
-  if (radio.value === 'all') {
-    txt.innerHTML = 'สถานะจะเปลี่ยนเป็น <strong style="color:var(--green);">✅ เสร็จสิ้น</strong>';
-  } else {
-    txt.innerHTML = 'สถานะยังเป็น <strong style="color:var(--blue);">🔵 เจ้าของสำนวน (ค้าง)</strong>';
-  }
 };
 
 window.rcvConfirmCustomCat = async function() {
@@ -3248,7 +3179,6 @@ window.rcvConfirmCustomCat = async function() {
     try { await addDoc(collection(db,'categories'), { name: val }); } catch(e) {}
     customCategories.push(val);
   }
-  // Add to select and select it
   const sel = document.getElementById('rcvCategory');
   let opt = sel.querySelector(`option[value="${val}"]`);
   if (!opt) {
@@ -3260,15 +3190,48 @@ window.rcvConfirmCustomCat = async function() {
   document.getElementById('rcvCustomCatWrap').style.display = 'none';
 };
 
+window.updateNpStatus = function(radio) {
+  const txt = document.getElementById('npStatusText');
+  if (!txt) return;
+  txt.innerHTML = radio.value === 'all'
+    ? 'สถานะจะเปลี่ยนเป็น <strong style="color:var(--green);">✅ เสร็จสิ้น</strong>'
+    : 'สถานะยังเป็น <strong style="color:var(--blue);">🔵 เจ้าของสำนวน (ค้าง)</strong>';
+};
+
 window.rcvPaste = async function() {
   try {
     const text = await navigator.clipboard.readText();
-    if (text && text.trim()) {
-      document.getElementById('rcvQR').value = text.trim().replace(/^tel:/i,'');
-      rcvCheckQR();
-    }
+    document.getElementById('rcvQR').value = text.trim();
+    rcvCheckQR();
   } catch(e) {
     document.getElementById('rcvQR').focus();
+  }
+};
+
+window.rcvCheckQR = function() {
+  const raw = document.getElementById('rcvQR').value.trim();
+  if (!raw) return;
+  // parse barcode
+  let code = raw.replace(/^tel:/i,'').trim();
+  const rcnum = raw.match(/rcnum[\s:]*(\d+)/i);
+  const rcyr  = raw.match(/rcyr[\s:]*(\d+)/i);
+  if (rcnum && rcyr) code = rcnum[1] + '/' + rcyr[1];
+
+  rcvCurrentQR = code;
+  const status = document.getElementById('rcvQRStatus');
+  const existing = cases.find(c =>
+    (c.extQR && c.extQR.toString().replace(/[-\s]/g,'') === code.replace(/[-\s]/g,'')) ||
+    (c.caseId && c.caseId.toLowerCase() === code.toLowerCase())
+  );
+  if (existing) {
+    status.innerHTML = `⚠️ มีในระบบแล้ว: <strong>${existing.caseId} — ${existing.name}</strong>`;
+    status.style.color = 'var(--yellow)';
+    document.getElementById('rcvCaseId').value = existing.caseId;
+    document.getElementById('rcvCaseName').value = existing.name;
+  } else {
+    status.innerHTML = `✅ รหัส: <strong>${code}</strong> — พร้อมบันทึก`;
+    status.style.color = 'var(--green)';
+    if (!document.getElementById('rcvCaseId').value) document.getElementById('rcvCaseId').value = code;
   }
 };
 
@@ -3276,11 +3239,19 @@ window.submitReceive = async function() {
   const caseId = document.getElementById('rcvCaseId').value.trim();
   const name   = document.getElementById('rcvCaseName').value.trim();
   const date   = document.getElementById('rcvDate').value;
-  if (!caseId || !name) { alert('กรุณากรอกเลขคดีและชื่อคดี'); return; }
-  if (!date) { alert('กรุณาเลือกวันที่รับสำนวน'); return; }
+  if (!caseId) { alert('กรุณากรอกเลขคดี'); return; }
+  if (!name)   { alert('กรุณากรอกชื่อคดี'); return; }
+  if (!date)   { alert('กรุณาเลือกวันที่รับสำนวน'); return; }
 
+  // ดึง extQR จาก input โดยตรง
   const rawQR = document.getElementById('rcvQR').value.trim();
-  if (rawQR) rcvCurrentQR = parseBarcodeInput(rawQR);
+  let extQR = rcvCurrentQR || null;
+  if (!extQR && rawQR) {
+    extQR = rawQR.replace(/^tel:/i,'').trim();
+    const rcnum = rawQR.match(/rcnum[\s:]*(\d+)/i);
+    const rcyr  = rawQR.match(/rcyr[\s:]*(\d+)/i);
+    if (rcnum && rcyr) extQR = rcnum[1] + '/' + rcyr[1];
+  }
 
   const assigneeId = document.getElementById('rcvAssignee').value;
   const assigneePerson = people.find(p => p.id === assigneeId);
@@ -3294,9 +3265,10 @@ window.submitReceive = async function() {
     date,
     deadline:      document.getElementById('rcvDeadline').value || null,
     priority:      'medium',
-    note:          document.getElementById('rcvNote').value.trim(),
-    extQR:         rcvCurrentQR || null,
+    note:          document.getElementById('rcvNote').value.trim() || null,
+    extQR:         extQR,
     custody:       document.getElementById('rcvCustody').value || null,
+    relatedCases:  document.getElementById('rcvRelated').value.trim() || null,
     userId:        currentUserId,
     userEmail:     currentUserEmail,
     createdAt:     new Date().toISOString(),
@@ -3304,28 +3276,25 @@ window.submitReceive = async function() {
     currentPerson: assigneePerson?.name || null,
   };
 
+  const btn = document.querySelector('#receiveModalOverlay .btn-save');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ กำลังบันทึก...'; }
+
   try {
-    // บันทึก case
     const docRef = await addDoc(collection(db, 'cases'), newCase);
 
-    // บันทึก tracking (ไม่ await เพื่อไม่ให้ block)
+    // tracking ไม่ block
     addDoc(collection(db, 'tracking'), {
-      caseId:      docRef.id,
-      caseCode:    caseId,
-      dept:        'อัยการเจ้าของเรื่อง',
-      person:      assigneePerson?.name || '',
-      note:        'รับสำนวนใหม่เข้าระบบ',
-      action:      '📥 รับสำนวนใหม่',
-      statusLabel: '🔵 เจ้าของสำนวน',
-      by:          currentUserEmail,
-      timestamp:   new Date()
-    }).catch(e => console.warn('tracking error:', e));
+      caseId: docRef.id, caseCode: caseId,
+      dept: 'อัยการเจ้าของเรื่อง', person: assigneePerson?.name || '',
+      note: 'รับสำนวนใหม่เข้าระบบ', action: '📥 รับสำนวนใหม่',
+      statusLabel: '🔵 เจ้าของสำนวน', by: currentUserEmail, timestamp: new Date()
+    }).catch(e => console.warn('tracking:', e));
 
     closeReceiveModal();
 
     const flash = document.createElement('div');
-    flash.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1a2d1a;border:1px solid var(--green);color:var(--green);padding:12px 28px;border-radius:8px;font-size:0.9rem;z-index:9999;font-family:"Sarabun",sans-serif;';
-    flash.textContent = `✅ บันทึกสำเร็จ! สำนวน ${caseId} เข้าระบบแล้ว`;
+    flash.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1a2d1a;border:1px solid #3fb950;color:#3fb950;padding:12px 28px;border-radius:8px;font-size:0.9rem;z-index:9999;font-family:"Sarabun",sans-serif;box-shadow:0 4px 20px rgba(0,0,0,0.4);';
+    flash.textContent = `✅ บันทึกสำเร็จ! สำนวน ${caseId}`;
     document.body.appendChild(flash);
     setTimeout(() => flash.remove(), 3000);
 
@@ -3337,15 +3306,15 @@ window.submitReceive = async function() {
     buildAlerts();
 
   } catch(e) {
-    alert('เกิดข้อผิดพลาด: ' + e.message);
     console.error('submitReceive error:', e);
+    alert('เกิดข้อผิดพลาด: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = '📥 บันทึกรับสำนวน'; }
   }
 };
 
-document.getElementById('receiveModalOverlay').addEventListener('click', e => {
-  if (e.target === document.getElementById('receiveModalOverlay')) closeReceiveModal();
+document.getElementById('receiveModalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeReceiveModal();
 });
-
 // ===== REVIEW MODAL (อจ.พิจารณา) =====
 let rvwCurrentCase = null;
 let rvwCurrentAction = '';
