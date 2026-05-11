@@ -3160,6 +3160,19 @@ window.openReceiveModal = function() {
   document.getElementById('rcvQRStatus').textContent = '';
   document.getElementById('rcvCaseId').value = '';
   document.getElementById('rcvCaseName').value = '';
+
+  // Auto-trigger rcvCheckQR เมื่อ barcode scanner พิมพ์เสร็จ
+  const rcvQREl = document.getElementById('rcvQR');
+  let rcvDebounce = null;
+  rcvQREl.oninput = function() {
+    // Set rcvCurrentQR ทันทีที่มีค่า ไม่รอ debounce
+    const v = parseBarcodeInput(this.value.trim());
+    if (v) rcvCurrentQR = v;
+    clearTimeout(rcvDebounce);
+    rcvDebounce = setTimeout(() => {
+      if (this.value.trim().length > 2) rcvCheckQR();
+    }, 300);
+  };
   document.getElementById('rcvCategory').value = '';
   document.getElementById('rcvNote').value = '';
   document.getElementById('rcvRelated') && (document.getElementById('rcvRelated').value = '');
@@ -3266,6 +3279,10 @@ window.submitReceive = async function() {
   if (!caseId || !name) { alert('กรุณากรอกเลขคดีและชื่อคดี'); return; }
   if (!date) { alert('กรุณาเลือกวันที่รับสำนวน'); return; }
 
+  // capture extQR จาก input ตอน submit เสมอ
+  const rawQR = document.getElementById('rcvQR').value.trim();
+  if (rawQR) rcvCurrentQR = parseBarcodeInput(rawQR);
+
   const assigneeId = document.getElementById('rcvAssignee').value;
   const assigneePerson = people.find(p => p.id === assigneeId);
 
@@ -3280,7 +3297,7 @@ window.submitReceive = async function() {
       deadline:      document.getElementById('rcvDeadline').value || null,
       priority:      document.getElementById('rcvPriority').value || 'medium',
       note:          document.getElementById('rcvNote').value.trim(),
-      extQR:         rcvCurrentQR || document.getElementById('rcvQR').value.trim() || null,
+      extQR: rcvCurrentQR || parseBarcodeInput(document.getElementById('rcvQR').value.trim()) || null,
       userId:        currentUserId,
       userEmail:     currentUserEmail,
       createdAt:     new Date().toISOString(),
