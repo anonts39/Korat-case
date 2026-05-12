@@ -1814,8 +1814,8 @@ function renderTable() {
       const _vt = _wt.find(function(t){ return t.id === _teamViewId; });
       if (!_vt || !(_vt.memberIds||[]).includes(c.assignee)) return false;
     } else if (!isAdminUser) {
-      if (isStaff) {
-        // เจ้าหน้าที่เห็นทุกคดี
+      if (isStaff || isSecretary) {
+        // เจ้าหน้าที่และเลขาเห็นทุกคดี
       } else if (isScreener && myTeam) {
         if (!(myTeam.memberIds||[]).includes(c.assignee)) return false;
       } else if (currentPersonId && c.assignee !== currentPersonId) {
