@@ -734,16 +734,7 @@ font-weight: 700 !important;
     <div class="modal-title" id="personModalTitle">เพิ่มบุคลากร</div>
     <input type="hidden" id="pEditId" value="">
     <div class="form-group"><label class="form-label">ชื่อ-นามสกุล</label><input class="form-input" id="pName" placeholder="ชื่อเต็ม"></div>
-    <div class="form-group"><label class="form-label">ตำแหน่ง / สิทธิ์ในระบบ</label>
-      <select class="form-select" id="pRole">
-        <option value="">-- เลือกตำแหน่ง --</option>
-        <option value="อัยการเจ้าของเรื่อง">⚖️ อัยการเจ้าของเรื่อง</option>
-        <option value="อัยการผู้กลั่นกรองงาน">🔍 อัยการผู้กลั่นกรองงาน</option>
-        <option value="อัยการจังหวัด">👑 อัยการจังหวัด</option>
-        <option value="เลขา">📝 เลขา (แก้ไขข้อมูลได้ ลบไม่ได้)</option>
-        <option value="เจ้าหน้าที่">📋 เจ้าหน้าที่ (ดูอย่างเดียว)</option>
-      </select>
-    </div>
+    <div class="form-group"><label class="form-label">ตำแหน่ง</label><input class="form-input" id="pRole" placeholder="เช่น ทนายความ"></div>
     <div class="form-group">
       <label class="form-label">🔗 Firebase UID (เชื่อมบัญชีล็อกอิน)</label>
       <input class="form-input" id="pUID" placeholder="วาง UID จาก Firebase Authentication">
@@ -799,7 +790,7 @@ const NOW = new Date(); NOW.setHours(0,0,0,0);
 
 // ===== STATE =====
 let people = [], cases = [], customCategories = [];
-let currentUserId = '', currentUserEmail = '', currentUserName = '', currentPersonId = null, isAdminUser = false, isScreener = false, myTeam = null, isStaff = false, isSecretary = false;
+let currentUserId = '', currentUserEmail = '', currentUserName = '', currentPersonId = null, isAdminUser = false, isScreener = false, myTeam = null, isStaff = false;
 let editingId = null, filterStatus = 'active', filterPerson = null;
 
 const S1_STEPS = [
@@ -931,9 +922,8 @@ onAuthStateChanged(auth, async (user) => {
   }
   // Check roles
   const _myPerson2 = people.find(function(p){ return p.id === currentPersonId; });
-  isScreener  = !isAdminUser && (_myPerson2 ? (_myPerson2.role||'').includes('ผู้กลั่นกรอง') : false);
-  isSecretary = !isAdminUser && !isScreener && (_myPerson2 ? (_myPerson2.role||'').includes('เลขา') : false);
-  isStaff     = !isAdminUser && !isScreener && !isSecretary && (_myPerson2 ? (_myPerson2.role||'').includes('เจ้าหน้าที่') : false);
+  isScreener = !isAdminUser && (_myPerson2 ? (_myPerson2.role||'').includes('ผู้กลั่นกรอง') : false);
+  isStaff = !isAdminUser && !isScreener && (_myPerson2 ? (_myPerson2.role||'').includes('เจ้าหน้าที่') : false);
   myTeam = isScreener
     ? (teams.find(function(t){ return t.screenerId === currentPersonId; }) || null)
     : (teams.find(function(t){ return (t.memberIds||[]).includes(currentPersonId); }) || null);
@@ -1016,11 +1006,6 @@ function init() {
     var style = document.createElement('style');
     style.textContent = 'button[onclick*="editCase"],button[onclick*="deleteCase"]{display:none!important;}';
     document.head.appendChild(style);
-  } else if (isSecretary) {
-    // เลขา: เห็น edit แต่ไม่เห็น delete
-    var styleS = document.createElement('style');
-    styleS.textContent = 'button[onclick*="deleteCase"]{display:none!important;}';
-    document.head.appendChild(styleS);
   }
   document.getElementById('dateDisplay') && (document.getElementById('dateDisplay').textContent =
     NOW.toLocaleDateString('th-TH', { year:'numeric', month:'long', day:'numeric' }));
@@ -1139,11 +1124,11 @@ function renderSummary() {
   const S1_CAT = 'ส.1 (ยกคดี)';
   const ct = c.filter(x => x.category !== S1_CAT).length;
   const cp = c.filter(x => x.category !== S1_CAT && !DONE_STATUSES.includes(x.status)).length;
-  const cd = c.filter(x => x.category !== S1_CAT && x.status==='done').length;
+  const cd = c.filter(x => x.category !== S1_CAT && DONE_STATUSES.includes(x.status)).length;
   const co = c.filter(x => x.category !== S1_CAT && !DONE_STATUSES.includes(x.status) && dlStatus(x.deadline,x.status)==='overdue').length;
   const pt = p.filter(x => x.category !== S1_CAT).length;
   const pp = p.filter(x => x.category !== S1_CAT && !DONE_STATUSES.includes(x.status)).length;
-  const pd = p.filter(x => x.category !== S1_CAT && x.status==='done').length;
+  const pd = p.filter(x => x.category !== S1_CAT && DONE_STATUSES.includes(x.status)).length;
   const po = p.filter(x => x.category !== S1_CAT && !DONE_STATUSES.includes(x.status) && dlStatus(x.deadline,x.status)==='overdue').length;
   const cr = c.filter(x => x.category !== S1_CAT && x.status === 'pending').length;
   document.getElementById('totalCases').textContent   = ct;
@@ -1175,7 +1160,7 @@ function renderCategoryStats() {
     const list = monthCases.filter(c => (c.category || 'ไม่ระบุ') === cat);
     const cnt = list.length;
     const pending = list.filter(c => c.status === 'pending').length;
-    const done    = list.filter(c => c.status === 'done').length;
+    const done    = list.filter(c => c.status === 'done' || c.status === 'court').length;
     const pct = Math.round(cnt / total * 100);
     const col = cat === 'ไม่ระบุ' ? 'var(--text3)' : getCatColor(cat);
     const isActive = filterCategory === cat;
@@ -1234,7 +1219,7 @@ function renderPeople() {
     const cpHolder = pendingCur.length;
     const cp = cpOwner;
     const cg = cur.filter(c => c.status === 'progress').length;
-    const cd = cur.filter(c => c.status === 'done').length;
+    const cd = cur.filter(c => ['done','court'].includes(c.status)).length;
     const co = cur.filter(c => !['done','court'].includes(c.status) && dlStatus(c.deadline,c.status) === 'overdue').length;
     const init = p.name.replace('นาย','').replace('นางสาว','').replace('นาง','').trim().charAt(0);
     const selected = filterPerson === p.id;
@@ -1814,8 +1799,8 @@ function renderTable() {
       const _vt = _wt.find(function(t){ return t.id === _teamViewId; });
       if (!_vt || !(_vt.memberIds||[]).includes(c.assignee)) return false;
     } else if (!isAdminUser) {
-      if (isStaff || isSecretary) {
-        // เจ้าหน้าที่และเลขาเห็นทุกคดี
+      if (isStaff) {
+        // เจ้าหน้าที่เห็นทุกคดี
       } else if (isScreener && myTeam) {
         if (!(myTeam.memberIds||[]).includes(c.assignee)) return false;
       } else if (currentPersonId && c.assignee !== currentPersonId) {
@@ -2006,7 +1991,7 @@ window.openModal = function() {
 window.editCase = function(id) {
   const c = cases.find(x => x.id === id); if (!c) return;
   editingId = id;
-  document.getElementById('modalTitle').textContent = isSecretary ? 'แก้ไขข้อมูลสำนวน (เลขา)' : 'แก้ไขคดี';
+  document.getElementById('modalTitle').textContent = 'แก้ไขคดี';
   document.getElementById('fCaseId').value   = c.caseId;
   document.getElementById('fCaseName').value = c.name;
   document.getElementById('fAssignee').value = c.assignee || '';
@@ -2021,11 +2006,6 @@ window.editCase = function(id) {
   document.getElementById('fCategory').value = c.category || '';
   document.getElementById('customCatWrap').style.display = 'none';
   resetPri(c.priority || 'medium');
-
-  // เลขา: ซ่อนฟิลด์สถานะ (ไม่ให้เปลี่ยนสถานะ)
-  const statusRow = document.getElementById('fStatus')?.closest('.form-group');
-  if (statusRow) statusRow.style.display = isSecretary ? 'none' : '';
-
   document.getElementById('modalOverlay').classList.add('show');
 };
 window.closeModal = function() { document.getElementById('modalOverlay').classList.remove('show'); };
