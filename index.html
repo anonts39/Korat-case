@@ -1513,7 +1513,7 @@ function renderProsSingle() {
   const prosData = people.map((p, idx) => {
     const mine = src.filter(c => c.assignee === p.id);
     const pending = mine.filter(c => !['done','court'].includes(c.status)).length;
-    const done = mine.filter(c => c.status === 'done').length;
+    const done = mine.filter(c => ['done','court'].includes(c.status)).length;
     const overdue = mine.filter(c => !['done','court'].includes(c.status) && dlStatus(c.deadline, c.status) === 'overdue').length;
     return { name: shortName(p.name), total: mine.length, pending, done, overdue, color: CHART_COLORS[idx % CHART_COLORS.length] };
   }).filter(p => p.total > 0);
@@ -1601,7 +1601,7 @@ function renderProsMulti() {
   // Chart: Done per person per month
   const doneDatasets = months.map((m, mi) => ({
     label: ymLabel(m),
-    data: peopleFiltered.map(p => srcForMonth(m).filter(c => c.assignee === p.id && c.status === 'done').length),
+    data: peopleFiltered.map(p => srcForMonth(m).filter(c => c.assignee === p.id && ['done','court'].includes(c.status)).length),
     backgroundColor: MONTH_COLORS[mi % MONTH_COLORS.length] + '88',
     borderColor: MONTH_COLORS[mi % MONTH_COLORS.length],
     borderWidth: 1, borderRadius: 4
@@ -1632,7 +1632,7 @@ function renderTeamSingle() {
     const memberIds = team ? (team.memberIds || []) : [];
     const mine = src.filter(c => memberIds.includes(c.assignee));
     const pending = mine.filter(c => !['done','court'].includes(c.status)).length;
-    const done = mine.filter(c => c.status === 'done').length;
+    const done = mine.filter(c => ['done','court'].includes(c.status)).length;
     const overdue = mine.filter(c => !['done','court'].includes(c.status) && dlStatus(c.deadline, c.status) === 'overdue').length;
     return { name: tname, total: mine.length, pending, done, overdue, color: CHART_COLORS[idx] };
   });
@@ -1713,7 +1713,7 @@ function renderTeamMulti() {
 
   const doneDatasets = months.map((m, mi) => ({
     label: ymLabel(m),
-    data: teamNames.map(tn => teamCases(tn, m).filter(c => c.status === 'done').length),
+    data: teamNames.map(tn => teamCases(tn, m).filter(c => ['done','court'].includes(c.status)).length),
     backgroundColor: MONTH_COLORS[mi % MONTH_COLORS.length] + '88',
     borderColor: MONTH_COLORS[mi % MONTH_COLORS.length],
     borderWidth: 1, borderRadius: 4
