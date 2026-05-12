@@ -1124,11 +1124,11 @@ function renderSummary() {
   const S1_CAT = 'ส.1 (ยกคดี)';
   const ct = c.filter(x => x.category !== S1_CAT).length;
   const cp = c.filter(x => x.category !== S1_CAT && !DONE_STATUSES.includes(x.status)).length;
-  const cd = c.filter(x => x.category !== S1_CAT && x.status==='done').length;
+  const cd = c.filter(x => x.category !== S1_CAT && DONE_STATUSES.includes(x.status)).length;
   const co = c.filter(x => x.category !== S1_CAT && !DONE_STATUSES.includes(x.status) && dlStatus(x.deadline,x.status)==='overdue').length;
   const pt = p.filter(x => x.category !== S1_CAT).length;
   const pp = p.filter(x => x.category !== S1_CAT && !DONE_STATUSES.includes(x.status)).length;
-  const pd = p.filter(x => x.category !== S1_CAT && x.status==='done').length;
+  const pd = p.filter(x => x.category !== S1_CAT && DONE_STATUSES.includes(x.status)).length;
   const po = p.filter(x => x.category !== S1_CAT && !DONE_STATUSES.includes(x.status) && dlStatus(x.deadline,x.status)==='overdue').length;
   const cr = c.filter(x => x.category !== S1_CAT && x.status === 'pending').length;
   document.getElementById('totalCases').textContent   = ct;
@@ -1160,7 +1160,7 @@ function renderCategoryStats() {
     const list = monthCases.filter(c => (c.category || 'ไม่ระบุ') === cat);
     const cnt = list.length;
     const pending = list.filter(c => c.status === 'pending').length;
-    const done    = list.filter(c => c.status === 'done').length;
+    const done    = list.filter(c => c.status === 'done' || c.status === 'court').length;
     const pct = Math.round(cnt / total * 100);
     const col = cat === 'ไม่ระบุ' ? 'var(--text3)' : getCatColor(cat);
     const isActive = filterCategory === cat;
@@ -1219,7 +1219,7 @@ function renderPeople() {
     const cpHolder = pendingCur.length;
     const cp = cpOwner;
     const cg = cur.filter(c => c.status === 'progress').length;
-    const cd = cur.filter(c => c.status === 'done').length;
+    const cd = cur.filter(c => ['done','court'].includes(c.status)).length;
     const co = cur.filter(c => !['done','court'].includes(c.status) && dlStatus(c.deadline,c.status) === 'overdue').length;
     const init = p.name.replace('นาย','').replace('นางสาว','').replace('นาง','').trim().charAt(0);
     const selected = filterPerson === p.id;
@@ -1513,7 +1513,7 @@ function renderProsSingle() {
   const prosData = people.map((p, idx) => {
     const mine = src.filter(c => c.assignee === p.id);
     const pending = mine.filter(c => !['done','court'].includes(c.status)).length;
-    const done = mine.filter(c => c.status === 'done').length;
+    const done = mine.filter(c => ['done','court'].includes(c.status)).length;
     const overdue = mine.filter(c => !['done','court'].includes(c.status) && dlStatus(c.deadline, c.status) === 'overdue').length;
     return { name: shortName(p.name), total: mine.length, pending, done, overdue, color: CHART_COLORS[idx % CHART_COLORS.length] };
   }).filter(p => p.total > 0);
@@ -1601,7 +1601,7 @@ function renderProsMulti() {
   // Chart: Done per person per month
   const doneDatasets = months.map((m, mi) => ({
     label: ymLabel(m),
-    data: peopleFiltered.map(p => srcForMonth(m).filter(c => c.assignee === p.id && c.status === 'done').length),
+    data: peopleFiltered.map(p => srcForMonth(m).filter(c => c.assignee === p.id && ['done','court'].includes(c.status)).length),
     backgroundColor: MONTH_COLORS[mi % MONTH_COLORS.length] + '88',
     borderColor: MONTH_COLORS[mi % MONTH_COLORS.length],
     borderWidth: 1, borderRadius: 4
@@ -1632,7 +1632,7 @@ function renderTeamSingle() {
     const memberIds = team ? (team.memberIds || []) : [];
     const mine = src.filter(c => memberIds.includes(c.assignee));
     const pending = mine.filter(c => !['done','court'].includes(c.status)).length;
-    const done = mine.filter(c => c.status === 'done').length;
+    const done = mine.filter(c => ['done','court'].includes(c.status)).length;
     const overdue = mine.filter(c => !['done','court'].includes(c.status) && dlStatus(c.deadline, c.status) === 'overdue').length;
     return { name: tname, total: mine.length, pending, done, overdue, color: CHART_COLORS[idx] };
   });
@@ -1713,7 +1713,7 @@ function renderTeamMulti() {
 
   const doneDatasets = months.map((m, mi) => ({
     label: ymLabel(m),
-    data: teamNames.map(tn => teamCases(tn, m).filter(c => c.status === 'done').length),
+    data: teamNames.map(tn => teamCases(tn, m).filter(c => ['done','court'].includes(c.status)).length),
     backgroundColor: MONTH_COLORS[mi % MONTH_COLORS.length] + '88',
     borderColor: MONTH_COLORS[mi % MONTH_COLORS.length],
     borderWidth: 1, borderRadius: 4
