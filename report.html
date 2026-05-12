@@ -235,7 +235,7 @@ window.renderReport = function() {
   // Summary
   const total = filtered.length;
   const pending = filtered.filter(c=>!['done','court'].includes(c.status)).length;
-  const done = filtered.filter(c=>c.status==='done').length;
+  const done = filtered.filter(c=>['done','court'].includes(c.status)).length;
   const now = new Date();
   const overdue = filtered.filter(c=>c.deadline&&!['done','court'].includes(c.status)&&new Date(c.deadline)<now).length;
 
@@ -318,7 +318,7 @@ window.renderYearSummary = function() {
     const thYear = year + 543;
     const total = yearCases.length;
     const pending = yearCases.filter(c => !['done','court'].includes(c.status)).length;
-    const done = yearCases.filter(c => c.status === 'done').length;
+    const done = yearCases.filter(c => ['done','court'].includes(c.status)).length;
     const court = yearCases.filter(c => c.status === 'court').length;
     const pct = total > 0 ? Math.round(done/total*100) : 0;
 
@@ -328,7 +328,7 @@ window.renderYearSummary = function() {
       if (!pc.length) return '';
       const pt = pc.length;
       const pp = pc.filter(c => !['done','court'].includes(c.status)).length;
-      const pd = pc.filter(c => c.status === 'done').length;
+      const pd = pc.filter(c => ['done','court'].includes(c.status)).length;
       const pco = pc.filter(c => c.status === 'court').length;
       const ppct = pt > 0 ? Math.round(pd/pt*100) : 0;
       const barW = ppct;
