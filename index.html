@@ -189,69 +189,69 @@ td{padding:11px 14px;font-size:0.85rem;}
 @media(max-width:600px){.summary-grid,.compare-grid{grid-template-columns:1fr;}.people-grid,.cat-grid{grid-template-columns:1fr 1fr;}header{padding:14px 16px;}.main{padding:14px;}.form-row{grid-template-columns:1fr;}}
 
 /* ── QR CODE ── */
-.qr-modal{background:var(–surface);border:1px solid var(–border);border-radius:14px;padding:28px;width:340px;max-width:96vw;text-align:center;animation:fadeUp 0.2s ease;}
-.qr-title{font-family:‘Kanit’,sans-serif;font-size:1rem;font-weight:600;color:var(–accent);margin-bottom:6px;}
-.qr-sub{font-size:0.78rem;color:var(–text3);margin-bottom:18px;}
+.qr-modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;width:340px;max-width:96vw;text-align:center;animation:fadeUp 0.2s ease;}
+.qr-title{font-family:‘Kanit’,sans-serif;font-size:1rem;font-weight:600;color:var(--accent);margin-bottom:6px;}
+.qr-sub{font-size:0.78rem;color:var(--text3);margin-bottom:18px;}
 .qr-box{background:#fff;border-radius:10px;padding:14px;display:inline-block;margin-bottom:16px;}
 .qr-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
-.btn-qr{padding:8px 18px;border-radius:8px;border:1px solid var(–accent);background:transparent;color:var(–accent);font-family:‘Sarabun’,sans-serif;font-size:0.82rem;cursor:pointer;transition:all 0.15s;}
+.btn-qr{padding:8px 18px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:‘Sarabun’,sans-serif;font-size:0.82rem;cursor:pointer;transition:all 0.15s;}
 .btn-qr:hover{background:#1f1a12;}
-.btn-qr.solid{background:var(–accent);color:#fff;border:none;}
+.btn-qr.solid{background:var(--accent);color:#fff;border:none;}
 .btn-qr.solid:hover{opacity:0.85;}
-.action-btn.qr:hover{border-color:var(–purple);color:var(–purple);}
+.action-btn.qr:hover{border-color:var(--purple);color:var(--purple);}
 
 /* ── SCANNER ── */
-.scanner-modal{background:var(–surface);border:1px solid var(–border);border-radius:14px;padding:0;width:400px;max-width:96vw;overflow:hidden;animation:fadeUp 0.2s ease;}
-.scanner-header{padding:16px 20px;border-bottom:1px solid var(–border);display:flex;align-items:center;justify-content:space-between;}
-.scanner-title{font-family:‘Kanit’,sans-serif;font-size:1rem;font-weight:600;color:var(–accent);}
+.scanner-modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:0;width:400px;max-width:96vw;overflow:hidden;animation:fadeUp 0.2s ease;}
+.scanner-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.scanner-title{font-family:‘Kanit’,sans-serif;font-size:1rem;font-weight:600;color:var(--accent);}
 .scanner-video-wrap{position:relative;background:#000;width:100%;}
 .scanner-video-wrap video{width:100%;max-height:280px;display:block;}
 .scanner-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
-.scanner-frame{width:200px;height:200px;border:3px solid var(–accent);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,0.4);}
-.scanner-line{position:absolute;width:180px;height:2px;background:var(–accent);animation:scanline 2s ease-in-out infinite;top:50%;left:50%;transform:translate(-50%,-50%);}
+.scanner-frame{width:200px;height:200px;border:3px solid var(--accent);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,0.4);}
+.scanner-line{position:absolute;width:180px;height:2px;background:var(--accent);animation:scanline 2s ease-in-out infinite;top:50%;left:50%;transform:translate(-50%,-50%);}
 @keyframes scanline{0%,100%{margin-top:-90px}50%{margin-top:90px}}
-.scanner-result{padding:14px 20px;background:var(–surface2);min-height:48px;font-size:0.85rem;color:var(–text2);}
-.scanner-actions{padding:14px 20px;display:flex;gap:8px;border-top:1px solid var(–border);}
-.scanner-manual{padding:10px 14px;border-top:1px solid var(–border);}
+.scanner-result{padding:14px 20px;background:var(--surface2);min-height:48px;font-size:0.85rem;color:var(--text2);}
+.scanner-actions{padding:14px 20px;display:flex;gap:8px;border-top:1px solid var(--border);}
+.scanner-manual{padding:10px 14px;border-top:1px solid var(--border);}
 
-.tl-action-btn{padding:7px 14px;border-radius:8px;border:1px solid var(–border);background:var(–surface2);color:var(–text2);font-family:‘Sarabun’,sans-serif;font-size:0.78rem;cursor:pointer;transition:all 0.15s;}
-.tl-action-btn.active{border-color:var(–accent);color:var(–accent);background:#1f1a12;}
+.tl-action-btn{padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:‘Sarabun’,sans-serif;font-size:0.78rem;cursor:pointer;transition:all 0.15s;}
+.tl-action-btn.active{border-color:var(--accent);color:var(--accent);background:#1f1a12;}
 /* ── TIMELINE ── */
-.timeline-modal{background:var(–surface);border:1px solid var(–border);border-radius:14px;padding:0;width:560px;max-width:96vw;height:92vh;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;animation:fadeUp 0.2s ease;}
-.timeline-header{padding:16px 20px;border-bottom:1px solid var(–border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.timeline-modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:0;width:560px;max-width:96vw;height:92vh;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;animation:fadeUp 0.2s ease;}
+.timeline-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
 .timeline-body{overflow-y:auto;flex:1;padding:20px;min-height:0;}
-.timeline-case-info{background:var(–surface2);border-radius:8px;padding:12px 14px;margin-bottom:18px;}
-.timeline-case-id{font-family:‘Kanit’,sans-serif;font-size:0.8rem;color:var(–text3);}
+.timeline-case-info{background:var(--surface2);border-radius:8px;padding:12px 14px;margin-bottom:18px;}
+.timeline-case-id{font-family:‘Kanit’,sans-serif;font-size:0.8rem;color:var(--text3);}
 .timeline-case-name{font-weight:600;font-size:0.92rem;margin:2px 0 6px;}
 .tl-current{display:flex;gap:8px;flex-wrap:wrap;}
-.tl-badge{padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600;background:#1f1a12;color:var(–accent);border:1px solid var(–accent);}
+.tl-badge{padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600;background:#1f1a12;color:var(--accent);border:1px solid var(--accent);}
 .timeline-list{display:flex;flex-direction:column;gap:0;}
 .tl-item{display:flex;gap:12px;position:relative;padding-bottom:16px;}
 .tl-item:last-child{padding-bottom:0;}
 .tl-line{display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:28px;}
-.tl-dot{width:28px;height:28px;border-radius:50%;background:var(–surface2);border:2px solid var(–border);display:flex;align-items:center;justify-content:center;font-size:0.8rem;flex-shrink:0;z-index:1;}
-.tl-dot.active{background:#1f1a12;border-color:var(–accent);}
-.tl-connector{flex:1;width:2px;background:var(–border);margin:2px 0;}
+.tl-dot{width:28px;height:28px;border-radius:50%;background:var(--surface2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:0.8rem;flex-shrink:0;z-index:1;}
+.tl-dot.active{background:#1f1a12;border-color:var(--accent);}
+.tl-connector{flex:1;width:2px;background:var(--border);margin:2px 0;}
 .tl-content{flex:1;padding-top:4px;}
-.tl-who{font-weight:600;font-size:0.85rem;color:var(–text);}
-.tl-dept{font-size:0.75rem;color:var(–accent);margin-bottom:2px;}
-.tl-time{font-size:0.72rem;color:var(–text3);}
-.tl-note-text{font-size:0.78rem;color:var(–text2);margin-top:3px;background:var(–surface2);border-radius:4px;padding:4px 8px;}
-.timeline-update{padding:16px 20px;border-top:1px solid var(–border);background:var(–surface);flex-shrink:0;overflow-y:auto;max-height:50vh;}
-.timeline-update-title{font-size:0.8rem;color:var(–text2);font-weight:600;margin-bottom:10px;}
+.tl-who{font-weight:600;font-size:0.85rem;color:var(--text);}
+.tl-dept{font-size:0.75rem;color:var(--accent);margin-bottom:2px;}
+.tl-time{font-size:0.72rem;color:var(--text3);}
+.tl-note-text{font-size:0.78rem;color:var(--text2);margin-top:3px;background:var(--surface2);border-radius:4px;padding:4px 8px;}
+.timeline-update{padding:16px 20px;border-top:1px solid var(--border);background:var(--surface);flex-shrink:0;overflow-y:auto;max-height:50vh;}
+.timeline-update-title{font-size:0.8rem;color:var(--text2);font-weight:600;margin-bottom:10px;}
 .tl-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
-.tl-select{width:100%;padding:8px 10px;background:var(–bg);border:1px solid var(–border);border-radius:8px;color:var(–text);font-family:‘Sarabun’,sans-serif;font-size:0.82rem;outline:none;}
-.tl-select:focus{border-color:var(–accent);}
-.tl-input{width:100%;padding:8px 10px;background:var(–bg);border:1px solid var(–border);border-radius:8px;color:var(–text);font-family:‘Sarabun’,sans-serif;font-size:0.82rem;outline:none;}
-.tl-input::placeholder{color:var(–text3);}
-.btn-tl-save{width:100%;padding:10px;border-radius:8px;border:none;background:var(–accent);color:#fff;font-family:‘Kanit’,sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer;margin-top:6px;}
+.tl-select{width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:‘Sarabun’,sans-serif;font-size:0.82rem;outline:none;}
+.tl-select:focus{border-color:var(--accent);}
+.tl-input{width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:‘Sarabun’,sans-serif;font-size:0.82rem;outline:none;}
+.tl-input::placeholder{color:var(--text3);}
+.btn-tl-save{width:100%;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-family:‘Kanit’,sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer;margin-top:6px;}
 .btn-tl-save:hover{opacity:0.88;}
 
 /* Fix input/button/select text visibility */
 input[type=“text”], input[type=“date”], input[type=“search”],
 input[type=“number”], textarea {
-color: var(–text) !important;
-background: var(–surface2) !important;
+color: var(--text) !important;
+background: var(--surface2) !important;
 }
 input[type=“date”]::-webkit-calendar-picker-indicator {
 filter: invert(1) !important;
@@ -261,11 +261,11 @@ background: #1c2128 !important;
 color: #e6edf3 !important;
 }
 .btn-scan, .scan-input {
-color: var(–text) !important;
+color: var(--text) !important;
 }
 .form-input, .form-select {
-color: var(–text) !important;
-background: var(–surface2) !important;
+color: var(--text) !important;
+background: var(--surface2) !important;
 }
 /* Fix date picker visibility */
 input[type=“date”] {
@@ -275,14 +275,14 @@ color-scheme: dark;
 /* ===== CHART SECTION ===== */
 .chart-section{margin-bottom:28px;}
 .chart-tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
-.chart-tab-btn{padding:7px 18px;border-radius:20px;border:1px solid var(–border);background:var(–surface2);color:var(–text2);font-family:‘Sarabun’,sans-serif;font-size:0.82rem;cursor:pointer;transition:all 0.2s;}
-.chart-tab-btn.active{background:var(–accent);border-color:var(–accent);color:#fff;font-weight:600;}
+.chart-tab-btn{padding:7px 18px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.82rem;cursor:pointer;transition:all 0.2s;}
+.chart-tab-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
 .chart-panel{display:none;}
 .chart-panel.active{display:block;}
 .chart-view-hidden{display:none!important;}
 .chart-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-.chart-card{background:var(–surface);border:1px solid var(–border);border-radius:12px;padding:18px 20px;}
-.chart-card-title{font-family:‘Kanit’,sans-serif;font-size:0.88rem;color:var(–text2);margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;}
+.chart-card-title{font-family:'Kanit',sans-serif;font-size:0.88rem;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;gap:6px;}
 .chart-canvas-wrap{position:relative;width:100%;height:260px;}
 @media(max-width:700px){.chart-grid-2{grid-template-columns:1fr;}}
 
@@ -291,18 +291,18 @@ color-scheme: dark;
 .s1-badge:hover{background:#2a1a3a;}
 .s1-tmodal{display:none;position:fixed;inset:0;z-index:9000;background:#000a;}
 .s1-tmodal.open{display:flex;align-items:center;justify-content:center;}
-.s1-tbox{background:var(–surface);border:1px solid var(–border);border-radius:14px;padding:24px;width:min(500px,94vw);max-height:88vh;overflow-y:auto;}
+.s1-tbox{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;width:min(500px,94vw);max-height:88vh;overflow-y:auto;}
 .s1-step{display:flex;align-items:flex-start;gap:12px;margin-bottom:20px;position:relative;}
-.s1-step:not(:last-child)::after{content:””;position:absolute;left:15px;top:34px;bottom:-6px;width:2px;background:var(–border);}
+.s1-step:not(:last-child)::after{content:"";position:absolute;left:15px;top:34px;bottom:-6px;width:2px;background:var(--border);}
 .s1-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.95rem;flex-shrink:0;border:2px solid;z-index:1;}
 .s1-dot.done{background:#1a2d3a;border-color:#58a6ff;}
 .s1-dot.current{background:#1a2d1a;border-color:#3fb950;box-shadow:0 0 8px #3fb95066;}
-.s1-dot.pending{background:var(–surface2);border-color:var(–border);}
+.s1-dot.pending{background:var(--surface2);border-color:var(--border);}
 .s1-body{flex:1;padding-top:4px;}
-.s1-label{font-size:0.88rem;font-weight:600;color:var(–text);margin-bottom:5px;}
+.s1-label{font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:5px;}
 .s1-date-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-.s1-dinput{background:var(–surface2);border:1px solid var(–border);border-radius:6px;padding:4px 10px;color:var(–text);font-family:“Sarabun”,sans-serif;font-size:0.78rem;width:145px;}
-.s1-saved{font-size:0.75rem;color:var(–text3);}
+.s1-dinput{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text);font-family:"Sarabun",sans-serif;font-size:0.78rem;width:145px;}
+.s1-saved{font-size:0.75rem;color:var(--text3);}
 
 input[type=“date”] {
 color: #222222 !important;
@@ -476,113 +476,110 @@ font-weight: 700 !important;
   <div class="chart-section" id="chartSection" style="display:none;">
     <div class="section-title">📊 กราฟเปรียบเทียบ</div>
 
-```
-<!-- Top controls row -->
-<div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
-  <!-- Tab buttons -->
-  <div class="chart-tabs" style="margin-bottom:0;">
-    <button class="chart-tab-btn active" id="chartTabPros" onclick="switchChartTab('prosecutor',this)">👤 เปรียบเทียบอัยการ</button>
-    <button class="chart-tab-btn" id="chartTabTeam" onclick="switchChartTab('team',this)">👥 เปรียบเทียบทีม</button>
-  </div>
-  <!-- Mode toggle -->
-  <div style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 10px;">
-    <span style="font-size:0.75rem;color:var(--text3);white-space:nowrap;">โหมด:</span>
-    <button class="chart-tab-btn active" id="chartModeSingle" style="padding:5px 12px;font-size:0.78rem;" onclick="switchChartMode('single',this)">📅 เดือนเดียว</button>
-    <button class="chart-tab-btn" id="chartModeMulti" style="padding:5px 12px;font-size:0.78rem;" onclick="switchChartMode('multi',this)">📆 เปรียบเทียบข้ามเดือน</button>
-  </div>
-</div>
+    <!-- Top controls row -->
+    <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+      <!-- Tab buttons -->
+      <div class="chart-tabs" style="margin-bottom:0;">
+        <button class="chart-tab-btn active" id="chartTabPros" onclick="switchChartTab('prosecutor',this)">👤 เปรียบเทียบอัยการ</button>
+        <button class="chart-tab-btn" id="chartTabTeam" onclick="switchChartTab('team',this)">👥 เปรียบเทียบทีม</button>
+      </div>
+      <!-- Mode toggle -->
+      <div style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 10px;">
+        <span style="font-size:0.75rem;color:var(--text3);white-space:nowrap;">โหมด:</span>
+        <button class="chart-tab-btn active" id="chartModeSingle" style="padding:5px 12px;font-size:0.78rem;" onclick="switchChartMode('single',this)">📅 เดือนเดียว</button>
+        <button class="chart-tab-btn" id="chartModeMulti" style="padding:5px 12px;font-size:0.78rem;" onclick="switchChartMode('multi',this)">📆 เปรียบเทียบข้ามเดือน</button>
+      </div>
+    </div>
 
-<!-- Month picker (ใช้ทั้ง single และ multi mode) -->
-<div id="chartMonthPicker" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px;">
-  <div id="chartPickerLabelSingle" style="font-size:0.78rem;color:var(--text3);margin-bottom:10px;">เลือกเดือนที่ต้องการแสดง</div>
-  <div id="chartPickerLabelMulti" style="display:none;font-size:0.78rem;color:var(--text3);margin-bottom:10px;">เลือกเดือนที่ต้องการเปรียบเทียบ <span style="color:var(--accent)">(กดเพื่อเลือก/ยกเลิก)</span></div>
-  <div id="chartCalendarWrap"></div>
-  <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-    <div id="chartMultiActions" style="display:none;gap:8px;">
-      <button onclick="chartSelectAllMonths()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">เลือกทั้งหมด</button>
-      <button onclick="chartClearMonths()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">ล้าง</button>
+    <!-- Month picker (ใช้ทั้ง single และ multi mode) -->
+    <div id="chartMonthPicker" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+      <div id="chartPickerLabelSingle" style="font-size:0.78rem;color:var(--text3);margin-bottom:10px;">เลือกเดือนที่ต้องการแสดง</div>
+      <div id="chartPickerLabelMulti" style="display:none;font-size:0.78rem;color:var(--text3);margin-bottom:10px;">เลือกเดือนที่ต้องการเปรียบเทียบ <span style="color:var(--accent)">(กดเพื่อเลือก/ยกเลิก)</span></div>
+      <div id="chartCalendarWrap"></div>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <div id="chartMultiActions" style="display:none;gap:8px;">
+          <button onclick="chartSelectAllMonths()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">เลือกทั้งหมด</button>
+          <button onclick="chartClearMonths()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">ล้าง</button>
+        </div>
+        <span id="chartSelectedCount" style="font-size:0.75rem;color:var(--text3);margin-left:4px;"></span>
+      </div>
     </div>
-    <span id="chartSelectedCount" style="font-size:0.75rem;color:var(--text3);margin-left:4px;"></span>
-  </div>
-</div>
 
-<!-- Prosecutor Panel -->
-<div class="chart-panel active" id="chartPanelProsecutor">
-  <!-- Single month view -->
-  <div id="prosSingleView">
-    <div class="chart-grid-2">
-      <div class="chart-card">
-        <div class="chart-card-title">📁 จำนวนคดีทั้งหมดรายอัยการ</div>
-        <div class="chart-canvas-wrap"><canvas id="chartProsTotal"></canvas></div>
+    <!-- Prosecutor Panel -->
+    <div class="chart-panel active" id="chartPanelProsecutor">
+      <!-- Single month view -->
+      <div id="prosSingleView">
+        <div class="chart-grid-2">
+          <div class="chart-card">
+            <div class="chart-card-title">📁 จำนวนคดีทั้งหมดรายอัยการ</div>
+            <div class="chart-canvas-wrap"><canvas id="chartProsTotal"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">📊 ค้าง vs เสร็จ รายอัยการ</div>
+            <div class="chart-canvas-wrap"><canvas id="chartProsPendingDone"></canvas></div>
+          </div>
+        </div>
+        <div style="margin-top:16px;" class="chart-card">
+          <div class="chart-card-title">🚨 เสร็จ / ค้าง / เกินกำหนด (ทุกอัยการ)</div>
+          <div class="chart-canvas-wrap" style="height:220px;"><canvas id="chartProsStacked"></canvas></div>
+        </div>
       </div>
-      <div class="chart-card">
-        <div class="chart-card-title">📊 ค้าง vs เสร็จ รายอัยการ</div>
-        <div class="chart-canvas-wrap"><canvas id="chartProsPendingDone"></canvas></div>
+      <!-- Multi month view -->
+      <div id="prosMultiView" style="display:none;">
+        <div class="chart-card" style="margin-bottom:16px;">
+          <div class="chart-card-title">📅 จำนวนคดีรวมแต่ละอัยการ แยกตามเดือนที่เลือก</div>
+          <div class="chart-canvas-wrap" style="height:300px;"><canvas id="chartProsMultiTotal"></canvas></div>
+        </div>
+        <div class="chart-grid-2">
+          <div class="chart-card">
+            <div class="chart-card-title">📊 คดีค้างรายอัยการ (เปรียบเทียบเดือน)</div>
+            <div class="chart-canvas-wrap" style="height:260px;"><canvas id="chartProsMultiPending"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">✅ คดีเสร็จรายอัยการ (เปรียบเทียบเดือน)</div>
+            <div class="chart-canvas-wrap" style="height:260px;"><canvas id="chartProsMultiDone"></canvas></div>
+          </div>
+        </div>
       </div>
     </div>
-    <div style="margin-top:16px;" class="chart-card">
-      <div class="chart-card-title">🚨 เสร็จ / ค้าง / เกินกำหนด (ทุกอัยการ)</div>
-      <div class="chart-canvas-wrap" style="height:220px;"><canvas id="chartProsStacked"></canvas></div>
-    </div>
-  </div>
-  <!-- Multi month view -->
-  <div id="prosMultiView" style="display:none;">
-    <div class="chart-card" style="margin-bottom:16px;">
-      <div class="chart-card-title">📅 จำนวนคดีรวมแต่ละอัยการ แยกตามเดือนที่เลือก</div>
-      <div class="chart-canvas-wrap" style="height:300px;"><canvas id="chartProsMultiTotal"></canvas></div>
-    </div>
-    <div class="chart-grid-2">
-      <div class="chart-card">
-        <div class="chart-card-title">📊 คดีค้างรายอัยการ (เปรียบเทียบเดือน)</div>
-        <div class="chart-canvas-wrap" style="height:260px;"><canvas id="chartProsMultiPending"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-card-title">✅ คดีเสร็จรายอัยการ (เปรียบเทียบเดือน)</div>
-        <div class="chart-canvas-wrap" style="height:260px;"><canvas id="chartProsMultiDone"></canvas></div>
-      </div>
-    </div>
-  </div>
-</div>
 
-<!-- Team Panel -->
-<div class="chart-panel" id="chartPanelTeam">
-  <!-- Single month view -->
-  <div id="teamSingleView">
-    <div class="chart-grid-2">
-      <div class="chart-card">
-        <div class="chart-card-title">👥 จำนวนคดีทั้งหมดรายทีม</div>
-        <div class="chart-canvas-wrap"><canvas id="chartTeamTotal"></canvas></div>
+    <!-- Team Panel -->
+    <div class="chart-panel" id="chartPanelTeam">
+      <!-- Single month view -->
+      <div id="teamSingleView">
+        <div class="chart-grid-2">
+          <div class="chart-card">
+            <div class="chart-card-title">👥 จำนวนคดีทั้งหมดรายทีม</div>
+            <div class="chart-canvas-wrap"><canvas id="chartTeamTotal"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">📊 สัดส่วนค้าง vs เสร็จ (รายทีม)</div>
+            <div class="chart-canvas-wrap"><canvas id="chartTeamPendingDone"></canvas></div>
+          </div>
+        </div>
+        <div style="margin-top:16px;" class="chart-card">
+          <div class="chart-card-title">🏆 ภาระงานรายทีม (ค้าง / เสร็จ / เกินกำหนด)</div>
+          <div class="chart-canvas-wrap" style="height:220px;"><canvas id="chartTeamStacked"></canvas></div>
+        </div>
       </div>
-      <div class="chart-card">
-        <div class="chart-card-title">📊 สัดส่วนค้าง vs เสร็จ (รายทีม)</div>
-        <div class="chart-canvas-wrap"><canvas id="chartTeamPendingDone"></canvas></div>
+      <!-- Multi month view -->
+      <div id="teamMultiView" style="display:none;">
+        <div class="chart-card" style="margin-bottom:16px;">
+          <div class="chart-card-title">📅 จำนวนคดีรวมแต่ละทีม แยกตามเดือนที่เลือก</div>
+          <div class="chart-canvas-wrap" style="height:300px;"><canvas id="chartTeamMultiTotal"></canvas></div>
+        </div>
+        <div class="chart-grid-2">
+          <div class="chart-card">
+            <div class="chart-card-title">📊 คดีค้างรายทีม (เปรียบเทียบเดือน)</div>
+            <div class="chart-canvas-wrap" style="height:260px;"><canvas id="chartTeamMultiPending"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">✅ คดีเสร็จรายทีม (เปรียบเทียบเดือน)</div>
+            <div class="chart-canvas-wrap" style="height:260px;"><canvas id="chartTeamMultiDone"></canvas></div>
+          </div>
+        </div>
       </div>
     </div>
-    <div style="margin-top:16px;" class="chart-card">
-      <div class="chart-card-title">🏆 ภาระงานรายทีม (ค้าง / เสร็จ / เกินกำหนด)</div>
-      <div class="chart-canvas-wrap" style="height:220px;"><canvas id="chartTeamStacked"></canvas></div>
-    </div>
-  </div>
-  <!-- Multi month view -->
-  <div id="teamMultiView" style="display:none;">
-    <div class="chart-card" style="margin-bottom:16px;">
-      <div class="chart-card-title">📅 จำนวนคดีรวมแต่ละทีม แยกตามเดือนที่เลือก</div>
-      <div class="chart-canvas-wrap" style="height:300px;"><canvas id="chartTeamMultiTotal"></canvas></div>
-    </div>
-    <div class="chart-grid-2">
-      <div class="chart-card">
-        <div class="chart-card-title">📊 คดีค้างรายทีม (เปรียบเทียบเดือน)</div>
-        <div class="chart-canvas-wrap" style="height:260px;"><canvas id="chartTeamMultiPending"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-card-title">✅ คดีเสร็จรายทีม (เปรียบเทียบเดือน)</div>
-        <div class="chart-canvas-wrap" style="height:260px;"><canvas id="chartTeamMultiDone"></canvas></div>
-      </div>
-    </div>
-  </div>
-</div>
-```
-
   </div>
 
   <div class="cases-section">
@@ -2043,10 +2040,12 @@ window.saveCase = async function() {
       deadline:  document.getElementById('fDeadline').value  || null,
       priority:  document.getElementById('fPriority').value  || 'medium',
       custody:   document.getElementById('fCustody2')?.value || null,
-      custody:   document.getElementById('fCustody2')?.value || null,
       note:      document.getElementById('fNote').value.trim(),
       extQR:     document.getElementById('fExtQR').value.trim() || null,
       relatedCases: (document.getElementById('fRelated').value.trim() || '').split(',').map(s=>s.trim()).filter(Boolean)
+    };
+    if (editingId) {
+      await updateDoc(doc(db,'cases',editingId), obj);
     } else {
       selYM = ymOf(obj.date);
       await addDoc(collection(db,'cases'), { ...obj, userId:currentUserId, userEmail:currentUserEmail, createdAt:new Date().toISOString() });
@@ -4081,7 +4080,6 @@ window.saveTeams = async function() {
 </script>
 
 <!-- ===== S1 TIMELINE MODAL ===== -->
-
 <div class="s1-tmodal" id="s1Modal">
   <div class="s1-tbox">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
