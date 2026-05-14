@@ -3192,6 +3192,19 @@ window.migrateAssignee = async function(oldId, newId) {
 window.fixPannprapa = function() {
   migrateAssignee('7uLcrwILwfh8MdbDGRzSM4r6Xas1', 'L7VUMAXwQOZkv622ouJa');
 };
+
+// ฟังก์ชัน debug หา assignee ID ที่ไม่ตรงกับ people
+window.findOrphanAssignees = function() {
+  const peopleIds = people.map(p => p.id);
+  const orphans = {};
+  cases.forEach(c => {
+    if (c.assignee && !peopleIds.includes(c.assignee)) {
+      orphans[c.assignee] = (orphans[c.assignee] || 0) + 1;
+    }
+  });
+  console.log('[DEBUG] assignee IDs ที่ไม่มีใน people:', orphans);
+  alert(JSON.stringify(orphans, null, 2) || 'ไม่พบ orphan assignee');
+};
 let rcvCurrentQR = '';
 
 window.openReceiveModal = function() {
