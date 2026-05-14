@@ -927,6 +927,9 @@ onAuthStateChanged(auth, async (user) => {
   } else {
     currentUserName = currentUserEmail;
     currentPersonId = null;
+    // แสดง UID ให้ Admin เห็นเพื่อ debug
+    console.log('[DEBUG] UID ไม่ตรงกับบุคลากรใด | UID:', currentUserId, '| Email:', currentUserEmail);
+    document.getElementById('userEmail').title = 'UID: ' + currentUserId;
   }
   // Check roles
   const _myPerson2 = people.find(function(p){ return p.id === currentPersonId; });
@@ -3169,7 +3172,26 @@ window.quickScanSearch = function(q) {
   });
 })();
 
-// ===== RECEIVE MODAL (NEW) =====
+// ===== MIGRATE ASSIGNEE =====
+window.migrateAssignee = async function(oldId, newId) {
+  if (!oldId || !newId) { alert('กรุณาระบุ ID'); return; }
+  const toUpdate = cases.filter(c => c.assignee === oldId);
+  if (!toUpdate.length) { alert('ไม่พบคดีที่ใช้ ID: ' + oldId); return; }
+  if (!confirm('พบ ' + toUpdate.length + ' คดีที่ใช้ assignee = ' + oldId + '\nแก้เป็น ' + newId + ' ทั้งหมดเลยไหมครับ?')) return;
+  try {
+    await Promise.all(toUpdate.map(c => updateDoc(doc(db, 'cases', c.id), { assignee: newId })));
+    alert('✅ แก้สำเร็จ ' + toUpdate.length + ' คดี');
+    await loadCases();
+    renderAll();
+  } catch(e) {
+    alert('เกิดข้อผิดพลาด: ' + e.message);
+  }
+};
+
+// Auto-run migrate สำหรับท่านพรรณประภา
+window.fixPannprapa = function() {
+  migrateAssignee('7uLcrwILwfh8MdbDGRzSM4r6Xas1', 'L7VUMAXwQOZkv622ouJa');
+};
 let rcvCurrentQR = '';
 
 window.openReceiveModal = function() {
