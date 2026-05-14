@@ -972,17 +972,19 @@ async function loadTeams() {
 window._teams = teams;
 window._loadTeams = loadTeams;
 window._people = people;
-async function loadCases() {
-  // ไม่ใช้ orderBy เพื่อหลีกเลี่ยง Firestore index requirement
-  let snap;
-  if (isAdminUser) {
-    snap = await getDocs(collection(db, 'cases'));
-  } else {
-    // Load all cases where assignee matches current person OR userId matches
-    snap = await getDocs(collection(db, 'cases'));
+let _casesCacheTime = 0;
+const CACHE_TTL = 60000; // 60 วินาที
+
+async function loadCases(force) {
+  const now = Date.now();
+  if (!force && cases.length > 0 && (now - _casesCacheTime) < CACHE_TTL) {
+    return; // ใช้ cache แทน ไม่ต้อง getDocs ใหม่
   }
+  let snap;
+  snap = await getDocs(collection(db, 'cases'));
   cases = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   cases.sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
+  _casesCacheTime = Date.now();
 }
 async function loadCustomCategories() {
   try {
@@ -2054,7 +2056,7 @@ window.saveCase = async function() {
       await addDoc(collection(db,'cases'), { ...obj, userId:currentUserId, userEmail:currentUserEmail, createdAt:new Date().toISOString() });
     }
     window.closeModal();
-    await loadCases();
+    await loadCases(true);
     buildMonthSelect();
     document.getElementById('monthSelect').value = selYM;
     renderAll(); buildAlerts();
@@ -2067,7 +2069,7 @@ window.saveCase = async function() {
 
 window.deleteCase = async function(id) {
   if (!confirm('ยืนยันการลบคดีนี้?')) return;
-  try { await deleteDoc(doc(db,'cases',id)); await loadCases(); renderAll(); buildAlerts(); }
+  try { await deleteDoc(doc(db,'cases',id)); await loadCases(true); renderAll(); buildAlerts(); }
   catch(e) { alert(`ลบไม่ได้: ${e.message}`); }
 };
 
@@ -2647,7 +2649,7 @@ window.saveTracking = async function(actionType) {
     });
 
     // Reset
-    await loadCases();
+    await loadCases(true);
     currentTimelineCase = cases.find(x => x.id === c.id);
     document.getElementById('tlNote') && (document.getElementById('tlNote').value = '');
     document.getElementById('tlReturnNote') && (document.getElementById('tlReturnNote').value = '');
@@ -3116,32 +3118,12 @@ window.quickScanSearch = function(q) {
     renderAll();
     setTimeout(() => openTimeline(found.id), 300);
   } else {
-    // ลองโหลดข้อมูลใหม่ก่อน เผื่อเพิ่งบันทึกสำนวนใหม่
-    loadCases().then(() => {
-      let found2 = null;
-      if (code.includes('?case=')) {
-        const id = code.split('?case=')[1];
-        found2 = cases.find(c => c.id === id);
-      }
-      if (!found2) found2 = cases.find(c => c.caseId && c.caseId.toLowerCase() === code.toLowerCase());
-      if (!found2) found2 = cases.find(c => c.extQR && c.extQR.toString().replace(/[-\s]/g,'') === phoneNorm);
-      if (!found2) found2 = cases.find(c => c.caseId && c.caseId.toLowerCase().includes(code.toLowerCase()));
-      if (!found2) found2 = cases.find(c => c.extQR && c.extQR.toString().includes(code));
-
-      if (found2) {
-        selYM = ymOf(found2.date);
-        document.getElementById('monthSelect').value = selYM;
-        renderAll();
-        setTimeout(() => openTimeline(found2.id), 300);
-      } else {
-        const flash = document.createElement('div');
-        flash.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#2d0d0d;border:1px solid var(--red);color:var(--red);padding:10px 24px;border-radius:8px;font-size:0.88rem;z-index:9999;font-family:"Sarabun",sans-serif;';
-        flash.textContent = `❌ ไม่พบสำนวนรหัส: ${code}`;
-        document.body.appendChild(flash);
-        setTimeout(() => flash.remove(), 2500);
-        document.getElementById('searchInput').select();
-      }
-    });
+    const flash = document.createElement('div');
+    flash.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#2d0d0d;border:1px solid var(--red);color:var(--red);padding:10px 24px;border-radius:8px;font-size:0.88rem;z-index:9999;font-family:"Sarabun",sans-serif;';
+    flash.textContent = `❌ ไม่พบสำนวนรหัส: ${code}`;
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 2500);
+    document.getElementById('searchInput').select();
   }
 };
 
@@ -3181,7 +3163,7 @@ window.migrateAssignee = async function(oldId, newId) {
   try {
     await Promise.all(toUpdate.map(c => updateDoc(doc(db, 'cases', c.id), { assignee: newId })));
     alert('✅ แก้สำเร็จ ' + toUpdate.length + ' คดี');
-    await loadCases();
+    await loadCases(true);
     renderAll();
   } catch(e) {
     alert('เกิดข้อผิดพลาด: ' + e.message);
@@ -3351,7 +3333,7 @@ window.submitReceive = async function() {
     document.body.appendChild(flash);
     setTimeout(() => flash.remove(), 3000);
 
-    await loadCases();
+    await loadCases(true);
     selYM = ymOf(date);
     buildMonthSelect();
     document.getElementById('monthSelect').value = selYM;
@@ -3505,7 +3487,7 @@ window.rvwSubmit = async function() {
       currentPerson: currentUserEmail,
       lastAction: actionLabel, lastUpdated: new Date().toISOString()
     });
-    await loadCases(); renderAll(); buildAlerts();
+    await loadCases(true); renderAll(); buildAlerts();
     closeReviewModal();
 
     const flash = document.createElement('div');
@@ -3621,7 +3603,7 @@ window.ownSubmit = async function() {
       status:newStatus, currentDept:dept, currentPerson:currentUserEmail,
       lastAction:actionLabel, lastUpdated:new Date().toISOString()
     });
-    await loadCases(); renderAll(); buildAlerts();
+    await loadCases(true); renderAll(); buildAlerts();
     closeOwnerModal();
     const flash=document.createElement('div');
     flash.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1a2d1a;border:1px solid var(--green);color:var(--green);padding:12px 28px;border-radius:8px;font-size:0.9rem;z-index:9999;font-family:"Sarabun",sans-serif;';
@@ -4185,7 +4167,7 @@ window.saveS1Timeline = async function() {
   Object.keys(_s1Dates).forEach(k => { if (_s1Dates[k]) clean[k] = _s1Dates[k]; });
   try {
     await updateDoc(doc(db, 'cases', _s1CaseId), { s1Timeline: clean });
-    await loadCases();
+    await loadCases(true);
     renderAll();
     closeS1Modal();
   } catch(e) { alert('บันทึกไม่สำเร็จ: ' + e.message); }
