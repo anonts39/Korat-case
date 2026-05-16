@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="th">
 <head>
 <meta charset="UTF-8">
@@ -100,6 +101,13 @@ tr:hover td{background:#1c2128;}
     <span style="font-size:0.75rem;color:#8b949e;">ถึง</span>
     <input type="date" id="dlTo" onchange="renderReport()" style="padding:5px 8px;background:#fff;border:1px solid #888;border-radius:6px;color:#111;font-size:0.82rem;color-scheme:light;">
   </div>
+  <select class="select" id="filterAge" onchange="renderReport()" style="border:1px solid #888;border-radius:6px;padding:5px 8px;">
+    <option value="">⏳ อายุค้างทั้งหมด</option>
+    <option value="30">🟢 ค้างไม่เกิน 30 วัน</option>
+    <option value="31-60">🟡 ค้าง 31–60 วัน</option>
+    <option value="61-90">🟠 ค้าง 61–90 วัน</option>
+    <option value="91">🔴 ค้างเกิน 90 วัน</option>
+  </select>
   <input type="text" class="select" id="searchInput" placeholder="🔍 ค้นหา..." oninput="renderReport()" style="min-width:180px;">
 </div>
 
@@ -175,6 +183,14 @@ window.renderReport = function() {
   const personId = document.getElementById('filterPerson').value;
   const category = document.getElementById('filterCategory').value;
   const search = document.getElementById('searchInput').value.toLowerCase().trim();
+  const ageFilter = document.getElementById('filterAge')?.value || '';
+
+  function daysSinceDate(dateStr) {
+    if (!dateStr) return 0;
+    const d = new Date(dateStr); d.setHours(0,0,0,0);
+    const t = new Date(); t.setHours(0,0,0,0);
+    return Math.floor((t - d) / 86400000);
+  }
 
   const dlFilter = document.getElementById('filterDeadline')?.value || '';
   const dlFrom = document.getElementById('dlFrom')?.value || '';
@@ -223,6 +239,16 @@ window.renderReport = function() {
     else if (status !== 'all') { if (c.status !== status) return false; }
     if (personId && c.assignee !== personId) return false;
     if (category && c.category !== category) return false;
+    // กรองตามอายุค้าง (เฉพาะคดีที่ยังค้าง)
+    if (ageFilter && !['done','court'].includes(c.status)) {
+      const days = daysSinceDate(c.date);
+      if (ageFilter === '30'    && days > 30) return false;
+      if (ageFilter === '31-60' && (days < 31 || days > 60)) return false;
+      if (ageFilter === '61-90' && (days < 61 || days > 90)) return false;
+      if (ageFilter === '91'    && days < 91) return false;
+    } else if (ageFilter) {
+      return false;
+    }
     if (search) {
       const match = (c.caseId||'').toLowerCase().includes(search) ||
                     (c.name||'').toLowerCase().includes(search) ||
@@ -257,7 +283,12 @@ window.renderReport = function() {
     return `<tr>
       <td style="color:#6e7681">${i+1}</td>
       <td style="font-weight:600">${c.caseId||'-'}</td>
-      <td>${c.name||'-'}</td>
+      <td>${c.name||'-'}${(()=>{
+        if(['done','court'].includes(c.status)) return '';
+        const d = daysSinceDate(c.date);
+        const col = d>90?'#f85149':d>60?'#f0883e':d>30?'#e3b341':'#3fb950';
+        return ' <span style="display:inline-flex;padding:1px 7px;border-radius:20px;font-size:0.65rem;font-weight:600;background:'+col+'22;color:'+col+';border:1px solid '+col+'55;">⏳'+d+'ว.</span>';
+      })()}</td>
       <td>${c.category||'-'}</td>
       <td>${person?.name||'-'}</td>
       <td><span class="badge ${badgeClass[c.status]||''}">${sMap[c.status]||c.status}</span></td>
@@ -431,5 +462,6 @@ window.exportCSV = function() {
   URL.revokeObjectURL(url);
 };
 </script>
+
 </body>
 </html>
