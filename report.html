@@ -451,7 +451,26 @@ window.exportCSV = function() {
       (c.note||'').replace(/,/g,'；')
     ];
   });
-  const csv = [headers,...rows].map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+
+  // Summary rows
+  const total     = filtered.length;
+  const pending   = filtered.filter(c=>!['done','court'].includes(c.status)).length;
+  const doneCourt = filtered.filter(c=>c.status==='done').length;
+  const court     = filtered.filter(c=>c.status==='court').length;
+  const doneTotal = doneCourt + court;
+  const overdue   = filtered.filter(c=>!['done','court'].includes(c.status)&&c.deadline&&new Date(c.deadline)<new Date()).length;
+
+  const sep    = ['','','','','','','',''];
+  const sumHdr = ['=== สรุป ===','','','','','','',''];
+  const s1     = ['รวมทั้งหมด', String(total),'','','','','',''];
+  const s2     = ['คดีค้าง (ยังไม่เสร็จ)', String(pending),'','','','','',''];
+  const s3     = ['เสร็จสิ้น', String(doneCourt),'','','','','',''];
+  const s4     = ['ศาล (เสร็จสิ้น)', String(court),'','','','','',''];
+  const s5     = ['รวมเสร็จ (เสร็จสิ้น + ศาล)', String(doneTotal),'','','','','',''];
+  const s6     = ['เกินกำหนด', String(overdue),'','','','','',''];
+
+  const allRows = [headers, ...rows, sep, sumHdr, s1, s2, s3, s4, s5, s6];
+  const csv = allRows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
   const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
