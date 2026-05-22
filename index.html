@@ -2537,11 +2537,12 @@ window.openTimeline = async function(id) {
 
   // Case info
   const statusMap = { pending:'🔍 สอบสวนเพิ่มเติม', progress:'🔵 เจ้าของสำนวน', screening:'🔍 รอกลั่นกรอง', review:'⚖️ อจ.พิจารณา', done:'✅ เสร็จสิ้น', court:'🏛 ศาล' };
-  const relatedHTML = (c.relatedCases&&c.relatedCases.length) ?
+  const relatedArr = Array.isArray(c.relatedCases) ? c.relatedCases : (c.relatedCases ? String(c.relatedCases).split(',').map(s=>s.trim()).filter(Boolean) : []);
+  const relatedHTML = relatedArr.length ?
     `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
       <div style="font-size:0.72rem;color:var(--text3);margin-bottom:4px;">🔗 สำนวนที่เกี่ยวข้อง:</div>
       <div style="display:flex;flex-wrap:wrap;gap:6px;">
-        ${c.relatedCases.map(r=>{
+        ${relatedArr.map(r=>{
             const rel = cases.find(x => x.caseId === r || x.caseId.toLowerCase() === r.toLowerCase());
             const catLabel = rel && rel.category ? ` [${rel.category}]` : '';
             return `<span onclick="closeTimeline();setTimeout(()=>quickScanSearch('${r}'),300);"
