@@ -1210,6 +1210,10 @@ function renderSummary() {
   document.getElementById('totalOverdue').textContent = co;
   if (document.getElementById('totalReinvestigate')) {
     document.getElementById('totalReinvestigate').textContent = cr;
+    const reinvestPct = ct ? Math.round(cr/ct*100) : 0;
+    if (document.getElementById('reinvestigateOverdue')) {
+      document.getElementById('reinvestigateOverdue').textContent = reinvestPct + '% ของคดีทั้งหมด';
+    }
   }
   const pendingPct = ct ? Math.round(cp/ct*100) : 0;
   const donePct2   = ct ? Math.round(cd/ct*100) : 0;
