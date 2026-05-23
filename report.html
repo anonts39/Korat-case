@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="th">
 <head>
 <meta charset="UTF-8">
@@ -216,7 +215,7 @@ window.renderReport = function() {
 
   let filtered = cases.filter(c => {
     // Deadline filter
-    if (dlFilter && !['done','court'].includes(c.status)) {
+    if (dlFilter && !['done','court','filing'].includes(c.status)) {
       const dl = c.deadline ? c.deadline.slice(0,10) : '';
       if (!dl) return dlFilter ? false : true;
       if (dlFilter === 'today'   && dl !== todayStr) return false;
@@ -235,12 +234,12 @@ window.renderReport = function() {
     } else if (dlFilter) {
       return false; // done/court cases don't have active deadlines
     }
-    if (status === 'active') { if (['done','court'].includes(c.status)) return false; }
+    if (status === 'active') { if (['done','court','filing'].includes(c.status)) return false; }
     else if (status !== 'all') { if (c.status !== status) return false; }
     if (personId && c.assignee !== personId) return false;
     if (category && c.category !== category) return false;
     // กรองตามอายุค้าง (เฉพาะคดีที่ยังค้าง)
-    if (ageFilter && !['done','court'].includes(c.status)) {
+    if (ageFilter && !['done','court','filing'].includes(c.status)) {
       const days = daysSinceDate(c.date);
       if (ageFilter === '30'    && days > 30) return false;
       if (ageFilter === '31-60' && (days < 31 || days > 60)) return false;
@@ -260,16 +259,17 @@ window.renderReport = function() {
 
   // Summary
   const total = filtered.length;
-  const pending = filtered.filter(c=>!['done','court'].includes(c.status)).length;
-  const done = filtered.filter(c=>['done','court'].includes(c.status)).length;
+  const pending = filtered.filter(c=>!['done','court','filing'].includes(c.status)).length;
+  const done = filtered.filter(c=>['done','court','filing'].includes(c.status)).length;
   const now = new Date();
-  const overdue = filtered.filter(c=>c.deadline&&!['done','court'].includes(c.status)&&new Date(c.deadline)<now).length;
+  const overdue = filtered.filter(c=>c.deadline&&!['done','court','filing'].includes(c.status)&&new Date(c.deadline)<now).length;
 
   document.getElementById('summaryCards').innerHTML = `
     <div class="sum-card"><div class="sum-num" style="color:#58a6ff">${total}</div><div class="sum-lbl">ทั้งหมด</div></div>
     <div class="sum-card"><div class="sum-num" style="color:#f85149">${pending}</div><div class="sum-lbl">ค้าง</div></div>
     <div class="sum-card"><div class="sum-num" style="color:#3fb950">${done}</div><div class="sum-lbl">เสร็จสิ้น</div></div>
-    <div class="sum-card"><div class="sum-num" style="color:#f0883e">${overdue}</div><div class="sum-lbl">เกินกำหนด</div></div>`;
+    <div class="sum-card"><div class="sum-num" style="color:#f0883e">${overdue}</div><div class="sum-lbl">เกินกำหนด</div></div>
+    <div class="sum-card"><div class="sum-num" style="color:#55efc4">${filing}</div><div class="sum-lbl" style="color:#55efc4;">งานพิมพ์สำนวน</div><div style="font-size:0.65rem;color:#55efc4;opacity:0.7;">ไม่นับค้าง/เสร็จ</div></div>`;
 
   if (!filtered.length) {
     document.getElementById('reportTable').innerHTML = '<div class="loading">ไม่มีข้อมูล</div>';
@@ -279,12 +279,12 @@ window.renderReport = function() {
   const rows = filtered.map((c,i) => {
     const person = people.find(p=>p.id===c.assignee);
     const dl = c.deadline ? new Date(c.deadline).toLocaleDateString('th-TH') : '-';
-    const isOverdue = c.deadline && !['done','court'].includes(c.status) && new Date(c.deadline) < now;
+    const isOverdue = c.deadline && !['done','court','filing'].includes(c.status) && new Date(c.deadline) < now;
     return `<tr>
       <td style="color:#6e7681">${i+1}</td>
       <td style="font-weight:600">${c.caseId||'-'}</td>
       <td>${c.name||'-'}${(()=>{
-        if(['done','court'].includes(c.status)) return '';
+        if(['done','court','filing'].includes(c.status)) return '';
         const d = daysSinceDate(c.date);
         const col = d>90?'#f85149':d>60?'#f0883e':d>30?'#e3b341':'#3fb950';
         return ' <span style="display:inline-flex;padding:1px 7px;border-radius:20px;font-size:0.65rem;font-weight:600;background:'+col+'22;color:'+col+';border:1px solid '+col+'55;">⏳'+d+'ว.</span>';
@@ -348,8 +348,8 @@ window.renderYearSummary = function() {
     if (!yearCases.length) return;
     const thYear = year + 543;
     const total = yearCases.length;
-    const pending = yearCases.filter(c => !['done','court'].includes(c.status)).length;
-    const done = yearCases.filter(c => ['done','court'].includes(c.status)).length;
+    const pending = yearCases.filter(c => !['done','court','filing'].includes(c.status)).length;
+    const done = yearCases.filter(c => ['done','court','filing'].includes(c.status)).length;
     const court = yearCases.filter(c => c.status === 'court').length;
     const pct = total > 0 ? Math.round(done/total*100) : 0;
 
@@ -358,8 +358,8 @@ window.renderYearSummary = function() {
       const pc = yearCases.filter(c => c.assignee === p.id);
       if (!pc.length) return '';
       const pt = pc.length;
-      const pp = pc.filter(c => !['done','court'].includes(c.status)).length;
-      const pd = pc.filter(c => ['done','court'].includes(c.status)).length;
+      const pp = pc.filter(c => !['done','court','filing'].includes(c.status)).length;
+      const pd = pc.filter(c => ['done','court','filing'].includes(c.status)).length;
       const pco = pc.filter(c => c.status === 'court').length;
       const ppct = pt > 0 ? Math.round(pd/pt*100) : 0;
       const barW = ppct;
@@ -454,11 +454,12 @@ window.exportCSV = function() {
 
   // Summary rows
   const total     = filtered.length;
-  const pending   = filtered.filter(c=>!['done','court'].includes(c.status)).length;
+  const pending   = filtered.filter(c=>!['done','court','filing'].includes(c.status)).length;
   const doneCourt = filtered.filter(c=>c.status==='done').length;
   const court     = filtered.filter(c=>c.status==='court').length;
+  const filingCSV = filtered.filter(c=>c.status==='filing').length;
   const doneTotal = doneCourt + court;
-  const overdue   = filtered.filter(c=>!['done','court'].includes(c.status)&&c.deadline&&new Date(c.deadline)<new Date()).length;
+  const overdue   = filtered.filter(c=>!['done','court','filing'].includes(c.status)&&c.deadline&&new Date(c.deadline)<new Date()).length;
 
   const sep    = ['','','','','','','',''];
   const sumHdr = ['=== สรุป ===','','','','','','',''];
@@ -467,9 +468,10 @@ window.exportCSV = function() {
   const s3     = ['เสร็จสิ้น', String(doneCourt),'','','','','',''];
   const s4     = ['ศาล (เสร็จสิ้น)', String(court),'','','','','',''];
   const s5     = ['รวมเสร็จ (เสร็จสิ้น + ศาล)', String(doneTotal),'','','','','',''];
-  const s6     = ['เกินกำหนด', String(overdue),'','','','','',''];
+  const s6     = ['งานพิมพ์สำนวน (ไม่นับค้าง/เสร็จ)', String(filingCSV),'','','','','',''];
+  const s7     = ['เกินกำหนด', String(overdue),'','','','','',''];
 
-  const allRows = [headers, ...rows, sep, sumHdr, s1, s2, s3, s4, s5, s6];
+  const allRows = [headers, ...rows, sep, sumHdr, s1, s2, s3, s4, s5, s6, s7];
   const csv = allRows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
   const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
@@ -481,6 +483,5 @@ window.exportCSV = function() {
   URL.revokeObjectURL(url);
 };
 </script>
-
 </body>
 </html>
