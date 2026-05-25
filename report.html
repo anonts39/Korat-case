@@ -268,8 +268,9 @@ window.renderReport = function() {
 
   // Summary
   const total = filtered.length;
+  const filing = filtered.filter(c=>c.status==='filing').length;
   const pending = filtered.filter(c=>!['done','court','filing'].includes(c.status)).length;
-  const done = filtered.filter(c=>['done','court','filing'].includes(c.status)).length;
+  const done = filtered.filter(c=>['done','court'].includes(c.status)).length;
   const now = new Date();
   const overdue = filtered.filter(c=>c.deadline&&!['done','court','filing'].includes(c.status)&&new Date(c.deadline)<now).length;
 
