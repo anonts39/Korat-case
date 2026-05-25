@@ -146,14 +146,23 @@ const badgeClass = {
 
 onAuthStateChanged(auth, async user => {
   if (!user) { window.location.href = 'login.html'; return; }
-  
-  const [pSnap, cSnap] = await Promise.all([
-    getDocs(collection(db,'people')),
-    getDocs(collection(db,'cases'))
-  ]);
-  people = pSnap.docs.map(d => ({id:d.id,...d.data()}));
-  cases = cSnap.docs.map(d => ({id:d.id,...d.data()}));
-  cases.sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
+
+  document.getElementById('reportTable').innerHTML = '<div class="loading">กำลังโหลดข้อมูล...</div>';
+
+  try {
+    const [pSnap, cSnap] = await Promise.all([
+      getDocs(collection(db,'people')),
+      getDocs(collection(db,'cases'))
+    ]);
+    people = pSnap.docs.map(d => ({id:d.id,...d.data()}));
+    cases = cSnap.docs.map(d => ({id:d.id,...d.data()}));
+    cases.sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
+  } catch(e) {
+    document.getElementById('reportTable').innerHTML =
+      '<div class="loading" style="color:#f85149;">❌ โหลดข้อมูลไม่ได้: ' + e.message +
+      '<br><br><button onclick="location.reload()" style="padding:8px 16px;border-radius:6px;border:1px solid #f85149;background:transparent;color:#f85149;cursor:pointer;font-family:Sarabun,sans-serif;">🔄 ลองใหม่</button></div>';
+    return;
+  }
 
   // Populate filters
   const personSel = document.getElementById('filterPerson');
