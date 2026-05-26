@@ -156,6 +156,7 @@ td{padding:11px 14px;font-size:0.85rem;}
 .badge.filing{background:#1a2d1a;color:#55efc4;border:1px solid #1a4a3a;}
 .badge.screening{background:#1a1f2d;color:#00d2d3;border:1px solid #0d3a3b;}
 .badge.review{background:#2d2010;color:var(--yellow);border:1px solid #4a3a10;}
+.badge.nitikorn{background:#1a0d2d;color:#bc8cff;border:1px solid #3a1a5a;}
 .action-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;}
 .action-btn:hover{border-color:var(--accent);color:var(--accent);}
 .action-btn.del:hover{border-color:var(--red);color:var(--red);}
@@ -1195,8 +1196,9 @@ function renderSummary() {
       : inMonth(selYM);
   const p = inMonth(prevYM(activeSelYM));
   const DONE_STATUSES = ['done','court'];
+  const NITIKORN_STATUS = 'nitikorn';
   const S1_CAT = 'ส.1 (ยกคดี)';
-  const EXCLUDE = x => x.category !== S1_CAT && x.status !== 'filing';
+  const EXCLUDE = x => x.category !== S1_CAT && x.status !== 'filing' && x.status !== NITIKORN_STATUS;
   const ct = c.filter(x => EXCLUDE(x)).length;
   const cp = c.filter(x => EXCLUDE(x) && !DONE_STATUSES.includes(x.status)).length;
   const cd = c.filter(x => EXCLUDE(x) && DONE_STATUSES.includes(x.status)).length;
@@ -1972,9 +1974,10 @@ function renderTable() {
     progress:  ['🔵 เจ้าของสำนวน', 'progress'],
     screening: ['🔍 รอกลั่นกรอง', 'screening'],
     review:    ['⚖️ อจ.พิจารณา',  'review'],
-    filing:    ['📁 งานพิมพ์สำนวน',       'filing'],
+    filing:    ['📁 งานพิมพ์สำนวน', 'filing'],
+    nitikorn:  ['🟣 นิติกรเวรชี้', 'nitikorn'],
     done:      ['✅ เสร็จสิ้น',    'done'],
-    court:     ['🏛 ศาล (เสร็จสิ้น)', 'done']
+    court:     ['🏛 ศาล', 'court']
   };
   tbody.innerHTML = filtered.map(c => {
     const per = people.find(x => x.id === c.assignee);
@@ -2548,7 +2551,7 @@ window.openTimeline = async function(id) {
   currentTimelineCase = c;
 
   // Case info
-  const statusMap = { pending:'🔍 สอบสวนเพิ่มเติม', progress:'🔵 เจ้าของสำนวน', screening:'🔍 รอกลั่นกรอง', review:'⚖️ อจ.พิจารณา', done:'✅ เสร็จสิ้น', court:'🏛 ศาล' };
+  const statusMap = { pending:'🔍 สอบสวนเพิ่มเติม', progress:'🔵 เจ้าของสำนวน', screening:'🔍 รอกลั่นกรอง', review:'⚖️ อจ.พิจารณา', nitikorn:'🟣 นิติกรเวรชี้', filing:'📁 งานพิมพ์สำนวน', done:'✅ เสร็จสิ้น', court:'🏛 ศาล' };
   const relatedArr = Array.isArray(c.relatedCases) ? c.relatedCases : (c.relatedCases ? String(c.relatedCases).split(',').map(s=>s.trim()).filter(Boolean) : []);
   const relatedHTML = relatedArr.length ?
     `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
@@ -2636,10 +2639,12 @@ async function renderTimeline(caseId) {
 
 // ===== DEPT → STATUS MAPPING =====
 const DEPT_STATUS_MAP = {
-  'อัยการเจ้าของเรื่อง':      { status: 'progress',  label: '🔵 เจ้าของสำนวน' },
-  'อัยการผู้กลั่นกรองงาน':    { status: 'screening', label: '🔍 รอกลั่นกรอง' },
-  'อัยการจังหวัด':             { status: 'review',    label: '⚖️ อจ.พิจารณา' },
-  'งานพิมพ์สำนวน':                    { status: 'filing',    label: '📁 งานพิมพ์สำนวน' },
+  'อัยการเจ้าของเรื่อง':      { status: 'progress',   label: '🔵 เจ้าของสำนวน' },
+  'อัยการผู้กลั่นกรองงาน':    { status: 'screening',  label: '🔍 รอกลั่นกรอง' },
+  'อัยการจังหวัด':             { status: 'review',     label: '⚖️ อจ.พิจารณา' },
+  'งานพิมพ์สำนวน':            { status: 'filing',     label: '📁 งานพิมพ์สำนวน' },
+  'นิติกรเวรชี้':              { status: 'nitikorn',   label: '🟣 นิติกรเวรชี้' },
+  'ศาล':                       { status: 'court',      label: '🏛 ดำเนินการทางศาล' },
 };
 
 const RETURN_STATUS_MAP = {
@@ -3309,7 +3314,7 @@ function renderPendingAge() {
   const grid = document.getElementById('pendingAgeGrid');
   if (!grid) return;
   const S1_CAT = 'ส.1 (ยกคดี)';
-  const DONE = ['done','court'];
+  const DONE = ['done','court','nitikorn'];
   let src = cases.filter(c => c.category !== S1_CAT && !DONE.includes(c.status) && c.status !== 'filing');
   if (_teamViewMode && _teamViewId) {
     const vt = (window._teams||[]).find(t => t.id === _teamViewId);
@@ -3407,7 +3412,7 @@ function showPendingAgeAlert() {
   if (hasShownTodayAlert()) return;
 
   const S1_CAT = 'ส.1 (ยกคดี)';
-  const DONE = ['done','court'];
+  const DONE = ['done','court','nitikorn'];
   let src = cases.filter(c => c.category !== S1_CAT && !DONE.includes(c.status) && c.status !== 'filing');
 
   if (!isAdminUser && currentPersonId) {
@@ -3727,7 +3732,7 @@ window.rvwSearch = async function() {
   status.style.color = 'var(--green)';
 
   // Show case info
-  const sMap = { pending:'🔍 สอบสวนเพิ่มเติม', progress:'🔵 เจ้าของสำนวน', screening:'🔍 รอกลั่นกรอง', review:'⚖️ อจ.พิจารณา', filing:'📁 งานพิมพ์สำนวน', done:'✅ เสร็จสิ้น', court:'🏛 ศาล' };
+  const sMap = { pending:'🔍 สอบสวนเพิ่มเติม', progress:'🔵 เจ้าของสำนวน', screening:'🔍 รอกลั่นกรอง', review:'⚖️ อจ.พิจารณา', filing:'📁 งานพิมพ์สำนวน', nitikorn:'🟣 นิติกรเวรชี้', done:'✅ เสร็จสิ้น', court:'🏛 ศาล' };
   document.getElementById('rvwCaseIdLabel').textContent = found.caseId;
   document.getElementById('rvwCaseNameLabel').textContent = found.name;
   document.getElementById('rvwCaseBadges').innerHTML =
@@ -3837,7 +3842,7 @@ window.ownSearch = async function() {
   if (!val) return;
   const code = val.replace(/^tel:/i,'');
   const phoneNorm = code.replace(/[-\s]/g,'');
-  const sMap = {pending:'🔍 สอบสวนเพิ่มเติม',progress:'🔵 เจ้าของสำนวน',screening:'🔍 รอกลั่นกรอง',review:'⚖️ อจ.พิจารณา',filing:'📁 งานพิมพ์สำนวน',done:'✅ เสร็จสิ้น',court:'🏛 ศาล'};
+  const sMap = {pending:'🔍 สอบสวนเพิ่มเติม',progress:'🔵 เจ้าของสำนวน',screening:'🔍 รอกลั่นกรอง',review:'⚖️ อจ.พิจารณา',filing:'📁 งานพิมพ์สำนวน',nitikorn:'🟣 นิติกรเวรชี้',done:'✅ เสร็จสิ้น',court:'🏛 ศาล'};
 
   // Use existing cases (already loaded)
   let found = cases.find(c=>c.id===code) ||
@@ -3989,6 +3994,8 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
         <option value="อัยการผู้กลั่นกรองงาน">🔍 อัยการผู้กลั่นกรองงาน</option>
         <option value="อัยการจังหวัด">⚖️ อัยการจังหวัด</option>
         <option value="งานพิมพ์สำนวน">📁 งานพิมพ์สำนวน</option>
+        <option value="นิติกรเวรชี้">🟣 นิติกรเวรชี้</option>
+        <option value="ศาล">🏛 ศาล</option>
       </select>
       <select class="tl-select" id="tlPerson">
         <option value="">-- เจ้าหน้าที่ --</option>
