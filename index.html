@@ -504,6 +504,15 @@ font-weight: 700 !important;
     </div>
   </div>
 
+  <!-- ===== ขาเข้า-ขาออกรายเดือน ===== -->
+  <div id="flowReportSection" style="margin-bottom:24px;">
+    <div class="section-title">📥 สำนวนขาเข้า – ขาออก รายเดือน</div>
+    <div id="flowReportGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;"></div>
+    <div id="flowReportNote" style="font-size:0.72rem;color:var(--text3);margin-top:8px;padding:0 4px;">
+      * ขาเข้า = สำนวนที่ <strong>รับ</strong>ในเดือนนี้ &nbsp;|&nbsp; ขาออก = สำนวนที่ <strong>เสร็จสิ้น/ส่งศาล</strong>ในเดือนนี้ (ไม่รวม ส.1 ยกคดี) &nbsp;|&nbsp; คงค้าง = ขาเข้า − ขาออก
+    </div>
+  </div>
+
   <!-- ===== สำนวนค้างตามอายุ ===== -->
   <div id="pendingAgeSection" style="margin-bottom:24px;">
     <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -1257,6 +1266,73 @@ function renderSummary() {
   document.getElementById('momRowPending').innerHTML  = momHTML(cp,pp,true);
   document.getElementById('momRowDone').innerHTML     = momHTML(cd,pd,false);
   document.getElementById('momRowOverdue').innerHTML  = momHTML(co,po,true);
+  renderFlowReport();
+}
+
+// ===== FLOW REPORT (ขาเข้า-ขาออก) =====
+function renderFlowReport() {
+  const now2 = new Date();
+  const curYM2 = String(now2.getFullYear())+'-'+String(now2.getMonth()+1).padStart(2,'0');
+  const activeSelYM = selYM || curYM2;
+  const S1_CAT = 'ส.1 (ยกคดี)';
+  const DONE_STATUSES = ['done','court'];
+
+  // ขาเข้า = สำนวนที่ date อยู่ในเดือนที่เลือก (ไม่รวม ส.1 ยกคดี)
+  const inCount = cases.filter(c =>
+    c.category !== S1_CAT && ymOf(c.date) === activeSelYM
+  ).length;
+
+  // ขาออก = status done/court และ lastUpdated อยู่ในเดือนที่เลือก
+  const outCount = cases.filter(c => {
+    if (c.category === S1_CAT) return false;
+    if (!DONE_STATUSES.includes(c.status)) return false;
+    if (!c.lastUpdated) return false;
+    return ymOf(c.lastUpdated.slice(0,10)) === activeSelYM;
+  }).length;
+
+  const netCount = inCount - outCount;
+
+  // เดือนก่อนหน้า (เปรียบเทียบ)
+  const pYM = prevYM(activeSelYM);
+  const inPrev  = cases.filter(c => c.category !== S1_CAT && ymOf(c.date) === pYM).length;
+  const outPrev = cases.filter(c => {
+    if (c.category === S1_CAT) return false;
+    if (!DONE_STATUSES.includes(c.status)) return false;
+    if (!c.lastUpdated) return false;
+    return ymOf(c.lastUpdated.slice(0,10)) === pYM;
+  }).length;
+  const netPrev = inPrev - outPrev;
+
+  function diffArrow(cur, prev, lowerIsBetter) {
+    if (!prev) return '';
+    const diff = cur - prev;
+    if (diff === 0) return '<span style="color:var(--text3);font-size:0.7rem;">= เท่าเดิม</span>';
+    const up = diff > 0;
+    const color = lowerIsBetter
+      ? (up ? 'var(--red)' : 'var(--green)')
+      : (up ? 'var(--green)' : 'var(--red)');
+    return `<span style="color:${color};font-size:0.7rem;">${up?'▲':'▼'} ${Math.abs(diff)} จากเดือนก่อน</span>`;
+  }
+
+  const netStr   = (netCount >= 0 ? '+' : '') + netCount;
+  const netColor = netCount > 0 ? 'var(--red)' : netCount < 0 ? 'var(--green)' : 'var(--text3)';
+
+  const cards = [
+    { label:'📥 ขาเข้า',  value: inCount,  color:'var(--blue)',  diff: diffArrow(inCount,  inPrev,  false), tip:'สำนวนที่รับในเดือนนี้' },
+    { label:'📤 ขาออก',   value: outCount, color:'var(--green)', diff: diffArrow(outCount, outPrev, false), tip:'สำนวนที่เสร็จสิ้น / ส่งศาลในเดือนนี้' },
+    { label:'📊 ผลต่าง',  value: netStr,   color: netColor,      diff: diffArrow(netCount, netPrev, true),  tip:'ขาเข้า − ขาออก (ติดลบ = ระบายได้มากกว่ารับ)' },
+  ];
+
+  const grid = document.getElementById('flowReportGrid');
+  if (!grid) return;
+  grid.innerHTML = cards.map(card => `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;" title="${card.tip}">
+      <div style="font-size:0.78rem;color:var(--text3);margin-bottom:4px;">${card.label}</div>
+      <div style="font-family:'Kanit',sans-serif;font-size:2rem;font-weight:700;color:${card.color};line-height:1.2;">${card.value}</div>
+      <div style="min-height:18px;margin-top:2px;">${card.diff}</div>
+      <div style="font-size:0.68rem;color:var(--text3);margin-top:4px;">${card.tip}</div>
+    </div>
+  `).join('');
 }
 
 // ===== COMPARE =====
