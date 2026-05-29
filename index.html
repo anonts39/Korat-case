@@ -1192,6 +1192,7 @@ function renderAll() {
   renderTable();
   populateAssigneeSelect();
 }
+window.renderAll = renderAll;
 
 // ===== SUMMARY =====
 function renderSummary() {
@@ -2120,6 +2121,7 @@ function renderTable() {
     </tr>`;
   }).join('');
 }
+window.renderTable = renderTable;
 
 // ===== MODAL =====
 window.selectPri = function(p, el) {
