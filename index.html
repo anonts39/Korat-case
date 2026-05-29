@@ -1110,7 +1110,7 @@ function buildMonthSelect() {
   const curYM = String(now.getFullYear()) + '-' + String(now.getMonth()+1).padStart(2,'0');
   if (!months.includes(curYM)) months.push(curYM);
   // Always prefer current month
-  if (!selYM || (!months.includes(selYM) && selYM !== 'all')) { selYM = curYM; } else if (selYM && parseInt(selYM.split('-')[0]) > 2400) {
+  if (!selYM || (!months.includes(selYM) && selYM !== 'all')) { selYM = curYM; } else if (selYM && selYM !== 'all' && parseInt(selYM.split('-')[0]) > 2400) {
     // selYM is BE - convert to CE
     var _sparts = selYM.split('-');
     selYM = (parseInt(_sparts[0])-543)+'-'+_sparts[1];
