@@ -1110,12 +1110,12 @@ function buildMonthSelect() {
   const curYM = String(now.getFullYear()) + '-' + String(now.getMonth()+1).padStart(2,'0');
   if (!months.includes(curYM)) months.push(curYM);
   // Always prefer current month
-  if (!selYM || !months.includes(selYM)) { selYM = curYM; } else if (selYM && parseInt(selYM.split('-')[0]) > 2400) {
+  if (!selYM || (!months.includes(selYM) && selYM !== 'all')) { selYM = curYM; } else if (selYM && parseInt(selYM.split('-')[0]) > 2400) {
     // selYM is BE - convert to CE
     var _sparts = selYM.split('-');
     selYM = (parseInt(_sparts[0])-543)+'-'+_sparts[1];
   }
-  sel.innerHTML = months.map(m => `<option value="${m}" ${m===selYM?'selected':''}>${ymFull(m)}</option>`).join('');
+  sel.innerHTML = `<option value="all" ${selYM==='all'?'selected':''}>📋 ทุกเดือน (${months.length} เดือน)</option>` + months.map(m => `<option value="${m}" ${m===selYM?'selected':''}>${ymFull(m)}</option>`).join('');
 }
 
 // ===== ALERTS =====
@@ -1202,8 +1202,8 @@ function renderSummary() {
     ? cases.filter(x => { const dt2=x.date?new Date(x.date):null; const d=dt2?dt2.getFullYear()+'-'+String(dt2.getMonth()+1).padStart(2,'0')+'-'+String(dt2.getDate()).padStart(2,'0'):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
     : (_teamViewMode && _teamViewId)
       ? cases.filter(x => { const _wt=(window._teams||[]); const _vt=_wt.find(t=>t.id===_teamViewId); return _vt&&(_vt.memberIds||[]).includes(x.assignee); })
-      : inMonth(selYM);
-  const p = inMonth(prevYM(activeSelYM));
+      : (selYM === 'all' ? cases : inMonth(selYM));
+  const p = selYM === 'all' ? [] : inMonth(prevYM(activeSelYM));
   const DONE_STATUSES = ['done','court'];
   const NITIKORN_STATUS = 'nitikorn';
   const S1_CAT = 'ส.1 (ยกคดี)';
@@ -1285,13 +1285,14 @@ function renderFlowReport() {
   const S1_CAT = 'ส.1 (ยกคดี)';
   const NOT_ACTIVE = ['done','court','filing','nitikorn'];
 
-  const inAll   = cases.filter(c => ymOf(c.date) === activeSelYM);
+  const inAll   = selYM === 'all' ? cases : cases.filter(c => ymOf(c.date) === activeSelYM);
   const inCount = inAll.length;
   const inS1    = inAll.filter(c => c.category === S1_CAT).length;
   const inMain  = inCount - inS1;
 
   const outAll = cases.filter(c => {
     if (!NOT_ACTIVE.includes(c.status)) return false;
+    if (selYM === 'all') return true;
     if (!c.lastUpdated) return false;
     return ymOf(c.lastUpdated.slice(0,10)) === activeSelYM;
   });
@@ -1301,7 +1302,7 @@ function renderFlowReport() {
   const netCount = inCount - outCount;
 
   const pYM = prevYM(activeSelYM);
-  const inPrev  = cases.filter(c => ymOf(c.date) === pYM).length;
+  const inPrev  = selYM === 'all' ? 0 : cases.filter(c => ymOf(c.date) === pYM).length;
   const outPrev = cases.filter(c => {
     if (!NOT_ACTIVE.includes(c.status)) return false;
     if (!c.lastUpdated) return false;
@@ -2020,7 +2021,7 @@ function renderTable() {
       if (_dt && d > _dt) return false;
     }
 
-    const inSelectedMonth = ymOf(c.date) === selYM;
+    const inSelectedMonth = selYM === 'all' ? true : ymOf(c.date) === selYM;
     const monthOk = (_df || _dt) ? true : inSelectedMonth;
     const statusMatch =
       filterStatus === 'all'    ? true :
