@@ -1095,7 +1095,7 @@ function init() {
   document.getElementById('dateDisplay') && (document.getElementById('dateDisplay').textContent =
     NOW.toLocaleDateString('th-TH', { year:'numeric', month:'long', day:'numeric' }));
   document.getElementById('fDate').value = NOW.toISOString().split('T')[0];
-  buildMonthSelect();
+  selYM = 'all';
   renderAll();
   renderCharts();
   buildAlerts();
@@ -1103,15 +1103,8 @@ function init() {
   setTimeout(showPendingAgeAlert, 1500);
 }
 function buildMonthSelect() {
-  const sel = document.getElementById('monthSelect');
-  const months = allYMs();
-  // Always add current month
-  const now = new Date();
-  const curYM = String(now.getFullYear()) + '-' + String(now.getMonth()+1).padStart(2,'0');
-  if (!months.includes(curYM)) months.push(curYM);
-  // Always prefer current month
-  selYM = 'all'; // Default: show all months
-  sel.innerHTML = `<option value="all" ${selYM==='all'?'selected':''}>📋 ทุกเดือน (${months.length} เดือน)</option>` + months.map(m => `<option value="${m}" ${m===selYM?'selected':''}>${ymFull(m)}</option>`).join('');
+  // monthSelect ถูกลบออกแล้ว - ใช้ all เสมอ
+  selYM = 'all';
 }
 
 // ===== ALERTS =====
