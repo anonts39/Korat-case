@@ -410,9 +410,9 @@ font-weight: 700 !important;
     <input type="date" id="dateTo" onchange="applyDateRange()"
       style="padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.82rem;outline:none;">
     <button onclick="clearDateRange()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;">ทั้งหมด</button>
-    <span class="mbadge cur" id="curBadge"></span>
-    <select class="month-select" id="monthSelect" onchange="renderAll()"></select>
-    <span class="mbadge prev" id="prevBadge" style="display:none;"></span>
+    
+    
+    
   </div>
   <div class="alert-strip" id="alertStrip">
     <div class="alert-strip-title">🚨 คดีที่ต้องดำเนินการด่วน</div>
@@ -875,7 +875,7 @@ const S1_STEPS = [
   { key:'chief',     icon:'⚖️', label:'ส่ง อจ.' },
   { key:'court',     icon:'🏛️', label:'ดำเนินการทางศาล' },
 ];
-let filterOverdue = false, filterCategory = null, selYM = '';
+let filterOverdue = false, filterCategory = null, selYM = 'all';
 let catColorMap = {};
 
 // ===== HELPERS =====
@@ -1110,11 +1110,7 @@ function buildMonthSelect() {
   const curYM = String(now.getFullYear()) + '-' + String(now.getMonth()+1).padStart(2,'0');
   if (!months.includes(curYM)) months.push(curYM);
   // Always prefer current month
-  if (!selYM || (!months.includes(selYM) && selYM !== 'all')) { selYM = curYM; } else if (selYM && selYM !== 'all' && parseInt(selYM.split('-')[0]) > 2400) {
-    // selYM is BE - convert to CE
-    var _sparts = selYM.split('-');
-    selYM = (parseInt(_sparts[0])-543)+'-'+_sparts[1];
-  }
+  selYM = 'all'; // Default: show all months
   sel.innerHTML = `<option value="all" ${selYM==='all'?'selected':''}>📋 ทุกเดือน (${months.length} เดือน)</option>` + months.map(m => `<option value="${m}" ${m===selYM?'selected':''}>${ymFull(m)}</option>`).join('');
 }
 
@@ -1178,8 +1174,7 @@ window.scrollToCase = function(id) {
 
 // ===== RENDER ALL =====
 function renderAll() {
-  selYM = document.getElementById('monthSelect').value || selYM;
-  buildMonthSelect();
+  selYM = 'all';
   const _badge = document.getElementById('curBadge');
   if (_badge) _badge.textContent = '';
   const _prevBadge = document.getElementById('prevBadge');
