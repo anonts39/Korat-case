@@ -875,7 +875,7 @@ const S1_STEPS = [
   { key:'chief',     icon:'⚖️', label:'ส่ง อจ.' },
   { key:'court',     icon:'🏛️', label:'ดำเนินการทางศาล' },
 ];
-let filterOverdue = false, filterCategory = null, selYM = 'all';
+let filterOverdue = false, filterCategory = null, selYM = '';
 let catColorMap = {};
 
 // ===== HELPERS =====
@@ -1095,7 +1095,8 @@ function init() {
   document.getElementById('dateDisplay') && (document.getElementById('dateDisplay').textContent =
     NOW.toLocaleDateString('th-TH', { year:'numeric', month:'long', day:'numeric' }));
   document.getElementById('fDate').value = NOW.toISOString().split('T')[0];
-  selYM = 'all';
+  const _now = new Date();
+  selYM = String(_now.getFullYear()) + '-' + String(_now.getMonth()+1).padStart(2,'0');
   renderAll();
   renderCharts();
   buildAlerts();
@@ -1103,8 +1104,7 @@ function init() {
   setTimeout(showPendingAgeAlert, 1500);
 }
 function buildMonthSelect() {
-  // monthSelect ถูกลบออกแล้ว - ใช้ all เสมอ
-  selYM = 'all';
+  // ไม่มี dropdown - selYM ถูก set จาก init/clearDateRange
 }
 
 // ===== ALERTS =====
@@ -1167,7 +1167,6 @@ window.scrollToCase = function(id) {
 
 // ===== RENDER ALL =====
 function renderAll() {
-  selYM = 'all';
   const _badge = document.getElementById('curBadge');
   if (_badge) _badge.textContent = '';
   const _prevBadge = document.getElementById('prevBadge');
@@ -3269,6 +3268,7 @@ window.clearDateRange = function() {
   const t = document.getElementById('dateTo');
   if (f) f.value = '';
   if (t) t.value = '';
+  selYM = 'all';
   renderAll();
 };
 
