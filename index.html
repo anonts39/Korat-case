@@ -930,7 +930,7 @@ function parseDate(d) {
 }
 const ymFull  = m => { const [y,mo] = m.split('-').map(Number); const yr = y > 2400 ? y : y+543; return `${TH_F[mo-1]} ${yr}`; };
 const ymShort = m => { const [y,mo] = m.split('-').map(Number); const yr = y > 2400 ? y : y+543; return `${TH_S[mo-1]} ${yr}`; };
-const inMonth = m => cases.filter(c => ymOf(c.date) === m);
+const inMonth = m => cases.filter(c => ymOf(c.date||c.createdAt) === m);
 const allYMs  = () => [...new Set(cases.map(c => ymOf(c.date)).filter(Boolean))].sort();
 
 function dlStatus(dl, st) {
@@ -1216,7 +1216,7 @@ function renderSummary() {
   const curYM2 = String(now2.getFullYear())+'-'+String(now2.getMonth()+1).padStart(2,'0');
   const activeSelYM = selYM || curYM2;
   const c = (_df || _dt)
-    ? cases.filter(x => { const dt2=x.date?parseDate(x.date):null; const d=dt2?dt2.getFullYear()+'-'+String(dt2.getMonth()+1).padStart(2,'0')+'-'+String(dt2.getDate()).padStart(2,'0'):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
+    ? cases.filter(x => { const dt2=parseDate(x.date||x.createdAt); const d=dt2?dt2.getFullYear()+'-'+String(dt2.getMonth()+1).padStart(2,'0')+'-'+String(dt2.getDate()).padStart(2,'0'):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
     : (_teamViewMode && _teamViewId)
       ? cases.filter(x => { const _wt=(window._teams||[]); const _vt=_wt.find(t=>t.id===_teamViewId); return _vt&&(_vt.memberIds||[]).includes(x.assignee); })
       : (selYM === 'all' ? cases : inMonth(selYM));
@@ -1302,7 +1302,7 @@ function renderFlowReport() {
   const S1_CAT = 'ส.1 (ยกคดี)';
   const NOT_ACTIVE = ['done','court','filing','nitikorn'];
 
-  const inAll   = selYM === 'all' ? cases : cases.filter(c => ymOf(c.date) === activeSelYM);
+  const inAll   = selYM === 'all' ? cases : cases.filter(c => ymOf(c.date||c.createdAt) === activeSelYM);
   const inCount = inAll.length;
   const inS1    = inAll.filter(c => c.category === S1_CAT).length;
   const inMain  = inCount - inS1;
@@ -1422,7 +1422,7 @@ function renderPeople() {
   people.forEach((p, idx) => {
     const [col, bg] = COLORS[idx % COLORS.length];
     const allCur = ((_df || _dt)
-      ? cases.filter(x => { const dt2=x.date?parseDate(x.date):null; const d=dt2?dt2.getFullYear()+'-'+String(dt2.getMonth()+1).padStart(2,'0')+'-'+String(dt2.getDate()).padStart(2,'0'):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
+      ? cases.filter(x => { const dt2=parseDate(x.date||x.createdAt); const d=dt2?dt2.getFullYear()+'-'+String(dt2.getMonth()+1).padStart(2,'0')+'-'+String(dt2.getDate()).padStart(2,'0'):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
       : cases).filter(c => c.assignee === p.id && c.category !== 'ส.1 (ยกคดี)');
     const allPrv = inMonth(prevYM(selYM)).filter(c => c.assignee === p.id && c.category !== 'ส.1 (ยกคดี)');
     const pendingCur = cases.filter(c => c.currentPerson === p.name && !['done','court'].includes(c.status));
@@ -2032,13 +2032,13 @@ function renderTable() {
 
     // Date range filter
     if (_df || _dt) {
-      const dt2 = c.date ? parseDate(c.date) : null;
+      const dt2 = parseDate(c.date||c.createdAt);
       const d = dt2 ? dt2.getFullYear()+'-'+String(dt2.getMonth()+1).padStart(2,'0')+'-'+String(dt2.getDate()).padStart(2,'0') : '';
       if (_df && d < _df) return false;
       if (_dt && d > _dt) return false;
     }
 
-    const inSelectedMonth = selYM === 'all' ? true : ymOf(c.date) === selYM;
+    const inSelectedMonth = selYM === 'all' ? true : ymOf(c.date||c.createdAt) === selYM;
     const monthOk = (_df || _dt) ? true : inSelectedMonth;
     const statusMatch =
       filterStatus === 'all'    ? true :
@@ -2127,7 +2127,7 @@ function renderTable() {
       <td style="font-size:0.82rem">${per?per.name:'-'}</td>
       <td><span class="badge ${cls}">${lbl}</span></td>
       <td>${dlLabel(c.deadline,c.status)}</td>
-      <td style="color:var(--text3);font-size:0.78rem">${c.date?(()=>{const _d=parseDate(c.date);return _d?_d.toLocaleDateString('th-TH'):c.date})():'-'}</td>
+      <td style="color:var(--text3);font-size:0.78rem">${(()=>{const _raw=c.date||c.createdAt;if(!_raw)return '-';const _d=parseDate(_raw);return _d?_d.toLocaleDateString('th-TH'):_raw})()}</td>
       <td><div style="display:flex;gap:5px">
         <button class="action-btn" onclick="editCase('${c.id}')">แก้ไข</button>
         <button class="action-btn qr" onclick="showCaseQR('${c.id}')">QR</button>
