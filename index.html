@@ -513,6 +513,16 @@ font-weight: 700 !important;
     </div>
   </div>
 
+  <!-- ===== ปุ่ม toggle ===== -->
+  <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+    <button onclick="toggleDailyTable(this)" style="padding:6px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.82rem;cursor:pointer;" id="btnDailyTable">
+      📊 สถิติรายวันรายบุคคล
+    </button>
+    <button onclick="toggleChart(this)" style="padding:6px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.82rem;cursor:pointer;" id="btnChart">
+      📈 กราฟเปรียบเทียบ
+    </button>
+  </div>
+
   <!-- ===== สำนวนค้างตามอายุ ===== -->
   <div id="pendingAgeSection" style="margin-bottom:24px;">
     <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -539,6 +549,24 @@ font-weight: 700 !important;
     <div class="cat-grid" id="catGrid"></div>
   </div>
   <div class="people-section"><div class="section-title">📋 สถิติรายบุคคล</div><div class="people-grid" id="peopleGrid"></div></div>
+  <!-- ===== DAILY TABLE SECTION ===== -->
+  <div id="dailyTableSection" style="margin-bottom:24px;display:none;">
+    <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <span>📊 สถิติรับสำนวนรายวัน — รายบุคคล</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:0.72rem;color:var(--text3);">เดือน:</span>
+        <input type="month" id="dailyTableMonth" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.78rem;outline:none;" onchange="renderDailyTable()">
+      </div>
+    </div>
+    <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--border);margin-top:10px;">
+      <table id="dailyTable" style="border-collapse:collapse;min-width:100%;font-size:0.78rem;font-family:'Sarabun',sans-serif;">
+        <thead id="dailyTableHead"></thead>
+        <tbody id="dailyTableBody"></tbody>
+      </table>
+    </div>
+    <div style="font-size:0.68rem;color:var(--text3);margin-top:6px;">* ตัวเลขในช่อง = สำนวนที่รับในวันนั้น &nbsp;|&nbsp; รวมออก = สำนวนที่เสร็จ/ส่งศาลในเดือนนั้น &nbsp;|&nbsp; ค้าง = รับ − ออก</div>
+  </div>
+
   <!-- ===== CHART SECTION ===== -->
   <div class="chart-section" id="chartSection" style="display:none;">
     <div class="section-title">📊 กราฟเปรียบเทียบ</div>
@@ -1127,7 +1155,6 @@ function init() {
   const _now = new Date();
   selYM = String(_now.getFullYear()) + '-' + String(_now.getMonth()+1).padStart(2,'0');
   renderAll();
-  renderCharts();
   buildAlerts();
   // แจ้งเตือนสำนวนค้างหลัง login
   setTimeout(showPendingAgeAlert, 1500);
@@ -1359,6 +1386,133 @@ function renderFlowReport() {
     </div>
   `).join('');
 }
+
+// ===== DAILY TABLE =====
+function toggleDailyTable(btn) {
+  const sec = document.getElementById('dailyTableSection');
+  const visible = sec.style.display !== 'none';
+  sec.style.display = visible ? 'none' : 'block';
+  btn.style.borderColor = visible ? 'var(--border)' : 'var(--blue)';
+  btn.style.color = visible ? 'var(--text2)' : 'var(--blue)';
+  if (!visible) {
+    // Set default month to current
+    const now = new Date();
+    const inp = document.getElementById('dailyTableMonth');
+    if (inp && !inp.value) inp.value = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+    renderDailyTable();
+  }
+}
+window.toggleDailyTable = toggleDailyTable;
+
+function toggleChart(btn) {
+  const sec = document.getElementById('chartSection');
+  const visible = sec.style.display !== 'none' && sec.style.display !== '';
+  sec.style.display = visible ? 'none' : 'block';
+  btn.style.borderColor = visible ? 'var(--border)' : 'var(--purple)';
+  btn.style.color = visible ? 'var(--text2)' : 'var(--purple)';
+  if (!visible) renderCharts();
+}
+window.toggleChart = toggleChart;
+
+function renderDailyTable() {
+  const inp = document.getElementById('dailyTableMonth');
+  if (!inp || !inp.value) return;
+  const [yr, mo] = inp.value.split('-').map(Number);
+  const daysInMonth = new Date(yr, mo, 0).getDate();
+  const S1_CAT = 'ส.1 (ยกคดี)';
+  const DONE_ST = ['done','court'];
+
+  // Filter people - only those with assignee role
+  const pList = (window._people || []).filter(p => p.name);
+
+  // Build days array
+  const days = Array.from({length: daysInMonth}, (_, i) => i+1);
+
+  // Count incoming per person per day
+  function dayKey(dateStr) {
+    const d = parseDate(dateStr);
+    if (!d) return null;
+    if (d.getFullYear() !== yr || d.getMonth()+1 !== mo) return null;
+    return d.getDate();
+  }
+
+  // Build header
+  const thStyle = 'border:1px solid var(--border);padding:5px 8px;background:var(--surface2);color:var(--text2);font-size:0.7rem;white-space:nowrap;text-align:center;';
+  const thNameStyle = 'border:1px solid var(--border);padding:5px 10px;background:var(--surface2);color:var(--text2);font-size:0.7rem;text-align:left;position:sticky;left:0;z-index:2;min-width:120px;';
+  const today = new Date();
+  const todayDay = (today.getFullYear()===yr && today.getMonth()+1===mo) ? today.getDate() : -1;
+
+  let headHTML = '<tr><th style="'+thNameStyle+'">ชื่อ / วัน</th>';
+  days.forEach(d => {
+    const isToday = d === todayDay;
+    headHTML += `<th style="${thStyle}${isToday?'color:var(--green);':''}">${d}</th>`;
+  });
+  headHTML += '<th style="'+thStyle+'background:#0d1f2d;color:var(--blue);">รับรวม</th>';
+  headHTML += '<th style="'+thStyle+'background:#0d2010;color:var(--green);">ออกรวม</th>';
+  headHTML += '<th style="'+thStyle+'background:#1a1a0d;color:var(--yellow);">ค้าง</th>';
+  headHTML += '</tr>';
+  document.getElementById('dailyTableHead').innerHTML = headHTML;
+
+  // Build rows
+  const tdBase = 'border:1px solid var(--border);padding:4px 6px;text-align:center;font-size:0.75rem;';
+  const tdName = 'border:1px solid var(--border);padding:4px 10px;text-align:left;font-size:0.75rem;background:var(--surface);position:sticky;left:0;white-space:nowrap;';
+
+  let bodyHTML = '';
+  let totalIn = new Array(daysInMonth).fill(0);
+  let grandIn = 0, grandOut = 0;
+
+  pList.forEach(p => {
+    // Cases assigned to this person
+    const pCases = cases.filter(c => c.assignee === p.id || c.currentPerson === p.name);
+    if (pCases.length === 0) return;
+
+    // In per day
+    const inPerDay = new Array(daysInMonth).fill(0);
+    let pIn = 0, pOut = 0;
+
+    pCases.forEach(c => {
+      const d = dayKey(c.date || c.createdAt);
+      if (d) { inPerDay[d-1]++; pIn++; totalIn[d-1]++; }
+      // Out: lastUpdated in this month and done status
+      if (DONE_ST.includes(c.status) && c.lastUpdated) {
+        const od = parseDate(c.lastUpdated.slice(0,10));
+        if (od && od.getFullYear()===yr && od.getMonth()+1===mo) pOut++;
+      }
+    });
+
+    grandIn += pIn; grandOut += pOut;
+    const pPending = pIn - pOut;
+
+    bodyHTML += `<tr>`;
+    bodyHTML += `<td style="${tdName}">${p.name}</td>`;
+    inPerDay.forEach((cnt, i) => {
+      const isToday = (i+1) === todayDay;
+      const bg = isToday ? 'background:#0d1f0d;' : '';
+      bodyHTML += `<td style="${tdBase}${bg}${cnt>0?'color:var(--blue);font-weight:600;':'color:var(--text3);'}">${cnt>0?cnt:'-'}</td>`;
+    });
+    bodyHTML += `<td style="${tdBase}background:#0d1f2d;color:var(--blue);font-weight:700;">${pIn}</td>`;
+    bodyHTML += `<td style="${tdBase}background:#0d2010;color:var(--green);font-weight:700;">${pOut}</td>`;
+    bodyHTML += `<td style="${tdBase}background:#1a1a0d;color:${pPending>0?'var(--yellow)':'var(--green)'};font-weight:700;">${pPending}</td>`;
+    bodyHTML += `</tr>`;
+  });
+
+  // Summary row
+  bodyHTML += `<tr style="border-top:2px solid var(--border);">`;
+  bodyHTML += `<td style="${tdName}color:var(--text);font-weight:700;">📋 รวมทั้งหมด</td>`;
+  totalIn.forEach((cnt, i) => {
+    const isToday = (i+1) === todayDay;
+    const bg = isToday ? 'background:#0d1f0d;' : 'background:var(--surface2);';
+    bodyHTML += `<td style="${tdBase}${bg}font-weight:700;${cnt>0?'color:var(--blue);':'color:var(--text3);'}">${cnt>0?cnt:'-'}</td>`;
+  });
+  bodyHTML += `<td style="${tdBase}background:#0d1f2d;color:var(--blue);font-weight:700;">${grandIn}</td>`;
+  bodyHTML += `<td style="${tdBase}background:#0d2010;color:var(--green);font-weight:700;">${grandOut}</td>`;
+  bodyHTML += `<td style="${tdBase}background:#1a1a0d;color:var(--yellow);font-weight:700;">${grandIn-grandOut}</td>`;
+  bodyHTML += `</tr>`;
+
+  document.getElementById('dailyTableBody').innerHTML = bodyHTML;
+}
+window.renderDailyTable = renderDailyTable;
+
 
 // ===== COMPARE =====
 
@@ -1938,7 +2092,8 @@ function renderTeamMulti() {
 function renderCharts() {
   const section = document.getElementById('chartSection');
   if (isStaff) { section.style.display = 'none'; return; }
-  section.style.display = 'block';
+  // ไม่ auto-show - รอให้กดปุ่ม
+  if (section.style.display === 'none' || section.style.display === '') return;
 
   // Show picker always
   document.getElementById('chartMonthPicker').style.display = 'block';
