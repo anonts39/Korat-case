@@ -564,7 +564,7 @@ font-weight: 700 !important;
         <tbody id="dailyTableBody"></tbody>
       </table>
     </div>
-    <div style="font-size:0.68rem;color:var(--text3);margin-top:6px;">* ตัวเลขในช่อง = สำนวนที่รับในวันนั้น &nbsp;|&nbsp; รวมออก = สำนวนที่เสร็จ/ส่งศาลในเดือนนั้น &nbsp;|&nbsp; ค้าง = รับ − ออก</div>
+    <div style="font-size:0.68rem;color:var(--text3);margin-top:6px;">* ตัวเลขในช่อง = สำนวนที่รับในวันนั้น &nbsp;|&nbsp; รวมออก = สำนวนที่เสร็จ/ส่งศาลในเดือนนั้น &nbsp;|&nbsp; ค้าง(เดือน) = รับ − ออก &nbsp;|&nbsp; ค้างจริง = ยังไม่เสร็จ ณ ปัจจุบัน</div>
   </div>
 
   <!-- ===== CHART SECTION ===== -->
@@ -1470,7 +1470,8 @@ function renderDailyTable() {
   });
   headHTML += '<th style="'+thStyle+'background:#0d1f2d;color:var(--blue);">รับรวม</th>';
   headHTML += '<th style="'+thStyle+'background:#0d2010;color:var(--green);">ออกรวม</th>';
-  headHTML += '<th style="'+thStyle+'background:#1a1a0d;color:var(--yellow);">ค้าง</th>';
+  headHTML += '<th style="'+thStyle+'background:#1a1a0d;color:var(--yellow);">ค้าง(เดือน)</th>';
+  headHTML += '<th style="'+thStyle+'background:#2d1a0d;color:var(--red);">ค้างจริง</th>';
   headHTML += '</tr>';
   document.getElementById('dailyTableHead').innerHTML = headHTML;
 
@@ -1513,6 +1514,9 @@ function renderDailyTable() {
     bodyHTML += `<td style="${tdBase}background:#0d1f2d;color:var(--blue);font-weight:700;">${pIn}</td>`;
     bodyHTML += `<td style="${tdBase}background:#0d2010;color:var(--green);font-weight:700;">${pOut}</td>`;
     bodyHTML += `<td style="${tdBase}background:#1a1a0d;color:${pPending>0?'var(--yellow)':'var(--green)'};font-weight:700;">${pPending}</td>`;
+    const DONE_NOW = ['done','court','filing','nitikorn'];
+    const realPending = pCases.filter(c => !DONE_NOW.includes(c.status)).length;
+    bodyHTML += `<td style="${tdBase}background:#2d1a0d;color:${realPending>0?'var(--red)':'var(--green)'};font-weight:700;">${realPending}</td>`;
     bodyHTML += `</tr>`;
   });
 
@@ -1527,6 +1531,10 @@ function renderDailyTable() {
   bodyHTML += `<td style="${tdBase}background:#0d1f2d;color:var(--blue);font-weight:700;">${grandIn}</td>`;
   bodyHTML += `<td style="${tdBase}background:#0d2010;color:var(--green);font-weight:700;">${grandOut}</td>`;
   bodyHTML += `<td style="${tdBase}background:#1a1a0d;color:var(--yellow);font-weight:700;">${grandIn-grandOut}</td>`;
+  const DONE_NOW2 = ['done','court','filing','nitikorn'];
+  const S1_CAT2 = 'ส.1 (ยกคดี)';
+  const grandRealPending = cases.filter(c => c.category !== S1_CAT2 && !DONE_NOW2.includes(c.status)).length;
+  bodyHTML += `<td style="${tdBase}background:#2d1a0d;color:var(--red);font-weight:700;">${grandRealPending}</td>`;
   bodyHTML += `</tr>`;
 
   document.getElementById('dailyTableBody').innerHTML = bodyHTML;
