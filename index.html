@@ -555,7 +555,7 @@ font-weight: 700 !important;
       <span>📊 สถิติรับสำนวนรายวัน — รายบุคคล</span>
       <div style="display:flex;gap:8px;align-items:center;">
         <span style="font-size:0.72rem;color:var(--text3);">เดือน:</span>
-        <input type="month" id="dailyTableMonth" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.78rem;outline:none;" onchange="renderDailyTable()">
+        <select id="dailyTableMonth" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.78rem;outline:none;" onchange="renderDailyTable()"></select>
       </div>
     </div>
     <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--border);margin-top:10px;">
@@ -1415,9 +1415,29 @@ function toggleChart(btn) {
 window.toggleChart = toggleChart;
 
 function renderDailyTable() {
-  const inp = document.getElementById('dailyTableMonth');
-  if (!inp || !inp.value) return;
-  const [yr, mo] = inp.value.split('-').map(Number);
+  const sel = document.getElementById('dailyTableMonth');
+  if (!sel) return;
+
+  // Populate month options if empty
+  if (sel.tagName === 'SELECT' && sel.options.length === 0) {
+    const months = [...new Set(cases.map(c => ymOf(c.date||c.createdAt)).filter(Boolean))].sort();
+    const now = new Date();
+    const curYM = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+    if (!months.includes(curYM)) months.push(curYM);
+    months.forEach(m => {
+      const [y, mo] = m.split('-').map(Number);
+      const beY = y + 543;
+      const thMo = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'][mo-1];
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = `${thMo} ${beY}`;
+      if (m === curYM) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+
+  if (!sel.value) return;
+  const [yr, mo] = sel.value.split('-').map(Number);
   const daysInMonth = new Date(yr, mo, 0).getDate();
   const S1_CAT = 'ส.1 (ยกคดี)';
   const DONE_ST = ['done','court'];
@@ -1463,7 +1483,7 @@ function renderDailyTable() {
 
   pList.forEach(p => {
     // Cases assigned to this person
-    const pCases = cases.filter(c => c.assignee === p.id || c.currentPerson === p.name);
+    const pCases = cases.filter(c => c.assignee === p.id);
     if (pCases.length === 0) return;
 
     // In per day
