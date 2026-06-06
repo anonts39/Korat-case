@@ -1484,7 +1484,6 @@ function renderDailyTable() {
   pList.forEach(p => {
     // Cases assigned to this person
     const pCases = cases.filter(c => c.assignee === p.id);
-    if (pCases.length === 0) return;
 
     // In per day
     const inPerDay = new Array(daysInMonth).fill(0);
