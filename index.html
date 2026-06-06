@@ -1443,8 +1443,8 @@ function renderDailyTable() {
   const S1_CAT = 'ส.1 (ยกคดี)';
   const DONE_ST = ['done','court'];
 
-  // Filter people - only those with assignee role
-  const pList = (window._people || []).filter(p => p.name);
+  // Filter people - exclude เลขา and เจ้าหน้าที่
+  const pList = (window._people || []).filter(p => p.name && !['เลขา','เจ้าหน้าที่'].some(r => (p.role||'').includes(r)));
 
   // Build days array
   const days = Array.from({length: daysInMonth}, (_, i) => i+1);
