@@ -1389,6 +1389,7 @@ function renderFlowReport() {
 
 // ===== DAILY TABLE =====
 function toggleDailyTable(btn) {
+  if (!isAdminUser) return;
   const sec = document.getElementById('dailyTableSection');
   const visible = sec.style.display !== 'none';
   sec.style.display = visible ? 'none' : 'block';
