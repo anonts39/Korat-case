@@ -1520,11 +1520,12 @@ function renderDailyTable() {
         catBreak[cat] = (catBreak[cat] || 0) + 1;
       }
     });
-    const catJson = JSON.stringify(catBreak).replace(/'/g, "\'");
+    const catKey = 'catData_' + p.id.replace(/[^a-zA-Z0-9]/g,'_');
+    window[catKey] = { name: p.name, cats: catBreak };
     bodyHTML += `<td style="${tdBase}background:#0d1f2d;">` +
-      `<button onclick="showCatPopup('${p.name}', '${catJson}')" ` +
-      `style="background:none;border:none;cursor:pointer;color:var(--blue);font-weight:700;font-size:0.9rem;font-family:'Kanit',sans-serif;text-decoration:underline dotted;padding:2px 4px;border-radius:4px;" ` +
-      `onmouseover="this.style.background='#1a2a3a'" onmouseout="this.style.background='none'">${pIn}</button></td>`;
+      `<button onclick="showCatPopupByKey('${catKey}')" ` +
+      `style="background:none;border:none;cursor:pointer;color:var(--blue);font-weight:700;font-size:0.9rem;font-family:'Kanit',sans-serif;text-decoration:underline dotted;padding:2px 4px;border-radius:4px;">` +
+      `${pIn}</button></td>`;
     bodyHTML += `<td style="${tdBase}background:#0d2010;color:var(--green);font-weight:700;">${pOut}</td>`;
     bodyHTML += `<td style="${tdBase}background:#1a1a0d;color:${pPending>0?'var(--yellow)':'var(--green)'};font-weight:700;">${pPending}</td>`;
     const DONE_NOW = ['done','court','filing','nitikorn'];
@@ -1556,8 +1557,14 @@ window.renderDailyTable = renderDailyTable;
 
 
 // ===== CATEGORY POPUP =====
-function showCatPopup(name, catJson) {
-  const cats = JSON.parse(catJson);
+function showCatPopupByKey(key) {
+  const data = window[key];
+  if (!data) return;
+  showCatPopup(data.name, data.cats);
+}
+window.showCatPopupByKey = showCatPopupByKey;
+
+function showCatPopup(name, cats) {
   document.getElementById('catPopupTitle').textContent = '📥 รับรวม — ' + name;
   const total = Object.values(cats).reduce((a,b) => a+b, 0);
   const maxVal = Math.max(...Object.values(cats));
