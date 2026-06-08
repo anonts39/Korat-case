@@ -1511,7 +1511,20 @@ function renderDailyTable() {
       const bg = isToday ? 'background:#0d1f0d;' : '';
       bodyHTML += `<td style="${tdBase}${bg}${cnt>0?'color:var(--blue);font-weight:600;':'color:var(--text3);'}">${cnt>0?cnt:'-'}</td>`;
     });
-    bodyHTML += `<td style="${tdBase}background:#0d1f2d;color:var(--blue);font-weight:700;">${pIn}</td>`;
+    // Build category breakdown for this person in this month
+    const catBreak = {};
+    pCases.forEach(c => {
+      const d = dayKey(c.date || c.createdAt);
+      if (d) {
+        const cat = c.category || 'ไม่ระบุ';
+        catBreak[cat] = (catBreak[cat] || 0) + 1;
+      }
+    });
+    const catJson = JSON.stringify(catBreak).replace(/'/g, "\'");
+    bodyHTML += `<td style="${tdBase}background:#0d1f2d;">` +
+      `<button onclick="showCatPopup('${p.name}', '${catJson}')" ` +
+      `style="background:none;border:none;cursor:pointer;color:var(--blue);font-weight:700;font-size:0.9rem;font-family:'Kanit',sans-serif;text-decoration:underline dotted;padding:2px 4px;border-radius:4px;" ` +
+      `onmouseover="this.style.background='#1a2a3a'" onmouseout="this.style.background='none'">${pIn}</button></td>`;
     bodyHTML += `<td style="${tdBase}background:#0d2010;color:var(--green);font-weight:700;">${pOut}</td>`;
     bodyHTML += `<td style="${tdBase}background:#1a1a0d;color:${pPending>0?'var(--yellow)':'var(--green)'};font-weight:700;">${pPending}</td>`;
     const DONE_NOW = ['done','court','filing','nitikorn'];
@@ -1540,6 +1553,36 @@ function renderDailyTable() {
   document.getElementById('dailyTableBody').innerHTML = bodyHTML;
 }
 window.renderDailyTable = renderDailyTable;
+
+
+// ===== CATEGORY POPUP =====
+function showCatPopup(name, catJson) {
+  const cats = JSON.parse(catJson);
+  document.getElementById('catPopupTitle').textContent = '📥 รับรวม — ' + name;
+  const total = Object.values(cats).reduce((a,b) => a+b, 0);
+  const maxVal = Math.max(...Object.values(cats));
+  const sorted = Object.entries(cats).sort((a,b) => b[1]-a[1]);
+  let html = '';
+  sorted.forEach(([cat, cnt]) => {
+    const pct = Math.round(cnt/maxVal*100);
+    html += `<div style="display:flex;align-items:center;padding:7px 0;border-bottom:1px solid #1c2128;font-size:0.82rem;">
+      <span style="color:var(--text2);min-width:90px;">📁 ${cat}</span>
+      <div style="flex:1;margin:0 8px;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;">
+        <div style="width:${pct}%;height:100%;background:var(--blue);border-radius:3px;"></div>
+      </div>
+      <span style="font-family:'Kanit',sans-serif;font-weight:700;color:var(--blue);min-width:24px;text-align:right;">${cnt}</span>
+    </div>`;
+  });
+  document.getElementById('catPopupRows').innerHTML = html;
+  document.getElementById('catPopupTotal').textContent = total + ' เรื่อง';
+  const el = document.getElementById('catPopupOverlay');
+  el.style.display = 'flex';
+}
+window.showCatPopup = showCatPopup;
+function closeCatPopup() {
+  document.getElementById('catPopupOverlay').style.display = 'none';
+}
+window.closeCatPopup = closeCatPopup;
 
 
 // ===== COMPARE =====
@@ -4782,5 +4825,20 @@ document.getElementById('s1Modal').addEventListener('click', function(e) {
 });
 </script>
 
+
+<!-- Category Popup -->
+<div id="catPopupOverlay" onclick="if(event.target===this)closeCatPopup()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 26px;width:300px;max-width:90vw;box-shadow:0 12px 40px rgba(0,0,0,0.6);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px;">
+      <span id="catPopupTitle" style="font-family:'Kanit',sans-serif;font-size:0.88rem;color:var(--blue);"></span>
+      <button onclick="closeCatPopup()" style="background:none;border:none;color:var(--text3);font-size:1.1rem;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div id="catPopupRows"></div>
+    <div style="margin-top:12px;padding-top:10px;border-top:2px solid var(--border);display:flex;justify-content:space-between;font-weight:700;">
+      <span>รวมทั้งหมด</span>
+      <span id="catPopupTotal" style="color:var(--blue);font-family:'Kanit',sans-serif;font-size:1.1rem;"></span>
+    </div>
+  </div>
+</div>
 </body>
 </html>
