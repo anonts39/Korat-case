@@ -3396,8 +3396,7 @@ window.scanBarcode = function(code) {
     document.body.appendChild(flash);
     setTimeout(() => flash.remove(), 2000);
     // Scroll to case and open timeline
-    selYM = ymOf(found.date);
-    document.getElementById('monthSelect').value = selYM;
+    selYM = 'all';
     filterStatus = 'all';
     document.getElementById('searchInput').value = found.caseId;
     renderAll();
@@ -3556,8 +3555,9 @@ window.quickScanSearch = function(q) {
   if (!found) found = cases.find(c => c.extQR && c.extQR.toString().includes(code));
 
   if (found) {
-    selYM = ymOf(found.date);
-    document.getElementById('monthSelect').value = selYM;
+    selYM = 'all';
+    filterStatus = 'all';
+    document.getElementById('searchInput').value = found.caseId;
     renderAll();
     setTimeout(() => openTimeline(found.id), 300);
   } else {
