@@ -35,7 +35,6 @@ tr:hover td{background:#1c2128;}
 .badge-filing{background:#1a1f2d;color:#a29bfe;}
 .badge-done{background:#1a2d1a;color:#3fb950;}
 .badge-court{background:#1a1f2d;color:#8b949e;}
-.badge-policeregion3{background:#0d2a2a;color:#00e5cc;border:1px solid #0a5a5a;}
 .overdue{color:#f85149;}
 .loading{text-align:center;padding:60px;color:#6e7681;}
 @media print{
@@ -78,7 +77,6 @@ tr:hover td{background:#1c2128;}
     <option value="screening">🔍 รอกลั่นกรอง</option>
     <option value="review">⚖️ อจ.พิจารณา</option>
     <option value="filing">📁 งานพิมพ์สำนวน</option>
-    <option value="policeregion3">🔵 ส่ง ตร.ภาค 3</option>
     <option value="done">✅ เสร็จสิ้น</option>
     <option value="court">🏛 ศาล</option>
   </select>
@@ -139,7 +137,7 @@ let cases = [], people = [];
 const sMap = {
   pending:'สอบสวนเพิ่มเติม', progress:'เจ้าของสำนวน',
   screening:'รอกลั่นกรอง', review:'อจ.พิจารณา',
-  filing:'งานพิมพ์สำนวน', policeregion3:'ส่ง ตร.ภาค 3', done:'เสร็จสิ้น', court:'ศาล'
+  filing:'งานพิมพ์สำนวน', done:'เสร็จสิ้น', court:'ศาล'
 };
 const badgeClass = {
   pending:'badge-pending', progress:'badge-progress', screening:'badge-screening',
