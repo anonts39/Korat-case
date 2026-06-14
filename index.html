@@ -4127,11 +4127,11 @@ window.rvwPaste = async function() {
 
 window.rvwSelectAction = function(action, el) {
   rvwCurrentAction = action;
-  ['rvwOptReceive','rvwOptFiling','rvwOptReturn'].forEach(id => {
-    document.getElementById(id).style.borderColor = 'var(--border)';
-    document.getElementById(id).style.background = 'var(--surface2)';
+  ['rvwOptReceive','rvwOptFiling','rvwOptReturn','rvwOptNitikorn','rvwOptPolice'].forEach(id => {
+    const e = document.getElementById(id);
+    if (e) { e.style.borderColor = 'var(--border)'; e.style.background = 'var(--surface2)'; }
   });
-  const colors = { receive:'var(--blue)', filing:'var(--green)', return:'var(--yellow)' };
+  const colors = { receive:'var(--blue)', filing:'var(--green)', return:'var(--yellow)', nitikorn:'var(--purple)', policeregion3:'#00e5cc' };
   el.style.borderColor = colors[action] || 'var(--accent)';
   el.style.background = '#1f1a12';
   document.getElementById('rvwSubmitBtn').disabled = false;
@@ -4150,6 +4150,12 @@ window.rvwSubmit = async function() {
   } else if (rvwCurrentAction === 'filing') {
     newStatus = 'filing'; dept = 'งานพิมพ์สำนวน';
     actionLabel = '📁 ส่งงานพิมพ์สำนวน'; statusLabel = '📁 งานพิมพ์สำนวน';
+  } else if (rvwCurrentAction === 'nitikorn') {
+    newStatus = 'nitikorn'; dept = 'นิติกรเวรชี้';
+    actionLabel = '🟣 ส่งนิติกรเวรชี้'; statusLabel = '🟣 นิติกรเวรชี้';
+  } else if (rvwCurrentAction === 'policeregion3') {
+    newStatus = 'policeregion3'; dept = 'ส่ง ตร.ภาค 3';
+    actionLabel = '🔵 ส่ง ตร.ภาค 3'; statusLabel = '🔵 ส่ง ตร.ภาค 3';
   } else {
     newStatus = 'pending'; dept = 'อัยการเจ้าของเรื่อง';
     actionLabel = '↩️ คืนเจ้าของสำนวน (สอบสวนเพิ่มเติม)'; statusLabel = '🔍 สอบสวนเพิ่มเติม';
@@ -4599,6 +4605,18 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
         <div style="font-size:1.3rem;">↩️</div>
         <div style="font-weight:600;font-size:0.85rem;">คืนเจ้าของสำนวน</div>
         <div style="font-size:0.7rem;color:var(--text3);">สถานะ: สอบสวนเพิ่มเติม</div>
+      </div>
+      <div id="rvwOptNitikorn" onclick="rvwSelectAction('nitikorn',this)"
+           style="padding:12px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;text-align:center;">
+        <div style="font-size:1.3rem;">🟣</div>
+        <div style="font-weight:600;font-size:0.85rem;">นิติกรเวรชี้</div>
+        <div style="font-size:0.7rem;color:var(--text3);">สถานะ: นิติกรเวรชี้</div>
+      </div>
+      <div id="rvwOptPolice" onclick="rvwSelectAction('policeregion3',this)"
+           style="padding:12px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;text-align:center;">
+        <div style="font-size:1.3rem;">🔵</div>
+        <div style="font-weight:600;font-size:0.85rem;">ส่ง ตร.ภาค 3</div>
+        <div style="font-size:0.7rem;color:var(--text3);">สถานะ: ส่ง ตร.ภาค 3</div>
       </div>
     </div>
   </div>
