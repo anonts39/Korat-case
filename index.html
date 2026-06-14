@@ -3043,13 +3043,41 @@ window.onDeptChange = function(sel) {
   const map = DEPT_STATUS_MAP[dept];
   const box = document.getElementById('tlAutoStatus');
   const txt = document.getElementById('tlAutoStatusText');
-  if (map && dept) {
-    box.style.display = 'block';
-    txt.textContent = map.label;
-  } else {
+  const subOpts = document.getElementById('tlFilingSubOptions');
+  // Show/hide filing sub-options
+  if (dept === 'งานพิมพ์สำนวน') {
+    subOpts.style.display = 'block';
     box.style.display = 'none';
+    window._tlFilingSub = null;
+    document.querySelectorAll('.tl-filing-sub').forEach(b => { b.style.borderColor='var(--border)'; b.style.background='var(--surface)'; });
+    document.getElementById('tlFilingOtherNote').style.display = 'none';
+  } else {
+    subOpts.style.display = 'none';
+    window._tlFilingSub = null;
+    if (map && dept) {
+      box.style.display = 'block';
+      txt.textContent = map.label;
+    } else {
+      box.style.display = 'none';
+    }
   }
 };
+window.onDeptChange = onDeptChange;
+
+window.tlSelectFilingSub = function(sub, el) {
+  window._tlFilingSub = sub;
+  document.querySelectorAll('.tl-filing-sub').forEach(b => {
+    b.style.borderColor = 'var(--border)';
+    b.style.background = 'var(--surface)';
+  });
+  el.style.borderColor = 'var(--blue)';
+  el.style.background = '#0d1f2d';
+  // note is always visible - no need to toggle
+  const labels = { print_prosecute:'📁 งานพิมพ์สำนวน (พิมพ์ฟ้อง)', policeregion3:'✅ เสร็จสิ้น (ส่ง ตร.ภาค 3)', return_police:'✅ เสร็จสิ้น (คืนสำนวน ตร.)', pending:'🔍 สอบสวนเพิ่มเติม' };
+  document.getElementById('tlAutoStatusText').textContent = labels[sub] || '';
+  document.getElementById('tlAutoStatus').style.display = 'block';
+};
+
 
 window.selectReturnOpt = function(radio) {
   currentReturnAction = radio.value;
@@ -3071,10 +3099,30 @@ window.saveTracking = async function(actionType) {
     person = document.getElementById('tlPerson').value;
     note   = document.getElementById('tlNote').value.trim();
     if (!dept) { alert('กรุณาเลือกแผนกที่ส่งสำนวนไป'); return; }
-    const map = DEPT_STATUS_MAP[dept];
-    newStatus   = map?.status || 'progress';
-    statusLabel = map?.label  || 'ดำเนินการ';
-    actionLabel = `📤 ส่งสำนวนไป ${dept}`;
+    // Handle filing sub-options
+    if (dept === 'งานพิมพ์สำนวน') {
+      const sub = window._tlFilingSub;
+      if (!sub) { alert('กรุณาเลือกประเภทงานคดี'); return; }
+      const otherNote = document.getElementById('tlFilingOtherNote').value.trim();
+      if (sub === 'policeregion3') {
+        newStatus = 'done'; statusLabel = '✅ เสร็จสิ้น (ส่ง ตร.ภาค 3)';
+        actionLabel = '🔵 ส่ง ตร.ภาค 3'; dept = 'ส่ง ตร.ภาค 3';
+      } else if (sub === 'return_police') {
+        newStatus = 'done'; statusLabel = '✅ เสร็จสิ้น (คืนสำนวน ตร.)';
+        actionLabel = '📤 คืนสำนวน ตร.'; dept = 'คืนสำนวน ตร.';
+      } else if (sub === 'pending') {
+        newStatus = 'pending'; statusLabel = '🔍 สอบสวนเพิ่มเติม';
+        actionLabel = '🔍 สอบเพิ่ม'; dept = 'อัยการเจ้าของเรื่อง';
+      } else {
+        newStatus = 'filing'; statusLabel = '📁 งานพิมพ์สำนวน';
+        actionLabel = '🖨️ พิมพ์ฟ้อง' + (otherNote ? ' — '+otherNote : '');
+      }
+    } else {
+      const map = DEPT_STATUS_MAP[dept];
+      newStatus   = map?.status || 'progress';
+      statusLabel = map?.label  || 'ดำเนินการ';
+      actionLabel = `📤 ส่งสำนวนไป ${dept}`;
+    }
   } else {
     if (!currentReturnAction) { alert('กรุณาเลือกการดำเนินการ'); return; }
     person = document.getElementById('tlReturnPerson').value;
@@ -4148,7 +4196,7 @@ window.rvwSelectFilingSub = function(sub, el) {
   document.querySelectorAll('.rvw-filing-sub').forEach(b => { b.style.borderColor='var(--border)'; b.style.background='var(--surface)'; });
   el.style.borderColor = '#00e5cc';
   el.style.background = '#0d2a2a';
-  document.getElementById('rvwFilingOtherNote').style.display = sub === 'other' ? 'block' : 'none';
+  // note always visible
   document.getElementById('rvwSubmitBtn').disabled = false;
 };
 
@@ -4171,15 +4219,12 @@ window.rvwSubmit = async function() {
     } else if (sub === 'return_police') {
       newStatus = 'done'; dept = 'คืนสำนวน ตร.';
       actionLabel = '📤 คืนสำนวน ตร.'; statusLabel = '✅ เสร็จสิ้น (คืนสำนวน ตร.)';
-    } else if (sub === 'other') {
-      newStatus = 'filing'; dept = 'งานพิมพ์สำนวน';
-      actionLabel = '✏️ ' + (otherNote || 'อื่นๆ'); statusLabel = '📁 งานพิมพ์สำนวน';
     } else if (sub === 'pending') {
       newStatus = 'pending'; dept = 'อัยการเจ้าของเรื่อง';
       actionLabel = '🔍 สอบเพิ่ม'; statusLabel = '🔍 สอบสวนเพิ่มเติม';
     } else {
       newStatus = 'filing'; dept = 'งานพิมพ์สำนวน';
-      actionLabel = '🖨️ พิมพ์ฟ้อง'; statusLabel = '📁 งานพิมพ์สำนวน';
+      actionLabel = '🖨️ พิมพ์ฟ้อง' + (otherNote ? ' — '+otherNote : ''); statusLabel = '📁 งานพิมพ์สำนวน';
     }
   } else if (rvwCurrentAction === 'nitikorn') {
     newStatus = 'nitikorn'; dept = 'นิติกรเวรชี้';
@@ -4406,6 +4451,18 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
       <select class="tl-select" id="tlPerson">
         <option value="">-- เจ้าหน้าที่ --</option>
       </select>
+    </div>
+
+    <!-- Sub-options เมื่อเลือกงานพิมพ์สำนวน -->
+    <div id="tlFilingSubOptions" style="display:none;margin-bottom:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;">
+      <div style="font-size:0.75rem;color:var(--text3);margin-bottom:8px;">เลือกประเภทงานคดี:</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <div class="tl-filing-sub" onclick="tlSelectFilingSub('print_prosecute',this)" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;font-size:0.8rem;color:var(--text);">🖨️ พิมพ์ฟ้อง</div>
+        <div class="tl-filing-sub" onclick="tlSelectFilingSub('policeregion3',this)" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;font-size:0.8rem;color:var(--text);">🔵 ส่ง ตร.ภาค 3</div>
+        <div class="tl-filing-sub" onclick="tlSelectFilingSub('return_police',this)" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;font-size:0.8rem;color:var(--text);">📤 คืนสำนวน ตร.</div>
+        <div class="tl-filing-sub" onclick="tlSelectFilingSub('pending',this)" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;font-size:0.8rem;color:var(--text);grid-column:span 2;">🔍 สอบเพิ่ม</div>
+      </div>
+      <input id="tlFilingOtherNote" placeholder="หมายเหตุเพิ่มเติม (ไม่บังคับ)" style="margin-top:6px;width:100%;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.82rem;outline:none;">
     </div>
     <div id="tlAutoStatus" style="display:none;font-size:0.75rem;padding:6px 10px;border-radius:6px;background:#1a1f2e;border:1px solid var(--blue);color:var(--blue);margin-bottom:8px;">
       🔄 สถานะจะเปลี่ยนเป็น: <strong id="tlAutoStatusText"></strong>
@@ -4648,10 +4705,9 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
         <div class="rvw-filing-sub" onclick="rvwSelectFilingSub('print_prosecute',this)" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;font-size:0.8rem;">🖨️ พิมพ์ฟ้อง</div>
         <div class="rvw-filing-sub" onclick="rvwSelectFilingSub('policeregion3',this)" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;font-size:0.8rem;">🔵 ส่ง ตร.ภาค 3</div>
         <div class="rvw-filing-sub" onclick="rvwSelectFilingSub('return_police',this)" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;font-size:0.8rem;">📤 คืนสำนวน ตร.</div>
-        <div class="rvw-filing-sub" onclick="rvwSelectFilingSub('other',this)" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;font-size:0.8rem;">✏️ อื่น (ระบุ)</div>
         <div class="rvw-filing-sub" onclick="rvwSelectFilingSub('pending',this)" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;font-size:0.8rem;grid-column:span 2;">🔍 สอบเพิ่ม</div>
       </div>
-      <input id="rvwFilingOtherNote" placeholder="ระบุรายละเอียด..." style="display:none;margin-top:6px;width:100%;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.82rem;outline:none;">
+      <input id="rvwFilingOtherNote" placeholder="หมายเหตุเพิ่มเติม (ไม่บังคับ)" style="margin-top:6px;width:100%;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.82rem;outline:none;">
     </div>
   </div>
 
