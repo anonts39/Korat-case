@@ -1120,9 +1120,6 @@ async function loadCases(force) {
   Object.keys(_parseDateCache).forEach(k => delete _parseDateCache[k]);
   Object.keys(_ymOfCache).forEach(k => delete _ymOfCache[k]);
   cases.sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
-  // Clear caches
-  Object.keys(_parseDateCache||{}).forEach(k => delete _parseDateCache[k]);
-  Object.keys(_ymOfCache||{}).forEach(k => delete _ymOfCache[k]);
   // Pre-compute per case
   cases.forEach(c => {
     c._ym  = ymOf(c.date || c.createdAt);
