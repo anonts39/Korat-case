@@ -157,7 +157,6 @@ td{padding:11px 14px;font-size:0.85rem;}
 .badge.screening{background:#1a1f2d;color:#00d2d3;border:1px solid #0d3a3b;}
 .badge.review{background:#2d2010;color:var(--yellow);border:1px solid #4a3a10;}
 .badge.nitikorn{background:#1a0d2d;color:#bc8cff;border:1px solid #3a1a5a;}
-.badge.policeregion3{background:#0d2a2a;color:#00e5cc;border:1px solid #0a5a5a;}
 .action-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.75rem;cursor:pointer;}
 .action-btn:hover{border-color:var(--accent);color:var(--accent);}
 .action-btn.del:hover{border-color:var(--red);color:var(--red);}
@@ -696,7 +695,6 @@ font-weight: 700 !important;
       <button class="filter-btn" onclick="setFilter('screening',this)">🔍 รอกลั่นกรอง</button>
       <button class="filter-btn" onclick="setFilter('review',this)">⚖️ อจ.พิจารณา</button>
       <button class="filter-btn" onclick="setFilter('filing',this)">📁 งานพิมพ์สำนวน</button>
-      <button class="filter-btn" onclick="setFilter('policeregion3',this)">🔵 ส่ง ตร.ภาค 3</button>
       <button class="filter-btn" onclick="setFilter('done',this)">✅ เสร็จสิ้น</button>
       <button class="filter-btn" onclick="setFilter('court',this)">🏛 ศาล</button>
       <button class="filter-btn" onclick="setFilter('all',this)">📋 ทุกสถานะ</button>
@@ -764,7 +762,6 @@ font-weight: 700 !important;
           <option value="screening">🔍 รอกลั่นกรอง</option>
           <option value="review">⚖️ อจ.พิจารณา</option>
           <option value="filing">📁 งานพิมพ์สำนวน</option>
-          <option value="policeregion3">🔵 ส่ง ตร.ภาค 3</option>
           <option value="done">✅ เสร็จสิ้น</option>
           <option value="court">🏛 ศาล</option>
         </select></div>
@@ -1270,7 +1267,7 @@ function renderSummary() {
       : (selYM === 'all' ? cases : inMonth(selYM));
   const p = selYM === 'all' ? [] : inMonth(prevYM(activeSelYM));
   const DONE_STATUSES = ['done','court'];
-  const EXCLUDE_ST = ['filing','nitikorn','policeregion3'];
+  const EXCLUDE_ST = ['filing','nitikorn'];
   const S1_CAT = 'ส.1 (ยกคดี)';
   const EXCLUDE = x => x.category !== S1_CAT && !EXCLUDE_ST.includes(x.status);
   const ct = c.filter(x => EXCLUDE(x)).length;
@@ -1348,7 +1345,7 @@ function renderFlowReport() {
   const curYM2 = String(now2.getFullYear())+'-'+String(now2.getMonth()+1).padStart(2,'0');
   const activeSelYM = selYM || curYM2;
   const S1_CAT = 'ส.1 (ยกคดี)';
-  const NOT_ACTIVE = ['done','court','filing','nitikorn','policeregion3'];
+  const NOT_ACTIVE = ['done','court','filing','nitikorn'];
 
   // กรองตาม date range (_df/_dt) หรือ selYM
   function inRange(dateStr) {
@@ -1562,7 +1559,7 @@ function renderDailyTable() {
       `${pIn}</button></td>`;
     bodyHTML += `<td style="${tdBase}background:#0d2010;color:var(--green);font-weight:700;">${pOut}</td>`;
     bodyHTML += `<td style="${tdBase}background:#1a1a0d;color:${pPending>0?'var(--yellow)':'var(--green)'};font-weight:700;">${pPending}</td>`;
-    const DONE_NOW = ['done','court','filing','nitikorn','policeregion3'];
+    const DONE_NOW = ['done','court','filing','nitikorn'];
     const realPending = pCases.filter(c => !DONE_NOW.includes(c.status)).length;
     bodyHTML += `<td style="${tdBase}background:#2d1a0d;color:${realPending>0?'var(--red)':'var(--green)'};font-weight:700;">${realPending}</td>`;
     bodyHTML += `</tr>`;
@@ -1579,7 +1576,7 @@ function renderDailyTable() {
   bodyHTML += `<td style="${tdBase}background:#0d1f2d;color:var(--blue);font-weight:700;">${grandIn}</td>`;
   bodyHTML += `<td style="${tdBase}background:#0d2010;color:var(--green);font-weight:700;">${grandOut}</td>`;
   bodyHTML += `<td style="${tdBase}background:#1a1a0d;color:var(--yellow);font-weight:700;">${grandIn-grandOut}</td>`;
-  const DONE_NOW2 = ['done','court','filing','nitikorn','policeregion3'];
+  const DONE_NOW2 = ['done','court','filing','nitikorn'];
   const S1_CAT2 = 'ส.1 (ยกคดี)';
   const grandRealPending = cases.filter(c => c.category !== S1_CAT2 && !DONE_NOW2.includes(c.status)).length;
   bodyHTML += `<td style="${tdBase}background:#2d1a0d;color:var(--red);font-weight:700;">${grandRealPending}</td>`;
@@ -2344,7 +2341,6 @@ function renderTable() {
     review:    ['⚖️ อจ.พิจารณา',  'review'],
     filing:         ['📁 งานพิมพ์สำนวน', 'filing'],
     nitikorn:       ['🟣 นิติกรเวรชี้', 'nitikorn'],
-    policeregion3:  ['🔵 ส่ง ตร.ภาค 3', 'policeregion3'],
     done:           ['✅ เสร็จสิ้น',    'done'],
     court:          ['🏛 ศาล', 'court']
   };
@@ -2921,7 +2917,7 @@ window.openTimeline = async function(id) {
   currentTimelineCase = c;
 
   // Case info
-  const statusMap = { pending:'🔍 สอบสวนเพิ่มเติม', progress:'🔵 เจ้าของสำนวน', screening:'🔍 รอกลั่นกรอง', review:'⚖️ อจ.พิจารณา', nitikorn:'🟣 นิติกรเวรชี้', filing:'📁 งานพิมพ์สำนวน', policeregion3:'🔵 ส่ง ตร.ภาค 3', done:'✅ เสร็จสิ้น', court:'🏛 ศาล' };
+  const statusMap = { pending:'🔍 สอบสวนเพิ่มเติม', progress:'🔵 เจ้าของสำนวน', screening:'🔍 รอกลั่นกรอง', review:'⚖️ อจ.พิจารณา', nitikorn:'🟣 นิติกรเวรชี้', filing:'📁 งานพิมพ์สำนวน', done:'✅ เสร็จสิ้น', court:'🏛 ศาล' };
   const relatedArr = Array.isArray(c.relatedCases) ? c.relatedCases : (c.relatedCases ? String(c.relatedCases).split(',').map(s=>s.trim()).filter(Boolean) : []);
   const relatedHTML = relatedArr.length ?
     `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
@@ -3014,7 +3010,6 @@ const DEPT_STATUS_MAP = {
   'อัยการจังหวัด':             { status: 'review',     label: '⚖️ อจ.พิจารณา' },
   'งานพิมพ์สำนวน':            { status: 'filing',     label: '📁 งานพิมพ์สำนวน' },
   'นิติกรเวรชี้':              { status: 'nitikorn',       label: '🟣 นิติกรเวรชี้' },
-  'ส่ง ตร.ภาค 3':              { status: 'policeregion3',  label: '🔵 ส่ง ตร.ภาค 3' },
   'ศาล':                       { status: 'court',          label: '🏛 ดำเนินการทางศาล' },
 };
 
@@ -4104,7 +4099,7 @@ window.rvwSearch = async function() {
   status.style.color = 'var(--green)';
 
   // Show case info
-  const sMap = { pending:'🔍 สอบสวนเพิ่มเติม', progress:'🔵 เจ้าของสำนวน', screening:'🔍 รอกลั่นกรอง', review:'⚖️ อจ.พิจารณา', filing:'📁 งานพิมพ์สำนวน', nitikorn:'🟣 นิติกรเวรชี้', policeregion3:'🔵 ส่ง ตร.ภาค 3', done:'✅ เสร็จสิ้น', court:'🏛 ศาล' };
+  const sMap = { pending:'🔍 สอบสวนเพิ่มเติม', progress:'🔵 เจ้าของสำนวน', screening:'🔍 รอกลั่นกรอง', review:'⚖️ อจ.พิจารณา', filing:'📁 งานพิมพ์สำนวน', nitikorn:'🟣 นิติกรเวรชี้', done:'✅ เสร็จสิ้น', court:'🏛 ศาล' };
   document.getElementById('rvwCaseIdLabel').textContent = found.caseId;
   document.getElementById('rvwCaseNameLabel').textContent = found.name;
   document.getElementById('rvwCaseBadges').innerHTML =
@@ -4171,11 +4166,11 @@ window.rvwSubmit = async function() {
     const sub = rvwCurrentFilingSub || 'print_prosecute';
     const otherNote = document.getElementById('rvwFilingOtherNote').value.trim();
     if (sub === 'policeregion3') {
-      newStatus = 'policeregion3'; dept = 'ส่ง ตร.ภาค 3';
-      actionLabel = '🔵 ส่ง ตร.ภาค 3'; statusLabel = '🔵 ส่ง ตร.ภาค 3';
+      newStatus = 'done'; dept = 'ส่ง ตร.ภาค 3';
+      actionLabel = '🔵 ส่ง ตร.ภาค 3'; statusLabel = '✅ เสร็จสิ้น (ส่ง ตร.ภาค 3)';
     } else if (sub === 'return_police') {
-      newStatus = 'filing'; dept = 'งานพิมพ์สำนวน';
-      actionLabel = '📤 คืนสำนวน ตร.'; statusLabel = '📁 งานพิมพ์สำนวน';
+      newStatus = 'done'; dept = 'คืนสำนวน ตร.';
+      actionLabel = '📤 คืนสำนวน ตร.'; statusLabel = '✅ เสร็จสิ้น (คืนสำนวน ตร.)';
     } else if (sub === 'other') {
       newStatus = 'filing'; dept = 'งานพิมพ์สำนวน';
       actionLabel = '✏️ ' + (otherNote || 'อื่นๆ'); statusLabel = '📁 งานพิมพ์สำนวน';
@@ -4186,9 +4181,6 @@ window.rvwSubmit = async function() {
   } else if (rvwCurrentAction === 'nitikorn') {
     newStatus = 'nitikorn'; dept = 'นิติกรเวรชี้';
     actionLabel = '🟣 ส่งนิติกรเวรชี้'; statusLabel = '🟣 นิติกรเวรชี้';
-  } else if (rvwCurrentAction === 'policeregion3') {
-    newStatus = 'policeregion3'; dept = 'ส่ง ตร.ภาค 3';
-    actionLabel = '🔵 ส่ง ตร.ภาค 3'; statusLabel = '🔵 ส่ง ตร.ภาค 3';
   } else {
     newStatus = 'pending'; dept = 'อัยการเจ้าของเรื่อง';
     actionLabel = '↩️ คืนเจ้าของสำนวน (สอบสวนเพิ่มเติม)'; statusLabel = '🔍 สอบสวนเพิ่มเติม';
@@ -4253,7 +4245,7 @@ window.ownSearch = async function() {
   if (!val) return;
   const code = val.replace(/^tel:/i,'');
   const phoneNorm = code.replace(/[-\s]/g,'');
-  const sMap = {pending:'🔍 สอบสวนเพิ่มเติม',progress:'🔵 เจ้าของสำนวน',screening:'🔍 รอกลั่นกรอง',review:'⚖️ อจ.พิจารณา',filing:'📁 งานพิมพ์สำนวน',nitikorn:'🟣 นิติกรเวรชี้',policeregion3:'🔵 ส่ง ตร.ภาค 3',done:'✅ เสร็จสิ้น',court:'🏛 ศาล'};
+  const sMap = {pending:'🔍 สอบสวนเพิ่มเติม',progress:'🔵 เจ้าของสำนวน',screening:'🔍 รอกลั่นกรอง',review:'⚖️ อจ.พิจารณา',filing:'📁 งานพิมพ์สำนวน',nitikorn:'🟣 นิติกรเวรชี้',done:'✅ เสร็จสิ้น',court:'🏛 ศาล'};
 
   // Use existing cases (already loaded)
   let found = cases.find(c=>c.id===code) ||
@@ -4406,7 +4398,6 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
         <option value="อัยการจังหวัด">⚖️ อัยการจังหวัด</option>
         <option value="งานพิมพ์สำนวน">📁 งานพิมพ์สำนวน</option>
         <option value="นิติกรเวรชี้">🟣 นิติกรเวรชี้</option>
-        <option value="ส่ง ตร.ภาค 3">🔵 ส่ง ตร.ภาค 3</option>
         <option value="ศาล">🏛 ศาล</option>
       </select>
       <select class="tl-select" id="tlPerson">
