@@ -126,6 +126,16 @@ video{width:100%;max-height:280px;display:block;}
           <span class="ab-label">คืนเจ้าของสำนวน</span>
           <span class="ab-sub">สถานะ: สอบสวนเพิ่มเติม</span>
         </div>
+        <div class="action-btn" id="actionNitikorn" onclick="selectAction('nitikorn', this)">
+          <span class="ab-icon">🟣</span>
+          <span class="ab-label">นิติกรเวรชี้</span>
+          <span class="ab-sub">สถานะ: นิติกรเวรชี้</span>
+        </div>
+        <div class="action-btn" id="actionPolice" onclick="selectAction('policeregion3', this)">
+          <span class="ab-icon">🔵</span>
+          <span class="ab-label">ส่ง ตร.ภาค 3</span>
+          <span class="ab-sub">สถานะ: ส่ง ตร.ภาค 3</span>
+        </div>
       </div>
     </div>
     <input class="note-input" id="actionNote" placeholder="หมายเหตุ (ไม่บังคับ)">
@@ -364,6 +374,12 @@ window.confirmAction = async function() {
   } else if (selectedAction === 'filing') {
     newStatus = 'filing'; dept = 'งานคดี';
     actionLabel = '📁 ส่งงานคดี'; statusLabel = '📁 งานคดี';
+  } else if (selectedAction === 'nitikorn') {
+    newStatus = 'nitikorn'; dept = 'นิติกรเวรชี้';
+    actionLabel = '🟣 ส่งนิติกรเวรชี้'; statusLabel = '🟣 นิติกรเวรชี้';
+  } else if (selectedAction === 'policeregion3') {
+    newStatus = 'policeregion3'; dept = 'ส่ง ตร.ภาค 3';
+    actionLabel = '🔵 ส่ง ตร.ภาค 3'; statusLabel = '🔵 ส่ง ตร.ภาค 3';
   } else {
     newStatus = 'pending'; dept = 'อัยการเจ้าของเรื่อง';
     actionLabel = '↩️ คืนเจ้าของสำนวน (สอบสวนเพิ่มเติม)'; statusLabel = '🔍 สอบสวนเพิ่มเติม (ค้าง)';
