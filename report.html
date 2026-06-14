@@ -301,7 +301,7 @@ window.renderReport = function() {
       })()}</td>
       <td>${c.category||'-'}</td>
       <td>${person?.name||'-'}</td>
-      <td><span class="badge ${badgeClass[c.status]||''}">${sMap[c.status]||c.status}</span></td>
+      <td><span class="badge ${badgeClass[c.status]||''}">${(()=>{const s=sMap[c.status]||c.status; if(c.lastAction&&(c.status==='done'||c.status==='filing'||c.status==='nitikorn')){const d=c.lastAction.replace(/^[^\u0E00-\u0E7Fa-zA-Z0-9]*/,'').trim().substring(0,15);return d?s+' ('+d+')':s;}return s;})()}</span></td>
       <td>${c.date?new Date(c.date).toLocaleDateString('th-TH'):'-'}</td>
       <td class="${isOverdue?'overdue':''}">${dl}${isOverdue?' ⚠️':''}</td>
     </tr>`;
