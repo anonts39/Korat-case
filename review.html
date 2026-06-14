@@ -145,14 +145,11 @@ video{width:100%;max-height:280px;display:block;}
           <div class="filing-sub-btn" onclick="selectFilingSub('return_police',this)" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;font-size:0.8rem;">
             📤 คืนสำนวน ตร.
           </div>
-          <div class="filing-sub-btn" onclick="selectFilingSub('other',this)" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;font-size:0.8rem;">
-            ✏️ อื่น (ระบุ)
-          </div>
           <div class="filing-sub-btn" onclick="selectFilingSub('pending',this)" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;font-size:0.8rem;grid-column:span 2;">
             🔍 สอบเพิ่ม
           </div>
         </div>
-        <input id="filingOtherNote" placeholder="ระบุรายละเอียด..." style="display:none;margin-top:6px;width:100%;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.82rem;outline:none;">
+        <input id="filingOtherNote" placeholder="หมายเหตุเพิ่มเติม (ไม่บังคับ)" style="margin-top:6px;width:100%;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.82rem;outline:none;">
       </div>
     </div>
     <input class="note-input" id="actionNote" placeholder="หมายเหตุ (ไม่บังคับ)">
@@ -423,15 +420,12 @@ window.confirmAction = async function() {
     } else if (sub === 'return_police') {
       newStatus = 'done'; dept = 'คืนสำนวน ตร.';
       actionLabel = '📤 คืนสำนวน ตร.'; statusLabel = '✅ เสร็จสิ้น (คืนสำนวน ตร.)';
-    } else if (sub === 'other') {
-      newStatus = 'filing'; dept = 'งานคดี';
-      actionLabel = '✏️ ' + (otherNote || 'อื่นๆ'); statusLabel = '📁 งานคดี';
     } else if (sub === 'pending') {
       newStatus = 'pending'; dept = 'อัยการเจ้าของเรื่อง';
       actionLabel = '🔍 สอบเพิ่ม'; statusLabel = '🔍 สอบสวนเพิ่มเติม';
     } else {
       newStatus = 'filing'; dept = 'งานคดี';
-      actionLabel = '🖨️ พิมพ์ฟ้อง'; statusLabel = '📁 งานคดี';
+      actionLabel = '🖨️ พิมพ์ฟ้อง' + (otherNote ? ' — '+otherNote : ''); statusLabel = '📁 งานคดี';
     }
   } else if (selectedAction === 'nitikorn') {
     newStatus = 'nitikorn'; dept = 'นิติกรเวรชี้';
