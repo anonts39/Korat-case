@@ -916,7 +916,7 @@ function getCatColor(cat) {
 function getCatEmoji(cat) { return CAT_EMOJI[cat] || '📁'; }
 
 const _ymOfCache = {};
-ymOf    = function(d) {
+var ymOf    = function(d) {
   if (!d) return '';
   if (_ymOfCache[d] !== undefined) return _ymOfCache[d];
   var _ymResult = '';
