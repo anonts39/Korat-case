@@ -4174,6 +4174,9 @@ window.rvwSubmit = async function() {
     } else if (sub === 'other') {
       newStatus = 'filing'; dept = 'งานพิมพ์สำนวน';
       actionLabel = '✏️ ' + (otherNote || 'อื่นๆ'); statusLabel = '📁 งานพิมพ์สำนวน';
+    } else if (sub === 'pending') {
+      newStatus = 'pending'; dept = 'อัยการเจ้าของเรื่อง';
+      actionLabel = '🔍 สอบเพิ่ม'; statusLabel = '🔍 สอบสวนเพิ่มเติม';
     } else {
       newStatus = 'filing'; dept = 'งานพิมพ์สำนวน';
       actionLabel = '🖨️ พิมพ์ฟ้อง'; statusLabel = '📁 งานพิมพ์สำนวน';
@@ -4646,6 +4649,7 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
         <div class="rvw-filing-sub" onclick="rvwSelectFilingSub('policeregion3',this)" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;font-size:0.8rem;">🔵 ส่ง ตร.ภาค 3</div>
         <div class="rvw-filing-sub" onclick="rvwSelectFilingSub('return_police',this)" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;font-size:0.8rem;">📤 คืนสำนวน ตร.</div>
         <div class="rvw-filing-sub" onclick="rvwSelectFilingSub('other',this)" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;font-size:0.8rem;">✏️ อื่น (ระบุ)</div>
+        <div class="rvw-filing-sub" onclick="rvwSelectFilingSub('pending',this)" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;font-size:0.8rem;grid-column:span 2;">🔍 สอบเพิ่ม</div>
       </div>
       <input id="rvwFilingOtherNote" placeholder="ระบุรายละเอียด..." style="display:none;margin-top:6px;width:100%;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.82rem;outline:none;">
     </div>
