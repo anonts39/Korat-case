@@ -915,33 +915,37 @@ function getCatColor(cat) {
 }
 function getCatEmoji(cat) { return CAT_EMOJI[cat] || '📁'; }
 
-const ymOf    = function(d) {
+const _ymOfCache = {};
+ymOf    = function(d) {
   if (!d) return '';
-  // Handle Thai locale string e.g. "02 มิ.ย. 2569" or "2 มิถุนายน 2569"
-  var TH_MON = {'มกราคม':1,'กุมภาพันธ์':2,'มีนาคม':3,'เมษายน':4,'พฤษภาคม':5,'มิถุนายน':6,'กรกฎาคม':7,'สิงหาคม':8,'กันยายน':9,'ตุลาคม':10,'พฤศจิกายน':11,'ธันวาคม':12,
-    'ม.ค.':1,'ก.พ.':2,'มี.ค.':3,'เม.ย.':4,'พ.ค.':5,'มิ.ย.':6,'ก.ค.':7,'ส.ค.':8,'ก.ย.':9,'ต.ค.':10,'พ.ย.':11,'ธ.ค.':12};
+  if (_ymOfCache[d] !== undefined) return _ymOfCache[d];
+  var _ymResult = '';
+  var TH_MON = {'มกราคม':1,'กุมภาพันธ์':2,'มีนาคม':3,'เมษายน':4,'พฤษภาคม':5,'มิถุนายน':6,'กรกฎาคม':7,'สิงหาคม':8,'กันยายน':9,'ตุลาคม':10,'พฤศจิกายน':11,'ธันวาคม':12,'ม.ค.':1,'ก.พ.':2,'มี.ค.':3,'เม.ย.':4,'พ.ค.':5,'มิ.ย.':6,'ก.ค.':7,'ส.ค.':8,'ก.ย.':9,'ต.ค.':10,'พ.ย.':11,'ธ.ค.':12};
   for (var k in TH_MON) {
     if (d.indexOf(k) >= 0) {
       var parts = d.replace(/[^\d\s]/g,'').trim().split(/\s+/);
       var beYear = parseInt(parts[parts.length-1]);
       var ceYear = beYear > 2400 ? beYear - 543 : beYear;
       var mo = String(TH_MON[k]).padStart(2,'0');
-      return ceYear + '-' + mo;
+      _ymResult = ceYear + '-' + mo;
+      break;
     }
   }
-  // Handle ISO format "2026-06-02" or BE "2569-06-02"
-  var ym = d.slice(0,7);
-  var y = parseInt(ym.split('-')[0]);
-  if (y > 2400) {
-    var mo = ym.split('-')[1];
-    return (y-543)+'-'+mo;
+  if (!_ymResult) {
+    var ym = d.slice(0,7);
+    var y = parseInt(ym.split('-')[0]);
+    _ymResult = y > 2400 ? (y-543)+'-'+ym.split('-')[1] : ym;
   }
-  return ym;
+  _ymOfCache[d] = _ymResult;
+  return _ymResult;
 };
 const prevYM  = m => { const [y,mo] = m.split('-').map(Number); return mo===1 ? `${y-1}-12` : `${y}-${String(mo-1).padStart(2,'0')}`; };
 const TH_MON_NUM = {'มกราคม':0,'กุมภาพันธ์':1,'มีนาคม':2,'เมษายน':3,'พฤษภาคม':4,'มิถุนายน':5,'กรกฎาคม':6,'สิงหาคม':7,'กันยายน':8,'ตุลาคม':9,'พฤศจิกายน':10,'ธันวาคม':11,'ม.ค.':0,'ก.พ.':1,'มี.ค.':2,'เม.ย.':3,'พ.ค.':4,'มิ.ย.':5,'ก.ค.':6,'ส.ค.':7,'ก.ย.':8,'ต.ค.':9,'พ.ย.':10,'ธ.ค.':11};
+const _parseDateCache = {};
 function parseDate(d) {
   if (!d) return null;
+  if (_parseDateCache[d] !== undefined) return _parseDateCache[d];
+  let result = null;
   // Thai locale string e.g. "02 มิ.ย. 2569"
   for (var k in TH_MON_NUM) {
     if (d.indexOf(k) >= 0) {
@@ -949,17 +953,22 @@ function parseDate(d) {
       var day = parseInt(parts[0]);
       var beYear = parseInt(parts[parts.length-1]);
       var ceYear = beYear > 2400 ? beYear - 543 : beYear;
-      return new Date(ceYear, TH_MON_NUM[k], day);
+      result = new Date(ceYear, TH_MON_NUM[k], day);
+      break;
     }
   }
-  // ISO or other format
-  var dt = new Date(d);
-  return isNaN(dt.getTime()) ? null : dt;
+  if (!result) {
+    // ISO or other format
+    var dt = new Date(d);
+    result = isNaN(dt.getTime()) ? null : dt;
+  }
+  _parseDateCache[d] = result;
+  return result;
 }
 const ymFull  = m => { const [y,mo] = m.split('-').map(Number); const yr = y > 2400 ? y : y+543; return `${TH_F[mo-1]} ${yr}`; };
 const ymShort = m => { const [y,mo] = m.split('-').map(Number); const yr = y > 2400 ? y : y+543; return `${TH_S[mo-1]} ${yr}`; };
-const inMonth = m => cases.filter(c => ymOf(c.date||c.createdAt) === m);
-const allYMs  = () => [...new Set(cases.map(c => ymOf(c.date)).filter(Boolean))].sort();
+const inMonth = m => cases.filter(c => c._ym === m);
+const allYMs  = () => [...new Set(cases.map(c => c._ym).filter(Boolean))].sort();
 
 function dlStatus(dl, st) {
   if (['done','court'].includes(st)) return 'done';
@@ -1107,7 +1116,19 @@ async function loadCases(force) {
   let snap;
   snap = await getDocs(collection(db, 'cases'));
   cases = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  // Clear date caches when cases reload
+  Object.keys(_parseDateCache).forEach(k => delete _parseDateCache[k]);
+  Object.keys(_ymOfCache).forEach(k => delete _ymOfCache[k]);
   cases.sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
+  // Clear caches
+  Object.keys(_parseDateCache||{}).forEach(k => delete _parseDateCache[k]);
+  Object.keys(_ymOfCache||{}).forEach(k => delete _ymOfCache[k]);
+  // Pre-compute per case
+  cases.forEach(c => {
+    c._ym  = ymOf(c.date || c.createdAt);
+    c._date = parseDate(c.date || c.createdAt);
+    c._lastUpdatedYM = c.lastUpdated ? ymOf(c.lastUpdated.slice(0,10)) : '';
+  });
   _casesCacheTime = Date.now();
 }
 async function loadCustomCategories() {
@@ -1214,7 +1235,7 @@ document.addEventListener('click', e => {
 window.scrollToCase = function(id) {
   document.getElementById('alertPanel').classList.remove('open');
   const c = cases.find(x => x.id === id);
-  if (c) { selYM = ymOf(c.date); document.getElementById('monthSelect').value = selYM; renderAll(); }
+  if (c) { selYM = c._ym; document.getElementById('monthSelect').value = selYM; renderAll(); }
   setTimeout(() => {
     const row = document.getElementById(`case-row-${id}`);
     if (row) { row.scrollIntoView({ behavior:'smooth', block:'center' }); row.style.outline = '2px solid var(--accent)'; setTimeout(() => row.style.outline = '', 1500); }
@@ -1329,16 +1350,29 @@ function renderFlowReport() {
   const S1_CAT = 'ส.1 (ยกคดี)';
   const NOT_ACTIVE = ['done','court','filing','nitikorn'];
 
-  const inAll   = selYM === 'all' ? cases : cases.filter(c => ymOf(c.date||c.createdAt) === activeSelYM);
+  // กรองตาม date range (_df/_dt) หรือ selYM
+  function inRange(dateStr) {
+    const d = parseDate(dateStr);
+    if (!d) return false;
+    const dStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if (_df && dStr < _df) return false;
+    if (_dt && dStr > _dt) return false;
+    return true;
+  }
+
+  const inAll = (_df || _dt)
+    ? cases.filter(c => inRange(c.date||c.createdAt))
+    : selYM === 'all' ? cases : cases.filter(c => c._ym === activeSelYM);
   const inCount = inAll.length;
   const inS1    = inAll.filter(c => c.category === S1_CAT).length;
   const inMain  = inCount - inS1;
 
   const outAll = cases.filter(c => {
     if (!NOT_ACTIVE.includes(c.status)) return false;
-    if (selYM === 'all') return true;
     if (!c.lastUpdated) return false;
-    return ymOf(c.lastUpdated.slice(0,10)) === activeSelYM;
+    if (_df || _dt) return inRange(c.lastUpdated.slice(0,10));
+    if (selYM === 'all') return true;
+    return c._lastUpdatedYM === activeSelYM;
   });
   const outCount = outAll.length;
   const outS1    = outAll.filter(c => c.category === S1_CAT).length;
@@ -1346,11 +1380,11 @@ function renderFlowReport() {
   const netCount = inCount - outCount;
 
   const pYM = prevYM(activeSelYM);
-  const inPrev  = selYM === 'all' ? 0 : cases.filter(c => ymOf(c.date) === pYM).length;
+  const inPrev  = selYM === 'all' ? 0 : cases.filter(c => c._ym === pYM).length;
   const outPrev = cases.filter(c => {
     if (!NOT_ACTIVE.includes(c.status)) return false;
     if (!c.lastUpdated) return false;
-    return ymOf(c.lastUpdated.slice(0,10)) === pYM;
+    return c._lastUpdatedYM === pYM;
   }).length;
   const netPrev = inPrev - outPrev;
 
@@ -1421,7 +1455,7 @@ function renderDailyTable() {
 
   // Populate month options if empty
   if (sel.tagName === 'SELECT' && sel.options.length === 0) {
-    const months = [...new Set(cases.map(c => ymOf(c.date||c.createdAt)).filter(Boolean))].sort();
+    const months = [...new Set(cases.map(c => c._ym).filter(Boolean))].sort();
     const now = new Date();
     const curYM = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
     if (!months.includes(curYM)) months.push(curYM);
@@ -1930,7 +1964,7 @@ function shortName(name) {
 
 // Get cases for a given month string (YYYY-MM), or all if ym is null
 function casesForMonth(ym) {
-  return ym ? cases.filter(c => ymOf(c.date) === ym) : cases;
+  return ym ? cases.filter(c => c._ym === ym) : cases;
 }
 
 function getChartDefaults() {
@@ -2265,13 +2299,13 @@ function renderTable() {
 
     // Date range filter
     if (_df || _dt) {
-      const dt2 = parseDate(c.date||c.createdAt);
+      const dt2 = c._date;
       const d = dt2 ? dt2.getFullYear()+'-'+String(dt2.getMonth()+1).padStart(2,'0')+'-'+String(dt2.getDate()).padStart(2,'0') : '';
       if (_df && d < _df) return false;
       if (_dt && d > _dt) return false;
     }
 
-    const inSelectedMonth = selYM === 'all' ? true : ymOf(c.date||c.createdAt) === selYM;
+    const inSelectedMonth = selYM === 'all' ? true : c._ym === selYM;
     const monthOk = (_df || _dt) ? true : inSelectedMonth;
     const statusMatch =
       filterStatus === 'all'    ? true :
