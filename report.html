@@ -35,7 +35,7 @@ tr:hover td{background:#1c2128;}
 .badge-filing{background:#1a1f2d;color:#a29bfe;}
 .badge-done{background:#1a2d1a;color:#3fb950;}
 .badge-court{background:#1a1f2d;color:#8b949e;}
-.badge-nitikorn{background:#1a0d2d;color:#bc8cff;border:1px solid #3a1a5a;}
+.badge-policeregion3{background:#0d2a2a;color:#00e5cc;border:1px solid #0a5a5a;}
 .overdue{color:#f85149;}
 .loading{text-align:center;padding:60px;color:#6e7681;}
 @media print{
@@ -78,9 +78,9 @@ tr:hover td{background:#1c2128;}
     <option value="screening">🔍 รอกลั่นกรอง</option>
     <option value="review">⚖️ อจ.พิจารณา</option>
     <option value="filing">📁 งานพิมพ์สำนวน</option>
+    <option value="policeregion3">🔵 ส่ง ตร.ภาค 3</option>
     <option value="done">✅ เสร็จสิ้น</option>
     <option value="court">🏛 ศาล</option>
-    <option value="nitikorn">🟣 นิติกรเวรชี้</option>
   </select>
   <select class="select" id="filterPerson" onchange="renderReport()">
     <option value="">👤 ทุกคน</option>
@@ -139,11 +139,11 @@ let cases = [], people = [];
 const sMap = {
   pending:'สอบสวนเพิ่มเติม', progress:'เจ้าของสำนวน',
   screening:'รอกลั่นกรอง', review:'อจ.พิจารณา',
-  filing:'งานพิมพ์สำนวน', nitikorn:'นิติกรเวรชี้', done:'เสร็จสิ้น', court:'ศาล'
+  filing:'งานพิมพ์สำนวน', policeregion3:'ส่ง ตร.ภาค 3', done:'เสร็จสิ้น', court:'ศาล'
 };
 const badgeClass = {
   pending:'badge-pending', progress:'badge-progress', screening:'badge-screening',
-  review:'badge-review', filing:'badge-filing', nitikorn:'badge-nitikorn', done:'badge-done', court:'badge-court'
+  review:'badge-review', filing:'badge-filing', done:'badge-done', court:'badge-court'
 };
 
 onAuthStateChanged(auth, async user => {
@@ -245,12 +245,12 @@ window.renderReport = function() {
     } else if (dlFilter) {
       return false; // done/court cases don't have active deadlines
     }
-    if (status === 'active') { if (['done','court','filing','nitikorn'].includes(c.status)) return false; }
+    if (status === 'active') { if (['done','court','filing'].includes(c.status)) return false; }
     else if (status !== 'all') { if (c.status !== status) return false; }
     if (personId && c.assignee !== personId) return false;
     if (category && c.category !== category) return false;
     // กรองตามอายุค้าง (เฉพาะคดีที่ยังค้าง)
-    if (ageFilter && !['done','court','filing','nitikorn'].includes(c.status)) {
+    if (ageFilter && !['done','court','filing'].includes(c.status)) {
       const days = daysSinceDate(c.date);
       if (ageFilter === '30'    && days > 30) return false;
       if (ageFilter === '31-60' && (days < 31 || days > 60)) return false;
