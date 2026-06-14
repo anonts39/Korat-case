@@ -45,7 +45,6 @@ video{width:100%;max-height:280px;display:block;}
 .badge.screening{background:#1a1f2d;color:#00d2d3;border:1px solid #0d3a3b;}
 .badge.progress{background:#1a1f2d;color:#58a6ff;border:1px solid #1a2a4a;}
 .badge.filing{background:#1a2d1a;color:#55efc4;border:1px solid #1a4a3a;}
-.badge.policeregion3{background:#0d2a2a;color:#00e5cc;border:1px solid #0a5a5a;}
 .badge.pending{background:#2d1a1a;color:#f85149;border:1px solid #4a1a1a;}
 
 .action-title{font-size:0.8rem;color:#8b949e;font-weight:600;margin-bottom:10px;}
@@ -353,7 +352,7 @@ function showCase(c) {
 
   const statusMap = { pending:'🔴 รอดำเนินการ pending', progress:'🔵 เจ้าของสำนวน progress',
     screening:'🔍 รอกลั่นกรอง screening', review:'⚖️ อจ.พิจารณา review',
-    filing:'📁 งานคดี filing', policeregion3:'🔵 ส่ง ตร.ภาค 3 policeregion3', done:'✅ เสร็จสิ้น done', court:'🏛 ศาล court' };
+    filing:'📁 งานคดี filing', done:'✅ เสร็จสิ้น done', court:'🏛 ศาล court' };
   const sInfo = (statusMap[c.status]||c.status+' pending').split(' ');
   const sLabel = sInfo.slice(0,-1).join(' '), sCls = sInfo[sInfo.length-1];
 
@@ -416,11 +415,11 @@ window.confirmAction = async function() {
     const sub = selectedFilingSub || 'print_prosecute';
     const otherNote = document.getElementById('filingOtherNote').value.trim();
     if (sub === 'policeregion3') {
-      newStatus = 'policeregion3'; dept = 'ส่ง ตร.ภาค 3';
-      actionLabel = '🔵 ส่ง ตร.ภาค 3'; statusLabel = '🔵 ส่ง ตร.ภาค 3';
+      newStatus = 'done'; dept = 'ส่ง ตร.ภาค 3';
+      actionLabel = '🔵 ส่ง ตร.ภาค 3'; statusLabel = '✅ เสร็จสิ้น (ส่ง ตร.ภาค 3)';
     } else if (sub === 'return_police') {
-      newStatus = 'filing'; dept = 'งานคดี';
-      actionLabel = '📤 คืนสำนวน ตร.'; statusLabel = '📁 งานคดี';
+      newStatus = 'done'; dept = 'คืนสำนวน ตร.';
+      actionLabel = '📤 คืนสำนวน ตร.'; statusLabel = '✅ เสร็จสิ้น (คืนสำนวน ตร.)';
     } else if (sub === 'other') {
       newStatus = 'filing'; dept = 'งานคดี';
       actionLabel = '✏️ ' + (otherNote || 'อื่นๆ'); statusLabel = '📁 งานคดี';
@@ -431,9 +430,6 @@ window.confirmAction = async function() {
   } else if (selectedAction === 'nitikorn') {
     newStatus = 'nitikorn'; dept = 'นิติกรเวรชี้';
     actionLabel = '🟣 ส่งนิติกรเวรชี้'; statusLabel = '🟣 นิติกรเวรชี้';
-  } else if (selectedAction === 'policeregion3') {
-    newStatus = 'policeregion3'; dept = 'ส่ง ตร.ภาค 3';
-    actionLabel = '🔵 ส่ง ตร.ภาค 3'; statusLabel = '🔵 ส่ง ตร.ภาค 3';
   } else {
     newStatus = 'pending'; dept = 'อัยการเจ้าของเรื่อง';
     actionLabel = '↩️ คืนเจ้าของสำนวน (สอบสวนเพิ่มเติม)'; statusLabel = '🔍 สอบสวนเพิ่มเติม (ค้าง)';
