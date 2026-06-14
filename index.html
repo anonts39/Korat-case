@@ -2346,7 +2346,13 @@ function renderTable() {
   };
   tbody.innerHTML = filtered.map(c => {
     const per = people.find(x => x.id === c.assignee);
-    const [lbl, cls] = sMap[c.status] || [c.status||'ไม่ทราบ', 'pending'];
+    const [lbl0, cls] = sMap[c.status] || [c.status||'ไม่ทราบ', 'pending'];
+    // แสดงรายละเอียดใน lastAction สำหรับ done และ filing
+    let lbl = lbl0;
+    if (c.lastAction && (c.status === 'done' || c.status === 'filing' || c.status === 'nitikorn')) {
+      const detail = c.lastAction.replace(/^[^\w\u0E00-\u0E7F]*/, '').trim();
+      if (detail) lbl = lbl0 + ' (' + detail.replace(/^[📁✅🖨️🔵📤🔍⚖️🟣🏛👤🔍↩️✏️]\s*/u, '').substring(0, 20) + ')';
+    }
     const dls = dlStatus(c.deadline, c.status);
     const rowCls = dls==='overdue' ? 'row-overdue' : dls==='due-soon' ? 'row-due-soon' : '';
     // Age badge
@@ -2937,7 +2943,7 @@ window.openTimeline = async function(id) {
     <div class="timeline-case-id">${c.caseId}</div>
     <div class="timeline-case-name">${c.name}</div>
     <div class="tl-current">
-      <span class="tl-badge">${statusMap[c.status]||c.status}</span>
+      <span class="tl-badge">${(()=>{const s=statusMap[c.status]||c.status; if(c.lastAction&&(c.status==='done'||c.status==='filing'||c.status==='nitikorn')){const d=c.lastAction.replace(/^[\u{1F300}-\u{1FFFF}\u2600-\u27BF\s]*/u,'').trim().substring(0,15);return d?s+' ('+d+')':s;}return s;})()}</span>
       ${c.currentDept ? `<span class="tl-badge" style="background:#0d1f2d;color:var(--blue);border-color:var(--blue)">📍 ${c.currentDept}</span>` : ''}
       ${c.currentPerson ? `<span class="tl-badge" style="background:#1a0d2d;color:var(--purple);border-color:var(--purple)">👤 ${c.currentPerson}</span>` : ''}
     </div>
