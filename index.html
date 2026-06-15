@@ -2349,7 +2349,7 @@ function renderTable() {
   tbody.innerHTML = filtered.map(c => {
     const per = people.find(x => x.id === c.assignee);
     const [lbl0, cls] = sMap[c.status] || [c.status||'ไม่ทราบ', 'pending'];
-    const lbl = (()=>{const s=lbl0;if(!c.lastAction)return s;const la=c.lastAction;const skip=['ส่งสำนวน','รับสำนวน','งานพิมพ์','นิติกรเวร','อจ.พิจารณ','ส่งไป'];if(skip.some(w=>la.includes(w)))return s;if(c.status==='done'||c.status==='filing'){const d=la.replace(/^[^\u0E00-\u0E7Fa-zA-Z0-9]*/,'').trim().substring(0,15);return d?s+' ('+d+')':s;}return s;})();
+    const lbl = (()=>{const s=lbl0;if(!c.lastAction)return s;const la=c.lastAction;const skip=['ส่งสำนวน','รับสำนวน','งานพิมพ์','นิติกรเวร','อจ.พิจารณ','ส่งไป','ส่งงานคดี','ส่งงาน'];if(skip.some(w=>la.includes(w)))return s;if(c.status==='done'||c.status==='filing'){const d=la.replace(/^[^\u0E00-\u0E7Fa-zA-Z0-9]*/,'').trim().substring(0,15);return d?s+' ('+d+')':s;}return s;})();
     const dls = dlStatus(c.deadline, c.status);
     const rowCls = dls==='overdue' ? 'row-overdue' : dls==='due-soon' ? 'row-due-soon' : '';
     // Age badge
@@ -2940,7 +2940,7 @@ window.openTimeline = async function(id) {
     <div class="timeline-case-id">${c.caseId}</div>
     <div class="timeline-case-name">${c.name}</div>
     <div class="tl-current">
-      <span class="tl-badge">${(()=>{const s=statusMap[c.status]||c.status;if(!c.lastAction)return s;const la=c.lastAction;const skip=['ส่งสำนวน','รับสำนวน','งานพิมพ์','นิติกรเวร','อจ.พิจารณ','ส่งไป'];if(skip.some(w=>la.includes(w)))return s;if(c.status==='done'||c.status==='filing'){const d=la.replace(/^[^\u0E00-\u0E7Fa-zA-Z0-9]*/,'').trim().substring(0,15);return d?s+' ('+d+')':s;}return s;})()}</span>
+      <span class="tl-badge">${(()=>{const s=statusMap[c.status]||c.status;if(!c.lastAction)return s;const la=c.lastAction;const skip=['ส่งสำนวน','รับสำนวน','งานพิมพ์','นิติกรเวร','อจ.พิจารณ','ส่งไป','ส่งงานคดี','ส่งงาน'];if(skip.some(w=>la.includes(w)))return s;if(c.status==='done'||c.status==='filing'){const d=la.replace(/^[^\u0E00-\u0E7Fa-zA-Z0-9]*/,'').trim().substring(0,15);return d?s+' ('+d+')':s;}return s;})()}</span>
       ${c.currentDept ? `<span class="tl-badge" style="background:#0d1f2d;color:var(--blue);border-color:var(--blue)">📍 ${c.currentDept}</span>` : ''}
       ${c.currentPerson ? `<span class="tl-badge" style="background:#1a0d2d;color:var(--purple);border-color:var(--purple)">👤 ${c.currentPerson}</span>` : ''}
     </div>
