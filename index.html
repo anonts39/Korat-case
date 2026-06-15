@@ -715,7 +715,7 @@ font-weight: 700 !important;
     </div>
     <div class="cases-table">
       <table>
-        <thead><tr><th>เลขรับคดีที่</th><th>ชื่อคดี / สถานะผู้ต้องหา</th><th>ประเภท</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>Deadline</th><th>วันที่รับ</th><th></th></tr></thead>
+        <thead><tr><th id="caseCountHeader">เลขรับคดีที่</th><th>ชื่อคดี / สถานะผู้ต้องหา</th><th>ประเภท</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>Deadline</th><th>วันที่รับ</th><th></th></tr></thead>
         <tbody id="caseTableBody"></tbody>
       </table>
       <div class="empty-state" id="emptyState" style="display:none">ไม่มีรายการคดีในระบบ</div>
@@ -2346,7 +2346,10 @@ function renderTable() {
     done:           ['✅ เสร็จสิ้น',    'done'],
     court:          ['🏛 ศาล', 'court']
   };
-  tbody.innerHTML = filtered.map(c => {
+  // Update header with count
+  const countHeader = document.getElementById('caseCountHeader');
+  if (countHeader) countHeader.textContent = `เลขรับคดีที่ (${filtered.length} คดี)`;
+  tbody.innerHTML = filtered.map((c, _idx) => {
     const per = people.find(x => x.id === c.assignee);
     const [lbl0, cls] = sMap[c.status] || [c.status||'ไม่ทราบ', 'pending'];
     const lbl = (()=>{const s=lbl0;if(!c.lastAction)return s;const la=c.lastAction;const skip=['ส่งสำนวน','รับสำนวน','งานพิมพ์','นิติกรเวร','อจ.พิจารณ','ส่งไป','ส่งงานคดี','ส่งงาน'];if(skip.some(w=>la.includes(w)))return s;if(c.status==='done'||c.status==='filing'){const d=la.replace(/^[^\u0E00-\u0E7Fa-zA-Z0-9]*/,'').trim().substring(0,15);return d?s+' ('+d+')':s;}return s;})();
@@ -2383,7 +2386,7 @@ function renderTable() {
       s1Label = `<div><span class="s1-badge" onclick="openS1Modal('${c.id}');event.stopPropagation();">${stepTxt} ▸ ดูไทม์ไลน์</span></div>`;
     }
     return `<tr class="${rowCls}" id="case-row-${c.id}">
-      <td><div class="case-id">${c.caseId}</div></td>
+      <td><div class="case-id"><span style="color:var(--text3);font-size:0.7rem;margin-right:3px;">${_idx+1}.</span>${c.caseId}</div></td>
       <td>
         <div class="case-name">${c.name}${ageBadge}</div>
         ${ownerLabel}${noteLabel}${custodyLabel}${s1Label}
