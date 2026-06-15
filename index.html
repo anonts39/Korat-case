@@ -2348,7 +2348,7 @@ function renderTable() {
   };
   // Update header with count
   const countHeader = document.getElementById('caseCountHeader');
-  if (countHeader) countHeader.textContent = `เลขรับคดีที่ (${filtered.length} คดี)`;
+  if (countHeader) countHeader.innerHTML = `เลขรับคดีที่<br><span style="font-size:0.72rem;color:var(--text3);font-weight:400;">(${filtered.length} คดี)</span>`;
   tbody.innerHTML = filtered.map((c, _idx) => {
     const per = people.find(x => x.id === c.assignee);
     const [lbl0, cls] = sMap[c.status] || [c.status||'ไม่ทราบ', 'pending'];
