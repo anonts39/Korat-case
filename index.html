@@ -2306,7 +2306,7 @@ function renderTable() {
     const monthOk = (_df || _dt) ? true : inSelectedMonth;
     const statusMatch =
       filterStatus === 'all'    ? true :
-      filterStatus === 'active'   ? (monthOk && !['done','court'].includes(c.status)) :
+      filterStatus === 'active'   ? (monthOk && !['done','court','filing','nitikorn'].includes(c.status)) :
       filterStatus === 'progress' ? (monthOk && ['progress','pending'].includes(c.status)) :
       // done, court, filing, nitikorn — ไม่กรองเดือน แสดงทุกเดือน
       ['done','court','filing','nitikorn'].includes(filterStatus) ? (c.status === filterStatus) :
