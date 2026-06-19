@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📥 นำเข้าสำนวนค้าง — สอจ.นม</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+import { getFirestore, collection, addDoc, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDuyQeVuxcwKd-_fSgTHhmoBo56cZpUI3A",
+  authDomain: "korat-case.firebaseapp.com",
+  projectId: "korat-case",
+  storageBucket: "korat-case.firebasestorage.app",
+  messagingSenderId: "64254577929",
+  appId: "1:64254577929:web:7d38588fb2e40ede6697d8"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+window._db = db;
+window._collection = collection;
+window._addDoc = addDoc;
+window._query = query;
+window._where = where;
+window._getDocs = getDocs;
+
+let currentUser = null;
+onAuthStateChanged(auth, user => {
+  currentUser = user;
+  if (user) {
+    document.getElementById('authStatus').innerHTML = `✅ เข้าสู่ระบบแล้ว: <b>${user.email}</b>`;
+    document.getElementById('authStatus').style.color = '#3fb950';
+    document.getElementById('btnLogin').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+  } else {
+    document.getElementById('authStatus').innerHTML = '⚠️ ยังไม่ได้เข้าสู่ระบบ';
+    document.getElementById('authStatus').style.color = '#f85149';
+    document.getElementById('btnLogin').style.display = 'inline-flex';
+    document.getElementById('mainContent').style.display = 'none';
+  }
+});
+
+window.loginGoogle = async () => {
+  try {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  } catch(e) { alert('Login ล้มเหลว: ' + e.message); }
+};
+
+window._currentUser = () => currentUser;
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&family=Kanit:wght@500;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0d1117;color:#c9d1d9;font-family:'Sarabun',sans-serif;min-height:100vh;padding:0}
+  
+  .top-bar{background:#161b22;border-bottom:1px solid #30363d;padding:14px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
+  .top-bar h1{font-family:'Kanit',sans-serif;font-size:1rem;font-weight:700;color:#f0a500;flex:1}
+  #authStatus{font-size:0.8rem}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:none;font-family:'Sarabun',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.15s}
+  .btn-primary{background:#f0a500;color:#0d1117}
+  .btn-primary:hover{background:#e09400}
+  .btn-outline{background:transparent;border:1px solid #30363d;color:#c9d1d9}
+  .btn-outline:hover{border-color:#58a6ff;color:#58a6ff}
+  .btn-danger{background:#da3633;color:#fff}
+  .btn-danger:hover{background:#b91c1c}
+  .btn-green{background:#238636;color:#fff}
+  .btn-green:hover{background:#1a6f2a}
+  .btn:disabled{opacity:0.4;cursor:not-allowed}
+
+  .container{max-width:960px;margin:0 auto;padding:24px 20px}
+  
+  .card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;margin-bottom:20px}
+  .card-title{font-family:'Kanit',sans-serif;font-size:0.95rem;font-weight:700;color:#f0a500;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  
+  .step-badge{background:#f0a500;color:#0d1117;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:20px}
+  
+  .upload-zone{border:2px dashed #30363d;border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative}
+  .upload-zone:hover,.upload-zone.drag{border-color:#f0a500;background:#1c1e1a}
+  .upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+  .upload-zone .icon{font-size:2.2rem;margin-bottom:8px}
+  .upload-zone p{color:#8b949e;font-size:0.85rem}
+  .upload-zone .filename{color:#f0a500;font-weight:600;margin-top:6px}
+
+  .table-wrap{overflow-x:auto;margin-top:14px}
+  table{width:100%;border-collapse:collapse;font-size:0.78rem}
+  th{background:#21262d;color:#8b949e;padding:8px 10px;text-align:left;border-bottom:1px solid #30363d;white-space:nowrap}
+  td{padding:7px 10px;border-bottom:1px solid #21262d;vertical-align:top}
+  tr:hover td{background:#1c2128}
+  .tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.7rem;font-weight:600}
+  .tag-pending{background:#1f2d1a;color:#3fb950;border:1px solid #238636}
+  .tag-other{background:#2d1f1a;color:#f0a500;border:1px solid #f0a500}
+  
+  .stats-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .stat-box{background:#21262d;border-radius:8px;padding:12px 16px;flex:1;min-width:120px;text-align:center}
+  .stat-num{font-family:'Kanit',sans-serif;font-size:1.6rem;font-weight:700;color:#f0a500}
+  .stat-label{font-size:0.72rem;color:#8b949e;margin-top:2px}
+
+  .progress-wrap{background:#21262d;border-radius:8px;overflow:hidden;height:8px;margin:10px 0}
+  .progress-bar{height:8px;background:linear-gradient(90deg,#f0a500,#3fb950);transition:width 0.3s;border-radius:8px}
+  
+  .log-box{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:12px;max-height:200px;overflow-y:auto;font-size:0.75rem;font-family:monospace;margin-top:10px}
+  .log-ok{color:#3fb950}
+  .log-skip{color:#8b949e}
+  .log-err{color:#f85149}
+
+  .qr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:14px}
+  .qr-card{background:#21262d;border-radius:10px;padding:14px;text-align:center;border:1px solid #30363d}
+  .qr-card canvas{border-radius:6px;background:#fff;padding:6px}
+  .qr-caseId{font-family:'Kanit',sans-serif;font-size:0.78rem;color:#f0a500;margin-top:8px;font-weight:600}
+  .qr-name{font-size:0.68rem;color:#8b949e;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .notice{background:#1f2d1a;border:1px solid #238636;border-radius:8px;padding:12px 14px;font-size:0.8rem;color:#7ee787;margin-bottom:16px}
+  .notice-warn{background:#2d1f0a;border-color:#d29922;color:#e3b341}
+
+  @media print{
+    body{background:#fff;color:#000}
+    .top-bar,.no-print{display:none!important}
+    .qr-page-break{page-break-after:always}
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>📥 นำเข้าสำนวนค้าง — สอจ.นม</h1>
+  <span id="authStatus">กำลังตรวจสอบ...</span>
+  <button class="btn btn-outline" id="btnLogin" onclick="loginGoogle()" style="display:none">🔑 เข้าสู่ระบบ Google</button>
+</div>
+
+<div class="container">
+  <div id="mainContent" style="display:none">
+
+    <!-- STEP 1: Upload -->
+    <div class="card">
+      <div class="card-title"><span class="step-badge">1</span> เลือกไฟล์ Excel บัญชีสำนวนค้าง</div>
+      <div class="upload-zone" id="dropZone">
+        <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFile(this.files[0])">
+        <div class="icon">📊</div>
+        <p>ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือก</p>
+        <p style="font-size:0.72rem;margin-top:4px">รองรับ .xlsx จากระบบ อก.๔๐</p>
+        <div class="filename" id="fileName"></div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Preview -->
+    <div class="card" id="previewCard" style="display:none">
+      <div class="card-title"><span class="step-badge">2</span> ตรวจสอบข้อมูลก่อน Import</div>
+      <div class="stats-row" id="statsRow"></div>
+      <div class="notice" id="dupNotice" style="display:none"></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>เลขที่รับ</th>
+              <th>ประเภท</th>
+              <th>เรื่อง (ย่อ)</th>
+              <th>รับจาก</th>
+              <th>เหตุค้าง</th>
+              <th>เจ้าของสำนวน</th>
+              <th>สถานะที่จะ Set</th>
+            </tr>
+          </thead>
+          <tbody id="previewBody"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-green" onclick="startImport()">🚀 Import เข้า Firebase + Generate QR</button>
+        <button class="btn btn-outline" onclick="resetAll()">🔄 เลือกไฟล์ใหม่</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Progress -->
+    <div class="card" id="progressCard" style="display:none">
+      <div class="card-title"><span class="step-badge">3</span> กำลัง Import...</div>
+      <div id="progressText" style="font-size:0.85rem;color:#8b949e;margin-bottom:6px">กำลังเริ่มต้น...</div>
+      <div class="progress-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+      <div class="log-box" id="logBox"></div>
+    </div>
+
+    <!-- STEP 4: QR PDF -->
+    <div class="card" id="qrCard" style="display:none">
+      <div class="card-title"><span class="step-badge">4</span> QR Code — พิมพ์ติดปกสำนวน</div>
+      <div class="notice">✅ Import สำเร็จ <span id="importCount"></span> เรื่อง — QR ด้านล่างพร้อมพิมพ์แล้ว<br>
+      <span style="font-size:0.72rem">💡 กด Ctrl+P (หรือ ⌘P) เพื่อพิมพ์ — แต่ละ QR จะอยู่คนละหน้า</span></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px" class="no-print">
+        <button class="btn btn-primary" onclick="window.print()">🖨️ พิมพ์ QR ทั้งหมด</button>
+        <button class="btn btn-outline" onclick="resetAll()">📥 Import ไฟล์ใหม่</button>
+      </div>
+      <div id="qrOutput"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- QR Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script>
+// ===== Thai digit converter =====
+function thaiToArabic(s) {
+  if (!s) return s;
+  const thai = '๐๑๒๓๔๕๖๗๘๙';
+  return String(s).split('').map(c => {
+    const i = thai.indexOf(c);
+    return i >= 0 ? i : c;
+  }).join('');
+}
+
+// ===== Map เหตุค้าง → status =====
+function mapStatus(reason) {
+  if (!reason) return 'progress';
+  const r = reason.trim();
+  if (r.includes('สอบสวนเพิ่มเติม') || r.includes('สอบสวน')) return 'pending';
+  if (r.includes('กลั่นกรอง')) return 'screening';
+  if (r.includes('พิจารณา') || r.includes('อสส') || r.includes('ผบ.ตร')) return 'review';
+  if (r.includes('เหตุอื่น')) return 'progress';
+  return 'progress';
+}
+
+function statusLabel(s) {
+  const m = {pending:'🔍 สอบสวนเพิ่มเติม',progress:'🔵 เจ้าของสำนวน',screening:'🔍 รอกลั่นกรอง',review:'⚖️ อจ.พิจารณา'};
+  return m[s] || s;
+}
+
+// ===== Parse Excel =====
+let parsedCases = [];
+
+function handleFile(file) {
+  if (!file) return;
+  document.getElementById('fileName').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      // หา sheet report03016 หรือ sheet ที่ 2
+      const sheetName = wb.SheetNames.find(n => n.includes('03016') || n.includes('บัญชีชี้แจง')) || wb.SheetNames[1] || wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
+      const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+      parsedCases = parseRows(raw);
+      showPreview();
+    } catch(err) {
+      alert('อ่านไฟล์ไม่ได้: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseRows(rows) {
+  const cases = [];
+  let current = null;
+  const caseNoRe = /\d+\/\d+/;
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const col1 = row[1], col2 = row[2], col3 = row[3];
+
+    // แถวหลัก: col2=ประเภท(ส.๑), col3=เลขที่รับ
+    if (col2 && String(col2).trim().match(/^ส\.|^คด\./) &&
+        col3 && String(col3).trim().match(/[๐-๙\d]+\/[๐-๙\d]+/)) {
+
+      if (current) cases.push(finalize(current));
+
+      const col4 = row[3]; // เลขที่รับ
+      const col5 = row[4]; // เรื่อง
+      const col6 = row[5]; // รับจาก+วันที่
+      const col7 = row[6]; // เหตุค้าง
+      const col8 = row[7]; // เตือนครั้งที่
+      const col9 = row[8]; // วันเตือน
+      const col10 = row[9]; // เจ้าของ
+
+      const caseNo = thaiToArabic(String(col3).trim());
+      const type = String(col2).trim();
+      const subject = col5 ? String(col5).trim() : '';
+      const col6str = col6 ? String(col6).trim() : '';
+      const station = col6str.split('\n')[0].trim();
+      const col7str = col7 ? String(col7).trim() : '';
+      const reason = col7str.split('\n')[0].trim();
+      const ownerRaw = col10 ? String(col10).trim().replace(/\n/g, '').trim() : '';
+
+      current = {
+        caseId: caseNo,
+        type,
+        subject,
+        station,
+        reason,
+        reasonFull: col7str,
+        owners: ownerRaw ? [ownerRaw] : []
+      };
+    } else if (current && row[9] && !row[1]) {
+      // แถวเจ้าของเพิ่มเติม
+      const o = String(row[9]).replace(/\n/g,'').trim();
+      if (o) current.owners.push(o);
+    }
+  }
+  if (current) cases.push(finalize(current));
+  return cases;
+}
+
+function finalize(c) {
+  return {
+    ...c,
+    owners: [...new Set(c.owners.filter(Boolean))],
+    status: mapStatus(c.reason)
+  };
+}
+
+// ===== Preview =====
+function showPreview() {
+  const statusCount = {};
+  parsedCases.forEach(c => { statusCount[c.status] = (statusCount[c.status]||0)+1; });
+
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-box"><div class="stat-num">${parsedCases.length}</div><div class="stat-label">สำนวนทั้งหมด</div></div>
+    <div class="stat-box"><div class="stat-num">${statusCount['pending']||0}</div><div class="stat-label">รอสอบสวนเพิ่ม</div></div>
+    <div class="stat-box"><div class="stat-num">${statusCount['screening']||0}</div><div class="stat-label">รอกลั่นกรอง</div></div>
+    <div class="stat-box"><div class="stat-num">${statusCount['review']||0}</div><div class="stat-label">อจ.พิจารณา</div></div>
+    <div class="stat-box"><div class="stat-num">${statusCount['progress']||0}</div><div class="stat-label">เจ้าของสำนวน</div></div>
+  `;
+
+  const tbody = document.getElementById('previewBody');
+  tbody.innerHTML = parsedCases.map((c,i) => `
+    <tr>
+      <td style="color:#8b949e">${i+1}</td>
+      <td style="color:#f0a500;font-family:'Kanit',sans-serif;font-size:0.82rem">${c.caseId}</td>
+      <td>${c.type}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c.subject}">${c.subject.substring(0,50)}${c.subject.length>50?'...':''}</td>
+      <td style="font-size:0.72rem;color:#8b949e">${c.station}</td>
+      <td style="font-size:0.72rem">${c.reason.substring(0,30)}</td>
+      <td style="font-size:0.72rem;color:#7ee787">${c.owners.slice(0,2).join(', ')}${c.owners.length>2?'...':''}</td>
+      <td><span class="tag ${c.status==='pending'?'tag-pending':'tag-other'}">${statusLabel(c.status)}</span></td>
+    </tr>
+  `).join('');
+
+  document.getElementById('previewCard').style.display = 'block';
+  document.getElementById('previewCard').scrollIntoView({behavior:'smooth'});
+}
+
+// ===== Import =====
+let importedDocs = []; // [{caseId, docId, name}]
+
+async function startImport() {
+  const db = window._db;
+  const col = window._collection;
+  const addDoc = window._addDoc;
+  const user = window._currentUser();
+  if (!user) { alert('กรุณาเข้าสู่ระบบก่อน'); return; }
+
+  document.getElementById('progressCard').style.display = 'block';
+  document.getElementById('progressCard').scrollIntoView({behavior:'smooth'});
+  document.getElementById('qrCard').style.display = 'none';
+  importedDocs = [];
+
+  const log = document.getElementById('logBox');
+  const bar = document.getElementById('progressBar');
+  const txt = document.getElementById('progressText');
+  log.innerHTML = '';
+
+  // ตรวจสอบ duplicate ก่อน
+  const existingSnap = await window._getDocs(col(db,'cases'));
+  const existingIds = new Set(existingSnap.docs.map(d => d.data().caseId));
+
+  let ok = 0, skip = 0, err = 0;
+  const total = parsedCases.length;
+
+  for (let i = 0; i < parsedCases.length; i++) {
+    const c = parsedCases[i];
+    bar.style.width = `${Math.round((i/total)*100)}%`;
+    txt.textContent = `กำลัง import ${i+1}/${total} — ${c.caseId}`;
+
+    if (existingIds.has(c.caseId)) {
+      log.innerHTML += `<div class="log-skip">⏭ ข้าม (มีอยู่แล้ว): ${c.caseId}</div>`;
+      skip++;
+      log.scrollTop = log.scrollHeight;
+      continue;
+    }
+
+    try {
+      const obj = {
+        caseId:    c.caseId,
+        name:      c.subject.substring(0, 200) || c.caseId,
+        category:  c.type || null,
+        status:    c.status,
+        note:      `[นำเข้าจากบัญชีสำนวนค้าง] สถานี: ${c.station} | เหตุค้าง: ${c.reason}`,
+        assignee:  null,
+        date:      new Date().toISOString().split('T')[0],
+        deadline:  null,
+        priority:  'medium',
+        custody:   null,
+        extQR:     null,
+        relatedCases: [],
+        userId:    user.uid,
+        userEmail: user.email,
+        createdAt: new Date().toISOString(),
+        importedFrom: 'excel_batch',
+        originalOwners: c.owners,
+        station:   c.station,
+      };
+      const docRef = await addDoc(col(db,'cases'), obj);
+      importedDocs.push({ caseId: c.caseId, docId: docRef.id, name: c.subject });
+      log.innerHTML += `<div class="log-ok">✅ ${c.caseId} → ${docRef.id}</div>`;
+      ok++;
+    } catch(e) {
+      log.innerHTML += `<div class="log-err">❌ ${c.caseId}: ${e.message}</div>`;
+      err++;
+    }
+    log.scrollTop = log.scrollHeight;
+  }
+
+  bar.style.width = '100%';
+  txt.textContent = `เสร็จสิ้น — Import: ${ok} เรื่อง | ข้าม: ${skip} เรื่อง | ผิดพลาด: ${err} เรื่อง`;
+  log.innerHTML += `<div style="color:#f0a500;margin-top:6px;font-weight:700">✔ Import เสร็จ ${ok} เรื่อง | ข้าม ${skip} | ผิดพลาด ${err}</div>`;
+
+  if (importedDocs.length > 0) generateQRs();
+}
+
+// ===== Generate QR =====
+function generateQRs() {
+  document.getElementById('importCount').textContent = importedDocs.length;
+  document.getElementById('qrCard').style.display = 'block';
+  document.getElementById('qrCard').scrollIntoView({behavior:'smooth'});
+
+  const out = document.getElementById('qrOutput');
+  out.innerHTML = '';
+
+  importedDocs.forEach((item, idx) => {
+    // wrapper สำหรับ print — แต่ละ QR แยกหน้า
+    const page = document.createElement('div');
+    page.className = 'qr-page-break';
+    page.style.cssText = 'padding:30px;text-align:center;background:#fff;color:#000;font-family:Sarabun,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+
+    page.innerHTML = `
+      <div style="font-size:0.75rem;color:#666;margin-bottom:6px">สำนักงานอัยการจังหวัดนครราชสีมา</div>
+      <div id="qr_${idx}" style="margin:12px 0"></div>
+      <div style="font-family:'Kanit',sans-serif;font-size:1.1rem;font-weight:700;color:#000;margin-top:6px">${item.caseId}</div>
+      <div style="font-size:0.68rem;color:#555;margin-top:4px;max-width:200px;word-break:break-all;line-height:1.3">${item.name.substring(0,80)}${item.name.length>80?'...':''}</div>
+      <div style="font-size:0.6rem;color:#aaa;margin-top:8px">${item.docId}</div>
+    `;
+    out.appendChild(page);
+
+    // Generate QR จาก docId (ตรงกับระบบหลัก)
+    setTimeout(() => {
+      try {
+        new QRCode(document.getElementById(`qr_${idx}`), {
+          text: item.docId,
+          width: 180,
+          height: 180,
+          colorDark: '#000000',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } catch(e) { console.error(e); }
+    }, idx * 30);
+  });
+}
+
+// ===== Reset =====
+function resetAll() {
+  parsedCases = [];
+  importedDocs = [];
+  document.getElementById('fileInput').value = '';
+  document.getElementById('fileName').textContent = '';
+  document.getElementById('previewCard').style.display = 'none';
+  document.getElementById('progressCard').style.display = 'none';
+  document.getElementById('qrCard').style.display = 'none';
+}
+
+// ===== Drag & Drop =====
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', e => {
+  e.preventDefault();
+  dz.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) { document.getElementById('fileName').textContent = f.name; handleFile(f); }
+});
+
+// expose to global
+window.handleFile = handleFile;
+window.startImport = startImport;
+window.resetAll = resetAll;
+</script>
+</body>
+</html>
