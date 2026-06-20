@@ -2340,7 +2340,7 @@ function renderTable() {
     done:           ['✅ เสร็จสิ้น',    'done'],
     court:          ['🏛 ศาล', 'court']
   };
-  tbody.innerHTML = filtered.map(c => {
+  tbody.innerHTML = filtered.map((c, _rowIdx) => {
     const per = people.find(x => x.id === c.assignee);
     const [lbl0, cls] = sMap[c.status] || [c.status||'ไม่ทราบ', 'pending'];
     const lbl = (()=>{const s=lbl0;if(!c.lastAction)return s;const la=c.lastAction;const skip=['ส่งสำนวน','รับสำนวน','งานพิมพ์','นิติกรเวร','อจ.พิจารณ','ส่งไป'];if(skip.some(w=>la.includes(w)))return s;if(c.status==='done'||c.status==='filing'){const d=la.replace(/^[^\u0E00-\u0E7Fa-zA-Z0-9]*/,'').trim().substring(0,15);return d?s+' ('+d+')':s;}return s;})();
@@ -2377,7 +2377,7 @@ function renderTable() {
       s1Label = `<div><span class="s1-badge" onclick="openS1Modal('${c.id}');event.stopPropagation();">${stepTxt} ▸ ดูไทม์ไลน์</span></div>`;
     }
     return `<tr class="${rowCls}" id="case-row-${c.id}">
-      <td><div class="case-id">${c.caseId}</div></td>
+      <td><div style="font-size:0.65rem;color:var(--text3);margin-bottom:2px;text-align:center;">${_rowIdx+1}</div><div class="case-id">${c.caseId}</div></td>
       <td>
         <div class="case-name">${c.name}${ageBadge}</div>
         ${ownerLabel}${noteLabel}${custodyLabel}${s1Label}
