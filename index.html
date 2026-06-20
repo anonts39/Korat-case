@@ -370,6 +370,7 @@ font-weight: 700 !important;
 </button>
 <button class="bell-btn" onclick="openScanner()" title="สแกน QR สำนวน" style="font-size:1rem;">📷</button>
 <button class="bell-btn" onclick="showLoginQR()" title="QR เข้าระบบ" style="font-size:1rem;">📱</button>
+<button class="bell-btn" onclick="openImportModal()" title="นำเข้าสำนวนเก่า (Batch Import)" style="font-size:1rem;">📋</button>
 <button class="bell-btn" onclick="toggleAlertPanel()">🔔<div class="bell-dot" id="bellDot" style="display:none"></div></button>
 ```
 
@@ -715,7 +716,7 @@ font-weight: 700 !important;
     </div>
     <div class="cases-table">
       <table>
-        <thead><tr><th id="caseCountHeader">เลขรับคดีที่</th><th>ชื่อคดี / สถานะผู้ต้องหา</th><th>ประเภท</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>Deadline</th><th>วันที่รับ</th><th></th></tr></thead>
+        <thead><tr><th>เลขรับคดีที่</th><th>ชื่อคดี / สถานะผู้ต้องหา</th><th>ประเภท</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>Deadline</th><th>วันที่รับ</th><th></th></tr></thead>
         <tbody id="caseTableBody"></tbody>
       </table>
       <div class="empty-state" id="emptyState" style="display:none">ไม่มีรายการคดีในระบบ</div>
@@ -2306,10 +2307,8 @@ function renderTable() {
     const monthOk = (_df || _dt) ? true : inSelectedMonth;
     const statusMatch =
       filterStatus === 'all'    ? true :
-      filterStatus === 'active'   ? (!['done','court','filing','nitikorn'].includes(c.status)) :
+      filterStatus === 'active'   ? (monthOk && !['done','court'].includes(c.status)) :
       filterStatus === 'progress' ? (monthOk && ['progress','pending'].includes(c.status)) :
-      // done, court, filing, nitikorn — ไม่กรองเดือน แสดงทุกเดือน
-      ['done','court','filing','nitikorn'].includes(filterStatus) ? (c.status === filterStatus) :
                                     (monthOk && c.status === filterStatus);
     return statusMatch &&
       (filterPerson === null || c.assignee === filterPerson ||
@@ -2346,13 +2345,10 @@ function renderTable() {
     done:           ['✅ เสร็จสิ้น',    'done'],
     court:          ['🏛 ศาล', 'court']
   };
-  // Update header with count
-  const countHeader = document.getElementById('caseCountHeader');
-  if (countHeader) countHeader.innerHTML = `เลขรับคดีที่<br><span style="font-size:0.72rem;color:var(--text3);font-weight:400;">(${filtered.length} คดี)</span>`;
-  tbody.innerHTML = filtered.map((c, _idx) => {
+  tbody.innerHTML = filtered.map(c => {
     const per = people.find(x => x.id === c.assignee);
     const [lbl0, cls] = sMap[c.status] || [c.status||'ไม่ทราบ', 'pending'];
-    const lbl = (()=>{const s=lbl0;if(!c.lastAction)return s;const la=c.lastAction;const skip=['ส่งสำนวน','รับสำนวน','งานพิมพ์','นิติกรเวร','อจ.พิจารณ','ส่งไป','ส่งงานคดี','ส่งงาน'];if(skip.some(w=>la.includes(w)))return s;if(c.status==='done'||c.status==='filing'){const d=la.replace(/^[^\u0E00-\u0E7Fa-zA-Z0-9]*/,'').trim().substring(0,15);return d?s+' ('+d+')':s;}return s;})();
+    const lbl = (()=>{const s=lbl0;if(!c.lastAction)return s;const la=c.lastAction;const skip=['ส่งสำนวน','รับสำนวน','งานพิมพ์','นิติกรเวร','อจ.พิจารณ','ส่งไป'];if(skip.some(w=>la.includes(w)))return s;if(c.status==='done'||c.status==='filing'){const d=la.replace(/^[^\u0E00-\u0E7Fa-zA-Z0-9]*/,'').trim().substring(0,15);return d?s+' ('+d+')':s;}return s;})();
     const dls = dlStatus(c.deadline, c.status);
     const rowCls = dls==='overdue' ? 'row-overdue' : dls==='due-soon' ? 'row-due-soon' : '';
     // Age badge
@@ -2386,7 +2382,7 @@ function renderTable() {
       s1Label = `<div><span class="s1-badge" onclick="openS1Modal('${c.id}');event.stopPropagation();">${stepTxt} ▸ ดูไทม์ไลน์</span></div>`;
     }
     return `<tr class="${rowCls}" id="case-row-${c.id}">
-      <td><div class="case-id"><span style="color:var(--text3);font-size:0.7rem;margin-right:3px;">${_idx+1}.</span>${c.caseId}</div></td>
+      <td><div class="case-id">${c.caseId}</div></td>
       <td>
         <div class="case-name">${c.name}${ageBadge}</div>
         ${ownerLabel}${noteLabel}${custodyLabel}${s1Label}
@@ -2943,7 +2939,7 @@ window.openTimeline = async function(id) {
     <div class="timeline-case-id">${c.caseId}</div>
     <div class="timeline-case-name">${c.name}</div>
     <div class="tl-current">
-      <span class="tl-badge">${(()=>{const s=statusMap[c.status]||c.status;if(!c.lastAction)return s;const la=c.lastAction;const skip=['ส่งสำนวน','รับสำนวน','งานพิมพ์','นิติกรเวร','อจ.พิจารณ','ส่งไป','ส่งงานคดี','ส่งงาน'];if(skip.some(w=>la.includes(w)))return s;if(c.status==='done'||c.status==='filing'){const d=la.replace(/^[^\u0E00-\u0E7Fa-zA-Z0-9]*/,'').trim().substring(0,15);return d?s+' ('+d+')':s;}return s;})()}</span>
+      <span class="tl-badge">${(()=>{const s=statusMap[c.status]||c.status;if(!c.lastAction)return s;const la=c.lastAction;const skip=['ส่งสำนวน','รับสำนวน','งานพิมพ์','นิติกรเวร','อจ.พิจารณ','ส่งไป'];if(skip.some(w=>la.includes(w)))return s;if(c.status==='done'||c.status==='filing'){const d=la.replace(/^[^\u0E00-\u0E7Fa-zA-Z0-9]*/,'').trim().substring(0,15);return d?s+' ('+d+')':s;}return s;})()}</span>
       ${c.currentDept ? `<span class="tl-badge" style="background:#0d1f2d;color:var(--blue);border-color:var(--blue)">📍 ${c.currentDept}</span>` : ''}
       ${c.currentPerson ? `<span class="tl-badge" style="background:#1a0d2d;color:var(--purple);border-color:var(--purple)">👤 ${c.currentPerson}</span>` : ''}
     </div>
@@ -3680,6 +3676,230 @@ window.quickScanSearch = function(q) {
       if (val) rcvCheckQR();
     }
   });
+})();
+
+// ===== BATCH IMPORT (นำเข้าสำนวนเก่า) =====
+let _importCases = [];
+let _importDocs  = [];
+
+window.openImportModal = function() {
+  importReset();
+  document.getElementById('importModalOverlay').classList.add('show');
+};
+window.closeImportModal = function() {
+  document.getElementById('importModalOverlay').classList.remove('show');
+};
+document.getElementById('importModalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeImportModal();
+});
+
+// Drag & drop
+const _idz = document.getElementById('importDropZone');
+_idz.addEventListener('dragover', e => { e.preventDefault(); _idz.style.borderColor = 'var(--accent)'; });
+_idz.addEventListener('dragleave', () => { _idz.style.borderColor = ''; });
+_idz.addEventListener('drop', e => {
+  e.preventDefault(); _idz.style.borderColor = '';
+  const f = e.dataTransfer.files[0];
+  if (f) importHandleFile(f);
+});
+
+function _thaiToArab(s) {
+  if (!s) return s;
+  const t = '๐๑๒๓๔๕๖๗๘๙';
+  return String(s).split('').map(c => { const i = t.indexOf(c); return i >= 0 ? i : c; }).join('');
+}
+function _mapStatus(r) {
+  if (!r) return 'progress';
+  if (r.includes('สอบสวนเพิ่มเติม') || r.includes('สอบสวน')) return 'pending';
+  if (r.includes('กลั่นกรอง')) return 'screening';
+  if (r.includes('พิจารณา') || r.includes('อสส') || r.includes('ผบ.ตร')) return 'review';
+  return 'progress';
+}
+function _statusLabel(s) {
+  return {pending:'🔍 สอบสวนเพิ่มเติม',progress:'🔵 เจ้าของสำนวน',screening:'🔍 รอกลั่นกรอง',review:'⚖️ อจ.พิจารณา'}[s] || s;
+}
+
+window.importHandleFile = function(file) {
+  if (!file) return;
+  document.getElementById('importFileName').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      if (!window.XLSX) { alert('กำลังโหลด XLSX library...'); return; }
+      const wb = window.XLSX.read(e.target.result, { type: 'array' });
+      const sheetName = wb.SheetNames.find(n => n.includes('03016')) || wb.SheetNames[1] || wb.SheetNames[0];
+      const raw = window.XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: null });
+      _importCases = _parseImportRows(raw);
+      _showImportPreview();
+    } catch(err) { alert('อ่านไฟล์ไม่ได้: ' + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+};
+
+function _parseImportRows(rows) {
+  const cases = []; let cur = null;
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const c2 = row[2], c3 = row[3];
+    if (c2 && String(c2).match(/^ส\./) && c3 && String(c3).match(/[๐-๙\d]+\/[๐-๙\d]+/)) {
+      if (cur) cases.push(cur);
+      const reason = row[6] ? String(row[6]).split('\n')[0].trim() : '';
+      const ownerRaw = row[9] ? String(row[9]).replace(/\n/g,'').trim() : '';
+      cur = {
+        caseId: _thaiToArab(String(c3).trim()),
+        type: String(c2).trim(),
+        subject: row[4] ? String(row[4]).trim() : '',
+        station: row[5] ? String(row[5]).split('\n')[0].trim() : '',
+        reason,
+        owners: ownerRaw ? [ownerRaw] : [],
+        status: _mapStatus(reason)
+      };
+    } else if (cur && row[9] && !row[1]) {
+      const o = String(row[9]).replace(/\n/g,'').trim();
+      if (o) cur.owners.push(o);
+    }
+  }
+  if (cur) cases.push(cur);
+  return cases.map(c => ({ ...c, owners: [...new Set(c.owners.filter(Boolean))] }));
+}
+
+function _showImportPreview() {
+  const cnt = {}; _importCases.forEach(c => cnt[c.status] = (cnt[c.status]||0)+1);
+  document.getElementById('importStatsRow').innerHTML = `
+    <div style="background:var(--surface2);border-radius:8px;padding:10px 14px;text-align:center;flex:1;min-width:90px;"><div style="font-family:'Kanit',sans-serif;font-size:1.4rem;font-weight:700;color:var(--accent);">${_importCases.length}</div><div style="font-size:0.7rem;color:var(--text3);">ทั้งหมด</div></div>
+    <div style="background:var(--surface2);border-radius:8px;padding:10px 14px;text-align:center;flex:1;min-width:90px;"><div style="font-family:'Kanit',sans-serif;font-size:1.4rem;font-weight:700;color:var(--green);">${cnt['pending']||0}</div><div style="font-size:0.7rem;color:var(--text3);">รอสอบสวน</div></div>
+    <div style="background:var(--surface2);border-radius:8px;padding:10px 14px;text-align:center;flex:1;min-width:90px;"><div style="font-family:'Kanit',sans-serif;font-size:1.4rem;font-weight:700;color:var(--blue);">${cnt['screening']||0}</div><div style="font-size:0.7rem;color:var(--text3);">รอกลั่นกรอง</div></div>
+    <div style="background:var(--surface2);border-radius:8px;padding:10px 14px;text-align:center;flex:1;min-width:90px;"><div style="font-family:'Kanit',sans-serif;font-size:1.4rem;font-weight:700;color:var(--accent);">${cnt['review']||0}</div><div style="font-size:0.7rem;color:var(--text3);">อจ.พิจารณา</div></div>
+  `;
+  document.getElementById('importPreviewBody').innerHTML = _importCases.map((c,i) => `
+    <tr style="${i%2===0?'':'background:var(--surface2)'}">
+      <td style="padding:6px 8px;color:var(--text3);">${i+1}</td>
+      <td style="padding:6px 8px;color:var(--accent);font-family:'Kanit',sans-serif;font-weight:600;white-space:nowrap;">${c.caseId}</td>
+      <td style="padding:6px 8px;">${c.type}</td>
+      <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${c.subject}">${c.subject.substring(0,60)}${c.subject.length>60?'...':''}</td>
+      <td style="padding:6px 8px;white-space:nowrap;font-size:0.7rem;">${_statusLabel(c.status)}</td>
+    </tr>
+  `).join('');
+  document.getElementById('importStep1').style.display = 'none';
+  document.getElementById('importStep2').style.display = 'block';
+}
+
+window.importStart = async function() {
+  if (!auth.currentUser) { alert('กรุณาเข้าสู่ระบบก่อน'); return; }
+  document.getElementById('importStep2').style.display = 'none';
+  document.getElementById('importStep3').style.display = 'block';
+  _importDocs = [];
+  const log = document.getElementById('importLogBox');
+  const bar = document.getElementById('importProgressBar');
+  const txt = document.getElementById('importProgressText');
+  log.innerHTML = '';
+
+  // ตรวจ duplicate
+  const existSnap = await getDocs(collection(db,'cases'));
+  const existIds = new Set(existSnap.docs.map(d => d.data().caseId));
+
+  let ok=0, skip=0, err=0;
+  const total = _importCases.length;
+  for (let i=0; i<total; i++) {
+    const c = _importCases[i];
+    bar.style.width = `${Math.round((i/total)*100)}%`;
+    txt.textContent = `กำลัง import ${i+1}/${total} — ${c.caseId}`;
+    if (existIds.has(c.caseId)) {
+      log.innerHTML += `<span style="color:var(--text3);">⏭ ข้าม: ${c.caseId}</span><br>`;
+      skip++; log.scrollTop=log.scrollHeight; continue;
+    }
+    try {
+      const obj = {
+        caseId: c.caseId, name: c.subject.substring(0,200)||c.caseId,
+        category: c.type||null, status: c.status,
+        note: `[Import] สถานี: ${c.station} | เหตุค้าง: ${c.reason}`,
+        assignee: null, date: new Date().toISOString().split('T')[0],
+        deadline: null, priority: 'medium', custody: null,
+        extQR: null, relatedCases: [],
+        userId: auth.currentUser.uid, userEmail: auth.currentUser.email,
+        createdAt: new Date().toISOString(),
+        importedFrom: 'excel_batch', originalOwners: c.owners, station: c.station
+      };
+      const ref = await addDoc(collection(db,'cases'), obj);
+      _importDocs.push({ caseId: c.caseId, docId: ref.id, name: c.subject });
+      log.innerHTML += `<span style="color:var(--green);">✅ ${c.caseId}</span><br>`;
+      ok++;
+    } catch(e) {
+      log.innerHTML += `<span style="color:var(--red);">❌ ${c.caseId}: ${e.message}</span><br>`;
+      err++;
+    }
+    log.scrollTop = log.scrollHeight;
+  }
+  bar.style.width = '100%';
+  txt.textContent = `เสร็จ — Import: ${ok} | ข้าม: ${skip} | ผิดพลาด: ${err}`;
+  document.getElementById('importDoneCount').textContent = ok;
+  if (_importDocs.length > 0) _generateImportQRs();
+  document.getElementById('importStep3').style.display = 'none';
+  document.getElementById('importStep4').style.display = 'block';
+};
+
+function _generateImportQRs() {
+  const grid = document.getElementById('importQRGrid');
+  grid.innerHTML = '';
+  _importDocs.forEach((item, idx) => {
+    const card = document.createElement('div');
+    card.style.cssText = 'background:var(--surface2);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border);';
+    card.innerHTML = `<div id="iqr_${idx}" style="display:inline-block;background:#fff;padding:6px;border-radius:6px;"></div>
+      <div style="font-family:\'Kanit\',sans-serif;font-size:0.75rem;color:var(--accent);margin-top:6px;font-weight:600;">${item.caseId}</div>
+      <div style="font-size:0.65rem;color:var(--text3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.name.substring(0,40)}</div>`;
+    grid.appendChild(card);
+    setTimeout(() => {
+      if (window.QRCode) {
+        new QRCode(document.getElementById(`iqr_${idx}`), {
+          text: `${location.origin}/index.html?case=${item.docId}`,
+          width: 130, height: 130,
+          colorDark: '#000', colorLight: '#fff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      }
+    }, idx * 20);
+  });
+}
+
+window.importPrintQR = function() {
+  const grid = document.getElementById('importQRGrid');
+  const win = window.open('','_blank');
+  const cards = Array.from(grid.children).map((card, i) => {
+    const canvas = card.querySelector('canvas');
+    const img = canvas ? `<img src="${canvas.toDataURL()}" style="width:150px;height:150px;">` : '';
+    const caseId = _importDocs[i]?.caseId || '';
+    const name = (_importDocs[i]?.name||'').substring(0,60);
+    return `<div style="page-break-after:always;padding:40px;text-align:center;font-family:Sarabun,sans-serif;">
+      <div style="font-size:0.7rem;color:#666;margin-bottom:8px;">สำนักงานอัยการจังหวัดนครราชสีมา</div>
+      ${img}
+      <div style="font-family:Kanit,sans-serif;font-size:1.1rem;font-weight:700;margin-top:8px;">${caseId}</div>
+      <div style="font-size:0.65rem;color:#555;margin-top:4px;max-width:200px;margin-left:auto;margin-right:auto;">${name}</div>
+    </div>`;
+  }).join('');
+  win.document.write(`<!DOCTYPE html><html><head><title>QR สำนวน</title></head><body style="margin:0;">${cards}</body></html>`);
+  win.document.close();
+  setTimeout(() => win.print(), 500);
+};
+
+window.importReset = function() {
+  _importCases = []; _importDocs = [];
+  document.getElementById('importFileInput').value = '';
+  document.getElementById('importFileName').textContent = '';
+  document.getElementById('importStep1').style.display = 'block';
+  document.getElementById('importStep2').style.display = 'none';
+  document.getElementById('importStep3').style.display = 'none';
+  document.getElementById('importStep4').style.display = 'none';
+  document.getElementById('importQRGrid').innerHTML = '';
+  document.getElementById('importLogBox').innerHTML = '';
+  document.getElementById('importProgressBar').style.width = '0%';
+};
+
+// Load XLSX library lazily
+(function loadXLSX() {
+  if (window.XLSX) return;
+  const s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  document.head.appendChild(s);
 })();
 
 // ===== MIGRATE ASSIGNEE =====
@@ -4639,6 +4859,72 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
   <button class="btn-cancel" onclick="closeReceiveModal()">ยกเลิก</button>
   <button class="btn-save" onclick="submitReceive()" style="background:var(--green);">📥 บันทึกรับสำนวน</button>
 </div>
+
+  </div>
+</div>
+
+<!-- ===== IMPORT MODAL (นำเข้าสำนวนเก่า) ===== -->
+
+<div class="modal-overlay" id="importModalOverlay">
+  <div class="modal" style="width:680px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-title" style="color:var(--accent);">📋 นำเข้าสำนวนเก่า (Batch Import)</div>
+
+    <!-- Step 1: Upload -->
+    <div id="importStep1">
+      <div style="border:2px dashed var(--border);border-radius:10px;padding:28px;text-align:center;cursor:pointer;position:relative;transition:all 0.2s;" id="importDropZone">
+        <input type="file" id="importFileInput" accept=".xlsx,.xls" style="position:absolute;inset:0;opacity:0;cursor:pointer;" onchange="importHandleFile(this.files[0])">
+        <div style="font-size:2rem;margin-bottom:8px;">📊</div>
+        <div style="color:var(--text2);font-size:0.85rem;">ลากไฟล์ Excel บัญชีสำนวนค้าง (อก.๔๐) มาวางที่นี่</div>
+        <div style="color:var(--text3);font-size:0.72rem;margin-top:4px;">หรือคลิกเพื่อเลือกไฟล์ .xlsx</div>
+        <div id="importFileName" style="color:var(--accent);font-weight:600;margin-top:6px;font-size:0.85rem;"></div>
+      </div>
+    </div>
+
+    <!-- Step 2: Preview -->
+    <div id="importStep2" style="display:none;margin-top:14px;">
+      <div id="importStatsRow" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;"></div>
+      <div style="overflow-x:auto;max-height:260px;overflow-y:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.75rem;">
+          <thead style="position:sticky;top:0;">
+            <tr>
+              <th style="background:var(--surface2);color:var(--text3);padding:7px 8px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;">#</th>
+              <th style="background:var(--surface2);color:var(--text3);padding:7px 8px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;">เลขที่รับ</th>
+              <th style="background:var(--surface2);color:var(--text3);padding:7px 8px;text-align:left;border-bottom:1px solid var(--border);">ประเภท</th>
+              <th style="background:var(--surface2);color:var(--text3);padding:7px 8px;text-align:left;border-bottom:1px solid var(--border);">เรื่อง</th>
+              <th style="background:var(--surface2);color:var(--text3);padding:7px 8px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;">สถานะ</th>
+            </tr>
+          </thead>
+          <tbody id="importPreviewBody"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
+        <button onclick="importStart()" style="padding:9px 20px;border-radius:8px;border:none;background:var(--green);color:#fff;font-family:'Sarabun',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;">🚀 Import เข้าระบบ</button>
+        <button onclick="importReset()" style="padding:9px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.85rem;cursor:pointer;">🔄 เลือกไฟล์ใหม่</button>
+        <button onclick="closeImportModal()" style="padding:9px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.85rem;cursor:pointer;">ยกเลิก</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Progress -->
+    <div id="importStep3" style="display:none;margin-top:14px;">
+      <div id="importProgressText" style="font-size:0.82rem;color:var(--text2);margin-bottom:6px;">กำลังเริ่มต้น...</div>
+      <div style="background:var(--surface2);border-radius:8px;overflow:hidden;height:8px;margin-bottom:10px;">
+        <div id="importProgressBar" style="height:8px;background:linear-gradient(90deg,var(--accent),var(--green));width:0%;transition:width 0.3s;border-radius:8px;"></div>
+      </div>
+      <div id="importLogBox" style="background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:10px;max-height:180px;overflow-y:auto;font-size:0.72rem;font-family:monospace;"></div>
+    </div>
+
+    <!-- Step 4: Done + QR -->
+    <div id="importStep4" style="display:none;margin-top:14px;">
+      <div style="background:#1f2d1a;border:1px solid var(--green);border-radius:8px;padding:12px;font-size:0.82rem;color:#7ee787;margin-bottom:12px;">
+        ✅ Import สำเร็จ <span id="importDoneCount"></span> เรื่อง — QR พร้อมพิมพ์แล้ว
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+        <button onclick="importPrintQR()" style="padding:9px 18px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-family:'Sarabun',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;">🖨️ พิมพ์ QR ทั้งหมด</button>
+        <button onclick="importReset()" style="padding:9px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.85rem;cursor:pointer;">📥 Import ไฟล์ใหม่</button>
+        <button onclick="closeImportModal();loadCases(true).then(()=>{renderAll();buildAlerts();})" style="padding:9px 16px;border-radius:8px;border:1px solid var(--green);background:transparent;color:var(--green);font-family:'Sarabun',sans-serif;font-size:0.85rem;cursor:pointer;">✔ ปิดและรีโหลด</button>
+      </div>
+      <div id="importQRGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;"></div>
+    </div>
 
   </div>
 </div>
