@@ -3700,8 +3700,7 @@ _idz.addEventListener('drop', e => {
 
 function _thaiToArab(s) {
   if (!s) return s;
-  const t = '๐๑๒๓๔๕๖๗๘๙';
-  return String(s).split('').map(c => { const i = t.indexOf(c); return i >= 0 ? i : c; }).join('');
+  return String(s).replace(/[๐-๙]/g, d => d.charCodeAt(0) - 0x0E50);
 }
 function _mapStatus(r) {
   if (!r) return 'progress';
@@ -3896,6 +3895,26 @@ window.importReset = function() {
   s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
   document.head.appendChild(s);
 })();
+
+// ===== FIX THAI DIGITS IN caseId =====
+window.fixThaiCaseIds = async function() {
+  if (!confirm('แปลงเลขไทย → อารบิกใน caseId ทั้งหมดเลยไหมครับ?')) return;
+  const snap = await getDocs(collection(db,'cases'));
+  const toFix = snap.docs.filter(d => /[๐-๙]/.test(d.data().caseId||''));
+  if (!toFix.length) { alert('ไม่พบ caseId ที่เป็นเลขไทยแล้วครับ'); return; }
+  if (!confirm(`พบ ${toFix.length} รายการ — ยืนยันแก้ไขเลยไหมครับ?`)) return;
+  let ok=0, err=0;
+  for (const d of toFix) {
+    const oldId = d.data().caseId;
+    const newId = oldId.replace(/[๐-๙]/g, c => c.charCodeAt(0) - 0x0E50);
+    try {
+      await updateDoc(doc(db,'cases',d.id), { caseId: newId });
+      ok++;
+    } catch(e) { err++; console.error(d.id, e); }
+  }
+  alert(`✅ แก้สำเร็จ ${ok} รายการ | ผิดพลาด ${err} รายการ`);
+  await loadCases(true); renderAll();
+};
 
 // ===== MIGRATE ASSIGNEE =====
 window.migrateAssignee = async function(oldId, newId) {
