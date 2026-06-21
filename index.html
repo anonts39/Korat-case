@@ -3896,19 +3896,26 @@ window.importReset = function() {
   document.head.appendChild(s);
 })();
 
-// ===== FIX THAI DIGITS IN caseId =====
+// ===== FIX THAI DIGITS IN caseId / category / name =====
 window.fixThaiCaseIds = async function() {
-  if (!confirm('แปลงเลขไทย → อารบิกใน caseId ทั้งหมดเลยไหมครับ?')) return;
+  if (!confirm('แปลงเลขไทย → อารบิกใน caseId, category และชื่อคดี ทั้งหมดเลยไหมครับ?')) return;
   const snap = await getDocs(collection(db,'cases'));
-  const toFix = snap.docs.filter(d => /[๐-๙]/.test(d.data().caseId||''));
-  if (!toFix.length) { alert('ไม่พบ caseId ที่เป็นเลขไทยแล้วครับ'); return; }
-  if (!confirm(`พบ ${toFix.length} รายการ — ยืนยันแก้ไขเลยไหมครับ?`)) return;
+  const toFix = snap.docs.filter(d => {
+    const data = d.data();
+    return /[๐-๙]/.test((data.caseId||'') + (data.category||'') + (data.name||''));
+  });
+  if (!toFix.length) { alert('ไม่พบเลขไทยในระบบแล้วครับ'); return; }
+  if (!confirm(`พบ ${toFix.length} รายการที่มีเลขไทย — ยืนยันแก้ไขเลยไหมครับ?`)) return;
+  const fix = s => s ? s.replace(/[๐-๙]/g, c => c.charCodeAt(0) - 0x0E50) : s;
   let ok=0, err=0;
   for (const d of toFix) {
-    const oldId = d.data().caseId;
-    const newId = oldId.replace(/[๐-๙]/g, c => c.charCodeAt(0) - 0x0E50);
+    const data = d.data();
+    const updates = {};
+    if (/[๐-๙]/.test(data.caseId||''))   updates.caseId   = fix(data.caseId);
+    if (/[๐-๙]/.test(data.category||'')) updates.category = fix(data.category);
+    if (/[๐-๙]/.test(data.name||''))     updates.name     = fix(data.name);
     try {
-      await updateDoc(doc(db,'cases',d.id), { caseId: newId });
+      await updateDoc(doc(db,'cases',d.id), updates);
       ok++;
     } catch(e) { err++; console.error(d.id, e); }
   }
