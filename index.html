@@ -3016,6 +3016,7 @@ const RETURN_STATUS_MAP = {
   'return_done':    { status: 'done',     label: '✅ คืนสำนวน' },
   'noprosecute':    { status: 'done',     label: '🚫 ไม่ฟ้อง' },
   'court':          { status: 'court',    label: '🏛 ดำเนินการทางศาล' },
+  'terminate':      { status: 'done',     label: '⛔ ยุติคดี' },
 };
 
 let currentTlAction = 'send';
@@ -4764,6 +4765,13 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
         <div>
           <div style="font-weight:600;font-size:0.85rem;">🏛 ดำเนินการทางศาล</div>
           <div style="font-size:0.72rem;color:var(--text3);">สถานะจะเปลี่ยนเป็น "ศาล"</div>
+        </div>
+      </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:var(--surface2);" id="returnOpt5Label">
+        <input type="radio" name="returnAction" value="terminate" style="margin-top:2px;flex-shrink:0;" onchange="selectReturnOpt(this)">
+        <div>
+          <div style="font-weight:600;font-size:0.85rem;">⛔ ยุติคดี</div>
+          <div style="font-size:0.72rem;color:var(--text3);">สถานะจะเปลี่ยนเป็น "เสร็จสิ้น"</div>
         </div>
       </label>
     </div>
