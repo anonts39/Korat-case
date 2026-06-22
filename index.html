@@ -3031,7 +3031,7 @@ window.setTlAction = function(action, btn) {
   // populate return person
   if (action === 'return') {
     const sel = document.getElementById('tlReturnPerson');
-    sel.innerHTML = '<option value="">-- ผู้รับสำนวนคืน --</option>' +
+    sel.innerHTML = '<option value="">-- ผู้รับผิดชอบ --</option>' +
       people.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
   }
 };
@@ -3138,7 +3138,7 @@ window.saveTracking = async function(actionType) {
       // บางส่วน = ยังค้างอยู่ (progress), ทั้งหมด = เสร็จสิ้น (done)
       if (isPartial) newStatus = 'progress';
     }
-    actionLabel = `📥 รับสำนวนคืน — ${statusLabel}`;
+    actionLabel = `📋 ดำเนินการอย่างอื่น — ${statusLabel}`;
   }
 
   // Disable all save buttons
@@ -3193,7 +3193,7 @@ window.saveTracking = async function(actionType) {
   } finally {
     document.querySelectorAll('.btn-tl-save').forEach(b => { b.disabled = false; });
     document.querySelector('#tlSendPanel .btn-tl-save') && (document.querySelector('#tlSendPanel .btn-tl-save').textContent = '📤 บันทึกการส่งสำนวน');
-    document.querySelector('#tlReturnPanel .btn-tl-save') && (document.querySelector('#tlReturnPanel .btn-tl-save').textContent = '📥 บันทึกการรับคืนสำนวน');
+    document.querySelector('#tlReturnPanel .btn-tl-save') && (document.querySelector('#tlReturnPanel .btn-tl-save').textContent = '📋 บันทึกการดำเนินการ');
   }
 };
 
@@ -4680,7 +4680,7 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
 
   <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
     <button class="tl-action-btn active" id="btnActionSend" onclick="setTlAction('send',this)">📤 ส่งสำนวนไปแผนก</button>
-    <button class="tl-action-btn" id="btnActionReturn" onclick="setTlAction('return',this)">📥 รับสำนวนคืน</button>
+    <button class="tl-action-btn" id="btnActionReturn" onclick="setTlAction('return',this)">📋 ดำเนินการอย่างอื่น</button>
   </div>
 
   <!-- Send panel -->
@@ -4722,7 +4722,7 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
   <!-- Return panel -->
 
   <div id="tlReturnPanel" style="display:none;">
-    <div style="font-size:0.8rem;color:var(--text2);margin-bottom:8px;font-weight:600;">📥 สำนวนถูกส่งคืนมา — เลือกการดำเนินการ:</div>
+    <div style="font-size:0.8rem;color:var(--text2);margin-bottom:8px;font-weight:600;">📥 ดำเนินการอย่างอื่น — เลือกการดำเนินการ:</div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;">
       <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:var(--surface2);" id="returnOpt1Label">
         <input type="radio" name="returnAction" value="investigate" style="margin-top:2px;flex-shrink:0;" onchange="selectReturnOpt(this)">
@@ -4776,10 +4776,10 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
       </label>
     </div>
     <select class="tl-select" id="tlReturnPerson" style="margin-bottom:8px;">
-      <option value="">-- ผู้รับสำนวนคืน --</option>
+      <option value="">-- ผู้รับผิดชอบ --</option>
     </select>
     <input class="tl-input" id="tlReturnNote" placeholder="หมายเหตุ (ไม่บังคับ)" style="margin-bottom:8px;">
-    <button class="btn-tl-save" onclick="saveTracking('return')" style="color:#58a6ff;background:transparent;border:2px solid #58a6ff;">📥 บันทึกการรับคืนสำนวน</button>
+    <button class="btn-tl-save" onclick="saveTracking('return')" style="color:#58a6ff;background:transparent;border:2px solid #58a6ff;">📋 บันทึกการดำเนินการ</button>
   </div>
 </div>
 
