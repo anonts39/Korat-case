@@ -1102,7 +1102,7 @@ window._teams = teams;
 window._loadTeams = loadTeams;
 window._people = people;
 let _casesCacheTime = 0;
-const CACHE_TTL = 60000; // 60 วินาที
+const CACHE_TTL = 300000; // 5 นาที
 
 async function loadCases(force) {
   const now = Date.now();
@@ -2518,12 +2518,16 @@ window.saveCase = async function() {
     };
     if (editingId) {
       await updateDoc(doc(db,'cases',editingId), obj);
+      // อัปเดต local array แทน fetch ใหม่
+      const idx = cases.findIndex(c => c.id === editingId);
+      if (idx >= 0) cases[idx] = { ...cases[idx], ...obj };
     } else {
       selYM = ymOf(obj.date);
-      await addDoc(collection(db,'cases'), { ...obj, userId:currentUserId, userEmail:currentUserEmail, createdAt:new Date().toISOString() });
+      const ref = await addDoc(collection(db,'cases'), { ...obj, userId:currentUserId, userEmail:currentUserEmail, createdAt:new Date().toISOString() });
+      // เพิ่มใน local array แทน fetch ใหม่
+      cases.unshift({ id: ref.id, ...obj, userId:currentUserId, userEmail:currentUserEmail, createdAt:new Date().toISOString() });
     }
     window.closeModal();
-    await loadCases(true);
     buildMonthSelect();
     document.getElementById('monthSelect').value = selYM;
     renderAll(); buildAlerts();
@@ -2536,7 +2540,11 @@ window.saveCase = async function() {
 
 window.deleteCase = async function(id) {
   if (!confirm('ยืนยันการลบคดีนี้?')) return;
-  try { await deleteDoc(doc(db,'cases',id)); await loadCases(true); renderAll(); buildAlerts(); }
+  try {
+    await deleteDoc(doc(db,'cases',id));
+    cases = cases.filter(c => c.id !== id);
+    renderAll(); buildAlerts();
+  }
   catch(e) { alert(`ลบไม่ได้: ${e.message}`); }
 };
 
@@ -3159,16 +3167,20 @@ window.saveTracking = async function(actionType) {
     });
 
     // Update case status + current location
-    await updateDoc(doc(db, 'cases', c.id), {
+    const updatePayload = {
       status:        newStatus,
       currentDept:   dept   || null,
       currentPerson: person || null,
       lastAction:    actionLabel,
       lastUpdated:   new Date().toISOString()
-    });
+    };
+    await updateDoc(doc(db, 'cases', c.id), updatePayload);
+
+    // อัปเดต local array แทน fetch ใหม่
+    const cIdx = cases.findIndex(x => x.id === c.id);
+    if (cIdx >= 0) cases[cIdx] = { ...cases[cIdx], ...updatePayload };
 
     // Reset
-    await loadCases(true);
     currentTimelineCase = cases.find(x => x.id === c.id);
     document.getElementById('tlNote') && (document.getElementById('tlNote').value = '');
     document.getElementById('tlReturnNote') && (document.getElementById('tlReturnNote').value = '');
@@ -3789,9 +3801,8 @@ window.importStart = async function() {
   const txt = document.getElementById('importProgressText');
   log.innerHTML = '';
 
-  // ตรวจ duplicate
-  const existSnap = await getDocs(collection(db,'cases'));
-  const existIds = new Set(existSnap.docs.map(d => d.data().caseId));
+  // ใช้ local cases array แทนการ getDocs ใหม่
+  const existIds = new Set(cases.map(c => c.caseId));
 
   let ok=0, skip=0, err=0;
   const total = _importCases.length;
@@ -4489,12 +4500,15 @@ window.rvwSubmit = async function() {
       note, action: actionLabel, statusLabel,
       by: currentUserEmail, timestamp: new Date()
     });
-    await updateDoc(doc(db,'cases',rvwCurrentCase.id), {
+    const rvwPayload = {
       status: newStatus, currentDept: dept,
       currentPerson: currentUserEmail,
       lastAction: actionLabel, lastUpdated: new Date().toISOString()
-    });
-    await loadCases(true); renderAll(); buildAlerts();
+    };
+    await updateDoc(doc(db,'cases',rvwCurrentCase.id), rvwPayload);
+    const rvwIdx = cases.findIndex(x => x.id === rvwCurrentCase.id);
+    if (rvwIdx >= 0) cases[rvwIdx] = { ...cases[rvwIdx], ...rvwPayload };
+    renderAll(); buildAlerts();
     closeReviewModal();
 
     const flash = document.createElement('div');
@@ -4606,11 +4620,14 @@ window.ownSubmit = async function() {
       dept, person:currentUserName||currentUserEmail, note,
       action:actionLabel, statusLabel, by:currentUserEmail, timestamp:new Date()
     });
-    await updateDoc(doc(db,'cases',ownCurrentCase.id),{
+    const ownPayload = {
       status:newStatus, currentDept:dept, currentPerson:currentUserEmail,
       lastAction:actionLabel, lastUpdated:new Date().toISOString()
-    });
-    await loadCases(true); renderAll(); buildAlerts();
+    };
+    await updateDoc(doc(db,'cases',ownCurrentCase.id), ownPayload);
+    const ownIdx = cases.findIndex(x => x.id === ownCurrentCase.id);
+    if (ownIdx >= 0) cases[ownIdx] = { ...cases[ownIdx], ...ownPayload };
+    renderAll(); buildAlerts();
     closeOwnerModal();
     const flash=document.createElement('div');
     flash.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1a2d1a;border:1px solid var(--green);color:var(--green);padding:12px 28px;border-radius:8px;font-size:0.9rem;z-index:9999;font-family:"Sarabun",sans-serif;';
@@ -5279,7 +5296,8 @@ window.saveS1Timeline = async function() {
   Object.keys(_s1Dates).forEach(k => { if (_s1Dates[k]) clean[k] = _s1Dates[k]; });
   try {
     await updateDoc(doc(db, 'cases', _s1CaseId), { s1Timeline: clean });
-    await loadCases(true);
+    const s1Idx = cases.findIndex(x => x.id === _s1CaseId);
+    if (s1Idx >= 0) cases[s1Idx] = { ...cases[s1Idx], s1Timeline: clean };
     renderAll();
     closeS1Modal();
   } catch(e) { alert('บันทึกไม่สำเร็จ: ' + e.message); }
