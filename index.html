@@ -4038,12 +4038,11 @@ window.filterByAge = function(ri) {
   // Reset status filter เป็น all (ทุกสถานะทุกเดือน) เพื่อให้เห็นคดีเก่าด้วย
   filterOverdue = false;
   selYM = 'all';
-  const allBtn = document.querySelector('.filter-btn[onclick*="all"]');
-  const activeBtn = document.querySelector('.filter-btn[onclick*="active"]');
+  const allBtn = document.querySelector('.filter-btn[onclick*="\'all\'"]') || document.querySelector('.filter-btn[onclick*="all"]');
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  if (activeBtn) activeBtn.classList.add('active');
-  window._currentFilter = 'active';
-  filterStatus = 'active';
+  if (allBtn) allBtn.classList.add('active');
+  window._currentFilter = 'all';
+  filterStatus = 'all';
   renderTable();
   document.querySelectorAll('#pendingAgeGrid > div').forEach((c,i) => {
     c.style.background = i === _ageFilter ? 'var(--surface2)' : 'var(--surface)';
