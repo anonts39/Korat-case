@@ -4035,12 +4035,15 @@ function renderPendingAge() {
 let _ageFilter = null;
 window.filterByAge = function(ri) {
   _ageFilter = (_ageFilter === ri) ? null : ri;
-  // Reset status filter เป็น active (ค้างทั้งหมด) ก่อน
+  // Reset status filter เป็น all (ทุกสถานะทุกเดือน) เพื่อให้เห็นคดีเก่าด้วย
   filterOverdue = false;
+  selYM = 'all';
+  const allBtn = document.querySelector('.filter-btn[onclick*="all"]');
   const activeBtn = document.querySelector('.filter-btn[onclick*="active"]');
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   if (activeBtn) activeBtn.classList.add('active');
   window._currentFilter = 'active';
+  filterStatus = 'active';
   renderTable();
   document.querySelectorAll('#pendingAgeGrid > div').forEach((c,i) => {
     c.style.background = i === _ageFilter ? 'var(--surface2)' : 'var(--surface)';
