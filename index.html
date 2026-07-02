@@ -3937,6 +3937,10 @@ window.fixThaiCaseIds = async function() {
 
 
 window._statClick = function(type) {
+  // Reset age filter ทุกครั้ง
+  _ageFilter = null;
+  document.querySelectorAll('#pendingAgeGrid > div').forEach(c => c.style.background = 'var(--surface)');
+
   if (type === 'pending') {
     setFilter('active', document.querySelector('.filter-btn'));
     filterOverdue = false;
@@ -4031,10 +4035,19 @@ function renderPendingAge() {
 let _ageFilter = null;
 window.filterByAge = function(ri) {
   _ageFilter = (_ageFilter === ri) ? null : ri;
+  // Reset status filter เป็น active (ค้างทั้งหมด) ก่อน
+  filterOverdue = false;
+  const activeBtn = document.querySelector('.filter-btn[onclick*="active"]');
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  if (activeBtn) activeBtn.classList.add('active');
+  window._currentFilter = 'active';
   renderTable();
   document.querySelectorAll('#pendingAgeGrid > div').forEach((c,i) => {
     c.style.background = i === _ageFilter ? 'var(--surface2)' : 'var(--surface)';
   });
+  if (_ageFilter !== null) {
+    document.getElementById('caseTableBody').closest('table').scrollIntoView({behavior:'smooth', block:'start'});
+  }
 };
 
 window.openAgeSettings = function() {
