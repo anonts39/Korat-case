@@ -465,11 +465,11 @@ font-weight: 700 !important;
 
 <div class="summary-grid">
     <div class="summary-card total"><div class="card-label">คดีทั้งหมด</div><div class="card-number blue" id="totalCases">0</div><div class="mom-row" id="momRowTotal"></div><div class="card-sub" id="totalCasesSub">คดีที่ยังค้างในเดือนนี้</div></div>
-    <div class="summary-card pending"><div class="card-label">คดีค้าง (ยังไม่เสร็จ)</div><div class="card-number red" id="totalPending">0</div><div class="mom-row" id="momRowPending"></div><div class="card-sub" id="pendingPct">0% ของคดีทั้งหมด</div><div class="prog-bar-wrap"><div class="prog-bar" id="pendingBar" style="width:0%"></div></div></div>
+    <div class="summary-card pending" onclick="_statClick('pending')" style="cursor:pointer;" title="คลิกเพื่อดูรายละเอียด"><div class="card-label">คดีค้าง (ยังไม่เสร็จ)</div><div class="card-number red" id="totalPending">0</div><div class="mom-row" id="momRowPending"></div><div class="card-sub" id="pendingPct">0% ของคดีทั้งหมด</div><div class="prog-bar-wrap"><div class="prog-bar" id="pendingBar" style="width:0%"></div></div></div>
     <div class="summary-card done"><div class="card-label">เสร็จสิ้น</div><div class="card-number green" id="totalDone">0</div><div class="mom-row" id="momRowDone"></div><div class="card-sub" id="donePct">0% ของคดีทั้งหมด</div></div>
-    <div class="summary-card overdue"><div class="card-label">เกินกำหนด</div><div class="card-number yellow" id="totalOverdue">0</div><div class="mom-row" id="momRowOverdue"></div><div class="card-sub" id="overduePct">คดีที่เลย deadline</div></div>
-    <div class="summary-card" style="border-color:#e3b341;"><div class="card-label">สอบสวนเพิ่มเติม</div><div class="card-number" style="color:#e3b341;" id="totalReinvestigate">0</div><div class="mom-row"></div><div class="card-sub" id="reinvestigateOverdue" style="color:#f85149;"></div></div>
-    <div class="summary-card" style="border-color:#55efc4;"><div class="card-label">งานพิมพ์สำนวน</div><div class="card-number" style="color:#55efc4;" id="totalFiling">0</div><div class="mom-row"></div><div class="card-sub" id="filingPct" style="color:#55efc4;"></div></div>
+    <div class="summary-card overdue" onclick="_statClick('overdue')" style="cursor:pointer;" title="คลิกเพื่อดูรายละเอียด"><div class="card-label">เกินกำหนด</div><div class="card-number yellow" id="totalOverdue">0</div><div class="mom-row" id="momRowOverdue"></div><div class="card-sub" id="overduePct">คดีที่เลย deadline</div></div>
+    <div class="summary-card" style="border-color:#e3b341;cursor:pointer;" onclick="_statClick('reinvestigate')" title="คลิกเพื่อดูรายละเอียด"><div class="card-label">สอบสวนเพิ่มเติม</div><div class="card-number" style="color:#e3b341;" id="totalReinvestigate">0</div><div class="mom-row"></div><div class="card-sub" id="reinvestigateOverdue" style="color:#f85149;"></div></div>
+    <div class="summary-card" style="border-color:#55efc4;cursor:pointer;" onclick="_statClick('filing')" title="คลิกเพื่อดูรายละเอียด"><div class="card-label">งานพิมพ์สำนวน</div><div class="card-number" style="color:#55efc4;" id="totalFiling">0</div><div class="mom-row"></div><div class="card-sub" id="filingPct" style="color:#55efc4;"></div></div>
   </div>
   <!-- การ์ดสรุปส่วนตัว (เจ้าของสำนวน) -->
   <div id="selfSummaryCard" style="display:none;background:var(--surface);border:1px solid var(--blue);border-radius:12px;padding:16px 20px;margin-bottom:20px;">
@@ -3935,6 +3935,26 @@ window.fixThaiCaseIds = async function() {
   await loadCases(true); renderAll();
 };
 
+
+window._statClick = function(type) {
+  if (type === 'pending') {
+    setFilter('active', document.querySelector('.filter-btn'));
+    filterOverdue = false;
+  } else if (type === 'overdue') {
+    filterOverdue = true;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('overdueFilterBtn').classList.add('active');
+    renderTable();
+  } else if (type === 'reinvestigate') {
+    setFilter('pending', document.querySelector('.filter-btn[onclick*="pending"]'));
+    filterOverdue = false;
+  } else if (type === 'filing') {
+    setFilter('filing', document.querySelector('.filter-btn[onclick*="filing"]'));
+    filterOverdue = false;
+  }
+  document.getElementById('caseTableBody').closest('table').scrollIntoView({behavior:'smooth', block:'start'});
+};
+
 // ===== MIGRATE ASSIGNEE =====
 window.migrateAssignee = async function(oldId, newId) {
   if (!oldId || !newId) { alert('กรุณาระบุ ID'); return; }
@@ -5333,4 +5353,3 @@ document.getElementById('s1Modal').addEventListener('click', function(e) {
 </div>
 </body>
 </html>
-
