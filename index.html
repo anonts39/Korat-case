@@ -967,7 +967,7 @@ const inMonth = m => cases.filter(c => c._ym === m);
 const allYMs  = () => [...new Set(cases.map(c => c._ym).filter(Boolean))].sort();
 
 function dlStatus(dl, st) {
-  if (['done','court'].includes(st)) return 'done';
+  if (['done','court','filing'].includes(st)) return 'done';
   // all other statuses track deadline
   if (!dl) return 'none';
   const d = new Date(dl); d.setHours(0,0,0,0);
@@ -1262,7 +1262,7 @@ function renderSummary() {
       ? cases.filter(x => { const _wt=(window._teams||[]); const _vt=_wt.find(t=>t.id===_teamViewId); return _vt&&(_vt.memberIds||[]).includes(x.assignee); })
       : (selYM === 'all' ? cases : inMonth(selYM));
   const p = selYM === 'all' ? [] : inMonth(prevYM(activeSelYM));
-  const DONE_STATUSES = ['done','court'];
+  const DONE_STATUSES = ['done','court','filing'];
   const EXCLUDE_ST = ['filing','nitikorn'];
   const S1_CAT = 'ส.1 (ยกคดี)';
   const EXCLUDE = x => x.category !== S1_CAT && !EXCLUDE_ST.includes(x.status);
@@ -1314,8 +1314,8 @@ function renderSummary() {
     selfCard.style.display = 'block';
     const myCases = c.filter(x => x.assignee === currentPersonId);
     const myTotal   = myCases.length;
-    const myPending = myCases.filter(x => !['done','court'].includes(x.status)).length;
-    const myDone    = myCases.filter(x => ['done','court'].includes(x.status)).length;
+    const myPending = myCases.filter(x => !['done','court','filing'].includes(x.status)).length;
+    const myDone    = myCases.filter(x => ['done','court','filing'].includes(x.status)).length;
     const myPendingPct = myTotal ? Math.round(myPending/myTotal*100) : 0;
     const myDonePct    = myTotal ? Math.round(myDone/myTotal*100) : 0;
     document.getElementById('selfTotal').textContent       = myTotal;
@@ -1468,7 +1468,7 @@ function renderDailyTable() {
   const [yr, mo] = sel.value.split('-').map(Number);
   const daysInMonth = new Date(yr, mo, 0).getDate();
   const S1_CAT = 'ส.1 (ยกคดี)';
-  const DONE_ST = ['done','court'];
+  const DONE_ST = ['done','court','filing'];
 
   // Filter people - exclude เลขา and เจ้าหน้าที่
   const pList = (window._people || []).filter(p => p.name && !['เลขา','เจ้าหน้าที่'].some(r => (p.role||'').includes(r)));
@@ -1684,15 +1684,15 @@ function renderPeople() {
       ? cases.filter(x => { const dt2=parseDate(x.date||x.createdAt); const d=dt2?dt2.getFullYear()+'-'+String(dt2.getMonth()+1).padStart(2,'0')+'-'+String(dt2.getDate()).padStart(2,'0'):''; return (!_df||d>=_df)&&(!_dt||d<=_dt); })
       : cases).filter(c => c.assignee === p.id && c.category !== 'ส.1 (ยกคดี)');
     const allPrv = inMonth(prevYM(selYM)).filter(c => c.assignee === p.id && c.category !== 'ส.1 (ยกคดี)');
-    const pendingCur = cases.filter(c => c.currentPerson === p.name && !['done','court'].includes(c.status));
+    const pendingCur = cases.filter(c => c.currentPerson === p.name && !['done','court','filing'].includes(c.status));
     const cur = allCur, prv = allPrv;
     const ct = cur.length;
-    const cpOwner = cur.filter(c => !['done','court'].includes(c.status)).length;
+    const cpOwner = cur.filter(c => !['done','court','filing'].includes(c.status)).length;
     const cpHolder = pendingCur.length;
     const cp = cpOwner;
     const cg = cur.filter(c => c.status === 'progress').length;
-    const cd = cur.filter(c => ['done','court'].includes(c.status)).length;
-    const co = cur.filter(c => !['done','court'].includes(c.status) && dlStatus(c.deadline,c.status) === 'overdue').length;
+    const cd = cur.filter(c => ['done','court','filing'].includes(c.status)).length;
+    const co = cur.filter(c => !['done','court','filing'].includes(c.status) && dlStatus(c.deadline,c.status) === 'overdue').length;
     const init = p.name.replace('นาย','').replace('นางสาว','').replace('นาง','').trim().charAt(0);
     const selected = filterPerson === p.id;
 
@@ -1723,7 +1723,7 @@ function renderPeople() {
       </div>
       <div class="person-mom">
         <div class="person-mom-item">ทั้งหมด: ${momHTML(ct,prv.length,false)}</div>
-        <div class="person-mom-item">ค้าง(เจ้าของ): ${momHTML(cpOwner,prv.filter(c=>!['done','court'].includes(c.status)).length,true)} | ถือสำนวน: ${cpHolder}</div>
+        <div class="person-mom-item">ค้าง(เจ้าของ): ${momHTML(cpOwner,prv.filter(c=>!['done','court','filing'].includes(c.status)).length,true)} | ถือสำนวน: ${cpHolder}</div>
       </div>`;
 
     // Click to filter (not on handle or menu)
@@ -1983,9 +1983,9 @@ function renderProsSingle() {
 
   const prosData = people.map((p, idx) => {
     const mine = src.filter(c => c.assignee === p.id);
-    const pending = mine.filter(c => !['done','court'].includes(c.status)).length;
-    const done = mine.filter(c => ['done','court'].includes(c.status)).length;
-    const overdue = mine.filter(c => !['done','court'].includes(c.status) && dlStatus(c.deadline, c.status) === 'overdue').length;
+    const pending = mine.filter(c => !['done','court','filing'].includes(c.status)).length;
+    const done = mine.filter(c => ['done','court','filing'].includes(c.status)).length;
+    const overdue = mine.filter(c => !['done','court','filing'].includes(c.status) && dlStatus(c.deadline, c.status) === 'overdue').length;
     return { name: shortName(p.name), total: mine.length, pending, done, overdue, color: CHART_COLORS[idx % CHART_COLORS.length] };
   }).filter(p => p.total > 0);
 
@@ -2058,7 +2058,7 @@ function renderProsMulti() {
   // Chart: Pending per person per month
   const pendingDatasets = months.map((m, mi) => ({
     label: ymLabel(m),
-    data: peopleFiltered.map(p => srcForMonth(m).filter(c => c.assignee === p.id && !['done','court'].includes(c.status)).length),
+    data: peopleFiltered.map(p => srcForMonth(m).filter(c => c.assignee === p.id && !['done','court','filing'].includes(c.status)).length),
     backgroundColor: MONTH_COLORS[mi % MONTH_COLORS.length] + '88',
     borderColor: MONTH_COLORS[mi % MONTH_COLORS.length],
     borderWidth: 1, borderRadius: 4
@@ -2072,7 +2072,7 @@ function renderProsMulti() {
   // Chart: Done per person per month
   const doneDatasets = months.map((m, mi) => ({
     label: ymLabel(m),
-    data: peopleFiltered.map(p => srcForMonth(m).filter(c => c.assignee === p.id && ['done','court'].includes(c.status)).length),
+    data: peopleFiltered.map(p => srcForMonth(m).filter(c => c.assignee === p.id && ['done','court','filing'].includes(c.status)).length),
     backgroundColor: MONTH_COLORS[mi % MONTH_COLORS.length] + '88',
     borderColor: MONTH_COLORS[mi % MONTH_COLORS.length],
     borderWidth: 1, borderRadius: 4
@@ -2101,9 +2101,9 @@ function renderTeamSingle() {
     const team = _ts.find(t => t.name === tname);
     const memberIds = team ? (team.memberIds || []) : [];
     const mine = src.filter(c => memberIds.includes(c.assignee));
-    const pending = mine.filter(c => !['done','court'].includes(c.status)).length;
-    const done = mine.filter(c => ['done','court'].includes(c.status)).length;
-    const overdue = mine.filter(c => !['done','court'].includes(c.status) && dlStatus(c.deadline, c.status) === 'overdue').length;
+    const pending = mine.filter(c => !['done','court','filing'].includes(c.status)).length;
+    const done = mine.filter(c => ['done','court','filing'].includes(c.status)).length;
+    const overdue = mine.filter(c => !['done','court','filing'].includes(c.status) && dlStatus(c.deadline, c.status) === 'overdue').length;
     return { name: tname, total: mine.length, pending, done, overdue, color: CHART_COLORS[idx] };
   });
 
@@ -2171,7 +2171,7 @@ function renderTeamMulti() {
 
   const pendingDatasets = months.map((m, mi) => ({
     label: ymLabel(m),
-    data: teamNames.map(tn => teamCases(tn, m).filter(c => !['done','court'].includes(c.status)).length),
+    data: teamNames.map(tn => teamCases(tn, m).filter(c => !['done','court','filing'].includes(c.status)).length),
     backgroundColor: MONTH_COLORS[mi % MONTH_COLORS.length] + '88',
     borderColor: MONTH_COLORS[mi % MONTH_COLORS.length],
     borderWidth: 1, borderRadius: 4
@@ -2183,7 +2183,7 @@ function renderTeamMulti() {
 
   const doneDatasets = months.map((m, mi) => ({
     label: ymLabel(m),
-    data: teamNames.map(tn => teamCases(tn, m).filter(c => ['done','court'].includes(c.status)).length),
+    data: teamNames.map(tn => teamCases(tn, m).filter(c => ['done','court','filing'].includes(c.status)).length),
     backgroundColor: MONTH_COLORS[mi % MONTH_COLORS.length] + '88',
     borderColor: MONTH_COLORS[mi % MONTH_COLORS.length],
     borderWidth: 1, borderRadius: 4
@@ -2302,14 +2302,14 @@ function renderTable() {
     const monthOk = (_df || _dt) ? true : inSelectedMonth;
     const statusMatch =
       filterStatus === 'all'    ? true :
-      filterStatus === 'active'   ? (monthOk && !['done','court'].includes(c.status)) :
+      filterStatus === 'active'   ? (monthOk && !['done','court','filing'].includes(c.status)) :
       filterStatus === 'progress' ? (monthOk && ['progress','pending'].includes(c.status)) :
                                     (monthOk && c.status === filterStatus);
     return statusMatch &&
       (filterPerson === null || c.assignee === filterPerson ||
-       (() => { const fp = people.find(x=>x.id===filterPerson); return fp && c.currentPerson===fp.name && !['done','court'].includes(c.status); })()) &&
+       (() => { const fp = people.find(x=>x.id===filterPerson); return fp && c.currentPerson===fp.name && !['done','court','filing'].includes(c.status); })()) &&
       (filterCategory === null || (c.category || 'ไม่ระบุ') === filterCategory) &&
-      (!filterOverdue || (!['done','court'].includes(c.status) && dlStatus(c.deadline,c.status) === 'overdue')) &&
+      (!filterOverdue || (!['done','court','filing'].includes(c.status) && dlStatus(c.deadline,c.status) === 'overdue')) &&
       (_ageFilter === null || (()=>{ const d=daysSince(c.date); const r=ageRanges[_ageFilter]; return r && d>=r.min && d<=r.max; })()) &&
       (!search || c.name.toLowerCase().includes(search) || 
        c.caseId.toLowerCase().includes(search) || 
@@ -2348,7 +2348,7 @@ function renderTable() {
     const rowCls = dls==='overdue' ? 'row-overdue' : dls==='due-soon' ? 'row-due-soon' : '';
     // Age badge
     const ageDays = daysSince(c.date);
-    const ageRange = !['done','court'].includes(c.status) ? ageRanges.find(r => ageDays>=r.min && ageDays<=r.max) : null;
+    const ageRange = !['done','court','filing'].includes(c.status) ? ageRanges.find(r => ageDays>=r.min && ageDays<=r.max) : null;
     const ageBadge = ageRange ? '<span style="display:inline-flex;padding:2px 8px;border-radius:20px;font-size:0.65rem;font-weight:600;background:'+ageRange.color+'22;color:'+ageRange.color+';border:1px solid '+ageRange.color+'55;margin-left:4px;">⏳ '+ageDays+' วัน</span>' : '';
     const ownerLabel = isAdminUser && c.userEmail ? `<div style="font-size:0.68rem;color:var(--purple)">👤 ${c.userEmail}</div>` : '';
     const noteLabel  = c.note ? `<div style="font-size:0.72rem;color:var(--text3)">📝 ${c.note}</div>` : '';
@@ -2385,7 +2385,7 @@ function renderTable() {
       </td>
       <td>${catBadge(c.category)}</td>
 
-      <td style="font-size:0.82rem">${per?per.name:'-'}</td>
+      <td style="font-size:0.82rem">${per ? per.name : (c.originalOwners && c.originalOwners.length ? `<span style="color:var(--text3);font-size:0.75rem;">📋 ${c.originalOwners[0]}</span>` : '-')}</td>
       <td><span class="badge ${cls}">${lbl}</span></td>
       <td>${dlLabel(c.deadline,c.status)}</td>
       <td style="color:var(--text3);font-size:0.78rem">${(()=>{const _raw=c.date||c.createdAt;if(!_raw)return '-';const _d=parseDate(_raw);return _d?_d.toLocaleDateString('th-TH'):_raw})()}</td>
