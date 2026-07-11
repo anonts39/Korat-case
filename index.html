@@ -3992,14 +3992,13 @@ let _wkPersonId = null;
 let _wkPersonName = '';
 
 window.openWeeklyModal = async function(personId, personName) {
+  try {
   _wkPersonId = personId;
   _wkPersonName = personName;
   document.getElementById('wkPersonName').textContent = personName;
   document.getElementById('wkDate').value = new Date().toISOString().split('T')[0];
   document.getElementById('wkDeadline').value = '';
   document.getElementById('wkNote').value = '';
-  document.getElementById('wkTarget').value = '';
-  document.getElementById('wkActual').value = '';
   document.getElementById('wkActualIds').value = '';
   document.getElementById('wkIdBreakdown').textContent = '';
   document.getElementById('wkPctBadge').style.display = 'none';
@@ -4020,6 +4019,7 @@ window.openWeeklyModal = async function(personId, personName) {
 
   await wkLoadHistory();
   document.getElementById('weeklyModalOverlay').classList.add('show');
+  } catch(err) { alert('Error: ' + err.message + '\n' + err.stack?.substring(0,200)); }
 };
 
 window.closeWeeklyModal = function() {
