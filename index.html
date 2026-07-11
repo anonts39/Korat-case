@@ -3991,6 +3991,13 @@ window._statClick = function(type) {
 let _wkPersonId = null;
 let _wkPersonName = '';
 
+window.wkUpdateTargetTotal = function() {
+  const o = parseInt(document.getElementById('wkTargetOld')?.value)||0;
+  const n = parseInt(document.getElementById('wkTargetNew')?.value)||0;
+  const el = document.getElementById('wkTargetTotal');
+  if (el) el.textContent = (o+n) + ' เรื่อง';
+};
+
 window.openWeeklyModal = async function(personId, personName) {
   try {
   _wkPersonId = personId;
