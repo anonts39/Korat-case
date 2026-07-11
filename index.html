@@ -4052,9 +4052,12 @@ document.getElementById('wkActualIds').addEventListener('input', function() {
     🆕 สำนวนใหม่: <b style="color:var(--green);">${newIds.length}</b> เรื่อง
     ${notFound.length ? `&nbsp;|&nbsp; ⚠️ ไม่พบในระบบ: <b style="color:var(--red);">${notFound.join(', ')}</b>` : ''}
   `;
-  // อัปเดตช่อง actual อัตโนมัติ
+  // อัปเดต actual อัตโนมัติจากจำนวนที่จำแนกได้
   const total = oldIds.length + newIds.length;
-  document.getElementById('wkActual').value = total || '';
+  const elOld = document.getElementById('wkActualOld');
+  const elNew = document.getElementById('wkActualNew');
+  if (elOld) elOld.value = oldIds.length || '';
+  if (elNew) elNew.value = newIds.length || '';
   wkUpdatePct();
 });
 
