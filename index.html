@@ -4003,6 +4003,21 @@ window.openWeeklyModal = async function(personId, personName) {
   document.getElementById('wkActualIds').value = '';
   document.getElementById('wkIdBreakdown').textContent = '';
   document.getElementById('wkPctBadge').style.display = 'none';
+
+  // แบ่งสิทธิ์
+  const isOwner = !isAdminUser && currentPersonId === personId;
+  document.getElementById('wkAdminSection').style.display = isAdminUser ? 'block' : 'none';
+  document.getElementById('wkOwnerSection').style.display = (isAdminUser || isOwner) ? 'block' : 'none';
+  document.getElementById('wkReadonlyBanner').style.display = (!isAdminUser && !isOwner) ? 'block' : 'none';
+  document.getElementById('wkSaveBtn').style.display = (isAdminUser || isOwner) ? 'inline-flex' : 'none';
+
+  // Live sum listeners
+  ['wkTargetOld','wkTargetNew'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el.oninput = wkUpdateTargetTotal; }
+  });
+  document.getElementById('wkTargetTotal').textContent = '0';
+
   await wkLoadHistory();
   document.getElementById('weeklyModalOverlay').classList.add('show');
 };
@@ -4043,57 +4058,100 @@ document.getElementById('wkActualIds').addEventListener('input', function() {
   wkUpdatePct();
 });
 
-document.getElementById('wkActual').addEventListener('input', wkUpdatePct);
-document.getElementById('wkTarget').addEventListener('input', wkUpdatePct);
-
 function wkUpdatePct() {
-  const target = parseInt(document.getElementById('wkTarget').value) || 0;
-  const actual = parseInt(document.getElementById('wkActual').value) || 0;
-  const badge = document.getElementById('wkPctBadge');
-  if (!target) { badge.style.display = 'none'; return; }
-  const pct = Math.round(actual/target*100);
-  const color = pct >= 100 ? '#3fb950' : pct >= 50 ? '#e3b341' : '#f85149';
-  badge.style.display = 'block';
-  badge.innerHTML = `<span style="font-family:'Kanit',sans-serif;font-size:1.2rem;font-weight:700;color:${color};">${pct}%</span><span style="font-size:0.7rem;color:var(--text3);margin-left:4px;">${actual}/${target}</span>`;
+  const tOld = parseInt(document.getElementById('wkShowTargetOld')?.textContent)||0;
+  const tNew = parseInt(document.getElementById('wkShowTargetNew')?.textContent)||0;
+  const aOld = parseInt(document.getElementById('wkActualOld')?.value)||0;
+  const aNew = parseInt(document.getElementById('wkActualNew')?.value)||0;
+  const tTotal = tOld + tNew;
+  const aTotal = aOld + aNew;
+
+  const pctFn = (a,t) => t ? Math.round(a/t*100) : null;
+  const colorFn = p => p === null ? 'var(--text3)' : p >= 100 ? '#3fb950' : p >= 50 ? '#e3b341' : '#f85149';
+
+  const pOld = pctFn(aOld, tOld);
+  const pNew = pctFn(aNew, tNew);
+  const pTotal = pctFn(aTotal, tTotal);
+
+  const elPO = document.getElementById('wkPctOld');
+  const elPN = document.getElementById('wkPctNew');
+  const elPT = document.getElementById('wkPctTotal');
+  const elAT = document.getElementById('wkActualTotal');
+  if (elPO) elPO.innerHTML = pOld !== null ? `<span style="color:${colorFn(pOld)}">${pOld}%</span>` : '—';
+  if (elPN) elPN.innerHTML = pNew !== null ? `<span style="color:${colorFn(pNew)}">${pNew}%</span>` : '—';
+  if (elPT) elPT.innerHTML = pTotal !== null ? `<span style="color:${colorFn(pTotal)};font-size:1rem;">${pTotal}%</span>` : '—';
+  if (elAT) elAT.textContent = aTotal || '—';
 }
 
 window.wkSaveCheckpoint = async function() {
   if (!_wkPersonId) return;
-  const dateVal = document.getElementById('wkDate').value;
-  if (!dateVal) { alert('กรุณาเลือกวันที่'); return; }
-  const target = parseInt(document.getElementById('wkTarget').value) || 0;
-  const actual = parseInt(document.getElementById('wkActual').value) || 0;
-  const idsText = document.getElementById('wkActualIds').value.trim();
-  const { oldIds, newIds } = wkClassifyIds(idsText);
+  const isOwner = !isAdminUser && currentPersonId === _wkPersonId;
 
-  const pendingNow = cases.filter(c => c.assignee === _wkPersonId && !['done','court','filing'].includes(c.status));
+  // Admin บันทึก target/deadline
+  if (isAdminUser) {
+    const dateVal = document.getElementById('wkDate').value;
+    if (!dateVal) { alert('กรุณาเลือกวันที่'); return; }
+    const targetOld = parseInt(document.getElementById('wkTargetOld').value) || 0;
+    const targetNew = parseInt(document.getElementById('wkTargetNew').value) || 0;
+    if (!targetOld && !targetNew) { alert('กรุณาใส่เป้าหมายอย่างน้อย 1 ช่อง'); return; }
+    const pendingNow = cases.filter(c => c.assignee === _wkPersonId && !['done','court','filing'].includes(c.status));
+    const obj = {
+      checkpointDate: Timestamp.fromDate(new Date(dateVal)),
+      deadline: document.getElementById('wkDeadline').value || null,
+      note: document.getElementById('wkNote').value.trim(),
+      targetOld, targetNew,
+      target: targetOld + targetNew,
+      actualOld: null, actualNew: null, actual: null,
+      actualCaseIds: [], oldCaseIds: [], newCaseIds: [],
+      openCaseCount: pendingNow.length,
+      createdBy: auth.currentUser?.uid || '',
+      createdAt: new Date().toISOString()
+    };
+    try {
+      await addDoc(collection(db, 'people', _wkPersonId, 'weeklyCheckpoints'), obj);
+      alert('✅ บันทึก Checkpoint เรียบร้อยแล้วครับ');
+      document.getElementById('wkTargetOld').value = '';
+      document.getElementById('wkTargetNew').value = '';
+      document.getElementById('wkTargetTotal').textContent = '0';
+      document.getElementById('wkDeadline').value = '';
+      document.getElementById('wkNote').value = '';
+      await wkLoadHistory();
+    } catch(e) { alert('บันทึกไม่สำเร็จ: ' + e.message); }
+    return;
+  }
 
-  const obj = {
-    checkpointDate: Timestamp.fromDate(new Date(dateVal)),
-    deadline: document.getElementById('wkDeadline').value || null,
-    note: document.getElementById('wkNote').value.trim(),
-    target,
-    actual,
-    actualCaseIds: idsText ? idsText.split(/[,\n]/).map(s=>s.trim()).filter(Boolean) : [],
-    oldCaseIds: oldIds,
-    newCaseIds: newIds,
-    openCaseCount: pendingNow.length,
-    createdBy: auth.currentUser?.uid || '',
-    createdAt: new Date().toISOString()
-  };
+  // เจ้าของบันทึก actual (update checkpoint ล่าสุด)
+  if (isOwner) {
+    const idsText = document.getElementById('wkActualIds').value.trim();
+    const { oldIds, newIds } = wkClassifyIds(idsText);
+    const actualOld = oldIds.length;
+    const actualNew = newIds.length;
 
-  try {
-    await addDoc(collection(db, 'people', _wkPersonId, 'weeklyCheckpoints'), obj);
-    alert('✅ บันทึก Checkpoint เรียบร้อยแล้วครับ');
-    document.getElementById('wkTarget').value = '';
-    document.getElementById('wkActual').value = '';
-    document.getElementById('wkActualIds').value = '';
-    document.getElementById('wkIdBreakdown').textContent = '';
-    document.getElementById('wkNote').value = '';
-    document.getElementById('wkDeadline').value = '';
-    document.getElementById('wkPctBadge').style.display = 'none';
-    await wkLoadHistory();
-  } catch(e) { alert('บันทึกไม่สำเร็จ: ' + e.message); }
+    // หา checkpoint ล่าสุด
+    const snap = await getDocs(query(
+      collection(db, 'people', _wkPersonId, 'weeklyCheckpoints'),
+      orderBy('checkpointDate', 'desc'), limit(1)
+    ));
+    if (snap.empty) { alert('ยังไม่มี Checkpoint จาก Admin กรุณารอ Admin บันทึกเป้าหมายก่อนครับ'); return; }
+
+    const latestDoc = snap.docs[0];
+    try {
+      await updateDoc(doc(db, 'people', _wkPersonId, 'weeklyCheckpoints', latestDoc.id), {
+        actualOld, actualNew,
+        actual: actualOld + actualNew,
+        actualCaseIds: idsText ? idsText.split(/[,\n]/).map(s=>s.trim()).filter(Boolean) : [],
+        oldCaseIds: oldIds,
+        newCaseIds: newIds,
+        updatedBy: auth.currentUser?.uid || '',
+        updatedAt: new Date().toISOString()
+      });
+      alert('✅ บันทึกผลเรียบร้อยแล้วครับ');
+      document.getElementById('wkActualIds').value = '';
+      document.getElementById('wkIdBreakdown').textContent = '';
+      document.getElementById('wkPctBadge').style.display = 'none';
+      await wkLoadHistory();
+    } catch(e) { alert('บันทึกไม่สำเร็จ: ' + e.message); }
+  }
 };
 
 async function wkLoadHistory() {
@@ -4105,6 +4163,29 @@ async function wkLoadHistory() {
       orderBy('checkpointDate', 'desc'),
       limit(6)
     ));
+
+    // โหลด checkpoint ล่าสุดเข้า owner table
+    const isOwner = !isAdminUser && currentPersonId === _wkPersonId;
+    if (!snap.empty && isOwner) {
+      const latest = snap.docs[0].data();
+      const tOld = latest.targetOld || 0;
+      const tNew = latest.targetNew || 0;
+      document.getElementById('wkShowTargetOld').textContent = tOld;
+      document.getElementById('wkShowTargetNew').textContent = tNew;
+      document.getElementById('wkShowTargetTotal').textContent = (tOld+tNew) + ' เรื่อง';
+      document.getElementById('wkResultTable').style.display = 'block';
+      document.getElementById('wkNoCheckpoint').style.display = 'none';
+      // ถ้ามีผลแล้วให้แสดงด้วย
+      if (latest.actualOld !== null && latest.actualOld !== undefined) {
+        document.getElementById('wkActualOld').value = latest.actualOld || 0;
+        document.getElementById('wkActualNew').value = latest.actualNew || 0;
+        wkUpdatePct();
+      }
+    } else if (snap.empty && isOwner) {
+      document.getElementById('wkResultTable').style.display = 'none';
+      document.getElementById('wkNoCheckpoint').style.display = 'block';
+    }
+
     if (snap.empty) { histDiv.innerHTML = '<div style="color:var(--text3);font-size:0.78rem;padding:8px;">ยังไม่มีประวัติ</div>'; return; }
 
     histDiv.innerHTML = snap.docs.map(d => {
@@ -4118,23 +4199,60 @@ async function wkLoadHistory() {
       const oldC = (data.oldCaseIds||[]).length;
       const newC = (data.newCaseIds||[]).length;
 
+      const docId = d.id;
+      const tOld = data.targetOld || 0;
+      const tNew = data.targetNew || 0;
+      const aOld = data.actualOld;
+      const aNew = data.actualNew;
+      const waiting = aOld === null || aOld === undefined;
+      const pctFn = (a,t) => t && a !== null && a !== undefined ? Math.round(a/t*100) : null;
+      const colorFn = p => p === null ? 'var(--text3)' : p >= 100 ? '#3fb950' : p >= 50 ? '#e3b341' : '#f85149';
+      const pOld = pctFn(aOld, tOld);
+      const pNew = pctFn(aNew, tNew);
+      const pTotal = pctFn((aOld||0)+(aNew||0), tOld+tNew);
+      const pTotalColor = colorFn(pTotal);
+      const adminBtns = isAdminUser ? `
+        <button onclick="wkDeleteCheckpoint('${docId}')" title="ลบ"
+          style="font-size:0.72rem;padding:2px 7px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:5px;cursor:pointer;">🗑</button>` : '';
+
       return `<div style="background:var(--surface2);border-radius:10px;padding:12px;border:1px solid var(--border);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
           <div style="font-family:'Kanit',sans-serif;font-size:0.85rem;color:var(--accent);">📅 ${dateStr}</div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            ${data.deadline ? `<span style="font-size:0.7rem;background:#2d1f0a;color:#e3b341;border:1px solid #d29922;border-radius:4px;padding:2px 6px;">⏰ ส่งภายใน ${new Date(data.deadline).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'})}</span>` : ''}
-            <div style="font-size:0.72rem;color:var(--text3);">ค้าง ณ วันนั้น: <b>${data.openCaseCount||'—'}</b></div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            ${data.deadline ? `<span style="font-size:0.68rem;background:#2d1f0a;color:#e3b341;border:1px solid #d29922;border-radius:4px;padding:2px 6px;">⏰ ${new Date(data.deadline).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'})}</span>` : ''}
+            <span style="font-size:0.68rem;color:var(--text3);">ค้าง: <b>${data.openCaseCount||'—'}</b></span>
+            ${adminBtns}
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
-          <div style="font-size:0.78rem;">เป้า <b style="color:var(--yellow);font-family:'Kanit',sans-serif;">${target}</b> → ทำได้ <b style="color:${barColor};font-family:'Kanit',sans-serif;">${actual}</b> เรื่อง</div>
-          ${pct !== null ? `<span style="font-family:'Kanit',sans-serif;font-size:0.9rem;font-weight:700;color:${barColor};">${pct}%</span>` : ''}
-        </div>
-        ${target ? `<div style="background:#21262d;border-radius:4px;height:5px;overflow:hidden;margin-bottom:6px;">
-          <div style="height:5px;width:${Math.min(pct||0,100)}%;background:${barColor};border-radius:4px;"></div>
-        </div>` : ''}
-        ${(oldC||newC) ? `<div style="font-size:0.7rem;color:var(--text3);">📁 เก่า ${oldC} เรื่อง &nbsp;|&nbsp; 🆕 ใหม่ ${newC} เรื่อง</div>` : ''}
-        ${data.note ? `<div style="font-size:0.72rem;color:var(--text3);margin-top:4px;">📝 ${data.note}</div>` : ''}
+        ${waiting ? `<div style="font-size:0.75rem;color:var(--yellow);">⏳ รอเจ้าของกรอกผล | เป้า: เก่า ${tOld} + ใหม่ ${tNew} = ${tOld+tNew} เรื่อง</div>` :
+        `<table style="width:100%;border-collapse:collapse;font-size:0.75rem;margin-bottom:4px;">
+          <tr style="color:var(--text3);font-size:0.68rem;border-bottom:1px solid var(--border);">
+            <th style="text-align:left;padding:2px 6px;font-weight:600;"></th>
+            <th style="text-align:center;padding:2px 6px;font-weight:600;">เป้า</th>
+            <th style="text-align:center;padding:2px 6px;font-weight:600;">ทำได้</th>
+            <th style="text-align:center;padding:2px 6px;font-weight:600;">%</th>
+          </tr>
+          <tr>
+            <td style="padding:3px 6px;color:var(--text2);">📁 สะสม</td>
+            <td style="text-align:center;padding:3px 6px;color:var(--yellow);">${tOld}</td>
+            <td style="text-align:center;padding:3px 6px;color:${colorFn(pOld)};">${aOld??'—'}</td>
+            <td style="text-align:center;padding:3px 6px;font-weight:700;color:${colorFn(pOld)};">${pOld!==null?pOld+'%':'—'}</td>
+          </tr>
+          <tr>
+            <td style="padding:3px 6px;color:var(--text2);">🆕 ใหม่</td>
+            <td style="text-align:center;padding:3px 6px;color:var(--yellow);">${tNew}</td>
+            <td style="text-align:center;padding:3px 6px;color:${colorFn(pNew)};">${aNew??'—'}</td>
+            <td style="text-align:center;padding:3px 6px;font-weight:700;color:${colorFn(pNew)};">${pNew!==null?pNew+'%':'—'}</td>
+          </tr>
+          <tr style="border-top:1px solid var(--border);font-weight:700;">
+            <td style="padding:3px 6px;color:var(--accent);">รวม</td>
+            <td style="text-align:center;padding:3px 6px;color:var(--accent);">${tOld+tNew}</td>
+            <td style="text-align:center;padding:3px 6px;color:${pTotalColor};">${(aOld||0)+(aNew||0)}</td>
+            <td style="text-align:center;padding:3px 6px;font-size:0.9rem;color:${pTotalColor};">${pTotal!==null?pTotal+'%':'—'}</td>
+          </tr>
+        </table>
+        ${pTotal !== null ? `<div style="background:#21262d;border-radius:4px;height:5px;overflow:hidden;margin-bottom:4px;"><div style="height:5px;width:${Math.min(pTotal,100)}%;background:${pTotalColor};border-radius:4px;"></div></div>` : ''}`}
+        ${data.note ? `<div style="font-size:0.7rem;color:var(--text3);margin-top:4px;">📝 ${data.note}</div>` : ''}
       </div>`;
     }).join('');
   } catch(e) { histDiv.innerHTML = `<div style="color:var(--red);font-size:0.78rem;">โหลดไม่ได้: ${e.message}</div>`; }
@@ -4208,6 +4326,16 @@ window.openWeeklyReport = async function() {
 document.getElementById('weeklyReportOverlay').addEventListener('click', function(e) {
   if (e.target === this) this.classList.remove('show');
 });
+
+// Delete checkpoint (Admin only)
+window.wkDeleteCheckpoint = async function(docId) {
+  if (!isAdminUser) return;
+  if (!confirm('ลบ Checkpoint นี้เลยไหมครับ?')) return;
+  try {
+    await deleteDoc(doc(db, 'people', _wkPersonId, 'weeklyCheckpoints', docId));
+    await wkLoadHistory();
+  } catch(e) { alert('ลบไม่สำเร็จ: ' + e.message); }
+};
 
 // Weekly Checkpoint Scanner
 let _wkScanMode = false;
@@ -5244,61 +5372,129 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
     <div style="background:var(--surface2);border-radius:10px;padding:16px;margin-bottom:16px;">
       <div style="font-size:0.82rem;color:var(--text2);font-weight:600;margin-bottom:12px;">📌 บันทึก ณ วันที่คุยกัน</div>
 
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
-        <div style="flex:1;min-width:150px;">
-          <label style="font-size:0.72rem;color:var(--text3);">วันที่คุยกัน</label>
-          <input type="date" id="wkDate" class="form-input" style="margin-top:4px;">
-        </div>
-        <div style="flex:1;min-width:150px;">
-          <label style="font-size:0.72rem;color:var(--text3);">กำหนดส่งภายใน</label>
-          <input type="date" id="wkDeadline" class="form-input" style="margin-top:4px;">
-        </div>
-        <div style="flex:2;min-width:200px;">
-          <label style="font-size:0.72rem;color:var(--text3);">หมายเหตุ</label>
-          <input type="text" id="wkNote" class="form-input" placeholder="บันทึกเพิ่มเติม" style="margin-top:4px;">
-        </div>
+      <!-- readonly banner -->
+      <div id="wkReadonlyBanner" style="display:none;background:#1f2d1a;border:1px solid var(--green);border-radius:8px;padding:10px 14px;font-size:0.8rem;color:#7ee787;margin-bottom:12px;">
+        👁 ดูได้อย่างเดียว — เฉพาะเจ้าของสำนวนหรือ Admin เท่านั้นที่กรอกข้อมูลได้
       </div>
 
-      <!-- เป้าหมาย -->
-      <div style="font-size:0.78rem;color:var(--text3);font-weight:600;margin-bottom:8px;">🎯 เป้าหมายที่รับปาก</div>
-      <div style="display:flex;gap:10px;margin-bottom:14px;">
-        <div style="flex:1;background:var(--surface);border-radius:8px;padding:12px;">
-          <div style="font-size:0.72rem;color:var(--text3);margin-bottom:6px;">สำนวนรวม (เก่า+ใหม่)</div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <input type="number" id="wkTarget" min="0" class="form-input" style="width:80px;text-align:center;font-size:1.1rem;font-family:'Kanit',sans-serif;" placeholder="0">
-            <span style="font-size:0.78rem;color:var(--text3);">เรื่อง</span>
+      <!-- Admin section: ตั้งเป้า/deadline -->
+      <div id="wkAdminSection" style="display:none;margin-bottom:14px;">
+        <div style="font-size:0.78rem;color:var(--accent);font-weight:600;margin-bottom:8px;">👑 Admin — ตั้งเป้าหมาย</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+          <div style="flex:1;min-width:140px;">
+            <label style="font-size:0.72rem;color:var(--text3);">วันที่คุยกัน</label>
+            <input type="date" id="wkDate" class="form-input" style="margin-top:4px;">
+          </div>
+          <div style="flex:1;min-width:140px;">
+            <label style="font-size:0.72rem;color:var(--text3);">กำหนดส่งภายใน</label>
+            <input type="date" id="wkDeadline" class="form-input" style="margin-top:4px;">
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+          <div style="background:var(--surface);border-radius:8px;padding:12px;width:100%;">
+            <div style="font-size:0.72rem;color:var(--text3);font-weight:600;margin-bottom:8px;">🎯 เป้าหมาย</div>
+            <table style="width:100%;border-collapse:collapse;font-size:0.78rem;">
+              <thead>
+                <tr>
+                  <th style="text-align:left;padding:4px 8px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border);"></th>
+                  <th style="text-align:center;padding:4px 8px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border);">เป้า</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="padding:6px 8px;color:var(--text2);">📁 สะสมจากรอบก่อน</td>
+                  <td style="padding:6px 8px;text-align:center;">
+                    <div style="display:flex;align-items:center;gap:4px;justify-content:center;">
+                      <input type="number" id="wkTargetOld" min="0" class="form-input" style="width:64px;text-align:center;font-family:'Kanit',sans-serif;" placeholder="0">
+                      <span style="color:var(--text3);font-size:0.72rem;">เรื่อง</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:6px 8px;color:var(--text2);">🆕 ใหม่รอบนี้</td>
+                  <td style="padding:6px 8px;text-align:center;">
+                    <div style="display:flex;align-items:center;gap:4px;justify-content:center;">
+                      <input type="number" id="wkTargetNew" min="0" class="form-input" style="width:64px;text-align:center;font-family:'Kanit',sans-serif;" placeholder="0">
+                      <span style="color:var(--text3);font-size:0.72rem;">เรื่อง</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr style="border-top:1px solid var(--border);">
+                  <td style="padding:6px 8px;font-weight:700;color:var(--accent);">รวม</td>
+                  <td style="padding:6px 8px;text-align:center;font-family:'Kanit',sans-serif;font-weight:700;color:var(--accent);" id="wkTargetTotal">0</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="flex:1;min-width:180px;">
+            <label style="font-size:0.72rem;color:var(--text3);">หมายเหตุ</label>
+            <input type="text" id="wkNote" class="form-input" placeholder="บันทึกเพิ่มเติม" style="margin-top:4px;width:100%;">
           </div>
         </div>
       </div>
 
-      <!-- ผลการดำเนินงาน (กรอกทีหลังได้) -->
-      <div style="font-size:0.78rem;color:var(--text3);font-weight:600;margin-bottom:8px;">✅ ผลการดำเนินงาน <span style="font-weight:400;color:var(--text3);">(กรอกหลังครบรอบ)</span></div>
-      <div style="background:var(--surface);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div style="flex:0 0 auto;">
-            <div style="font-size:0.72rem;color:var(--text3);margin-bottom:4px;">เคลียร์ได้จริง</div>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <input type="number" id="wkActual" min="0" class="form-input" style="width:80px;text-align:center;font-size:1.1rem;font-family:'Kanit',sans-serif;" placeholder="0">
-              <span style="font-size:0.78rem;color:var(--text3);">เรื่อง</span>
+      <!-- Owner section: กรอกผล -->
+      <div id="wkOwnerSection" style="display:none;">
+        <div style="font-size:0.78rem;color:var(--text2);font-weight:600;margin-bottom:8px;">✅ ผลการดำเนินงาน <span style="font-weight:400;font-size:0.72rem;color:var(--text3);">(กรอกหลังครบรอบ)</span></div>
+        <div style="background:var(--surface);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px;">
+          <!-- ตารางเป้า vs ทำได้ -->
+          <div id="wkResultTable" style="display:none;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.78rem;margin-bottom:6px;">
+              <thead>
+                <tr>
+                  <th style="text-align:left;padding:4px 8px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border);"></th>
+                  <th style="text-align:center;padding:4px 8px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border);">เป้า</th>
+                  <th style="text-align:center;padding:4px 8px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border);">ทำได้</th>
+                  <th style="text-align:center;padding:4px 8px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border);">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="padding:6px 8px;color:var(--text2);">📁 สะสม</td>
+                  <td style="padding:6px 8px;text-align:center;color:var(--yellow);" id="wkShowTargetOld">—</td>
+                  <td style="padding:6px 8px;text-align:center;">
+                    <input type="number" id="wkActualOld" min="0" class="form-input" style="width:56px;text-align:center;font-family:'Kanit',sans-serif;" placeholder="0" oninput="wkUpdatePct()">
+                  </td>
+                  <td style="padding:6px 8px;text-align:center;font-weight:700;" id="wkPctOld">—</td>
+                </tr>
+                <tr>
+                  <td style="padding:6px 8px;color:var(--text2);">🆕 ใหม่</td>
+                  <td style="padding:6px 8px;text-align:center;color:var(--yellow);" id="wkShowTargetNew">—</td>
+                  <td style="padding:6px 8px;text-align:center;">
+                    <input type="number" id="wkActualNew" min="0" class="form-input" style="width:56px;text-align:center;font-family:'Kanit',sans-serif;" placeholder="0" oninput="wkUpdatePct()">
+                  </td>
+                  <td style="padding:6px 8px;text-align:center;font-weight:700;" id="wkPctNew">—</td>
+                </tr>
+                <tr style="border-top:1px solid var(--border);">
+                  <td style="padding:6px 8px;font-weight:700;color:var(--accent);">รวม</td>
+                  <td style="padding:6px 8px;text-align:center;font-weight:700;color:var(--accent);" id="wkShowTargetTotal">—</td>
+                  <td style="padding:6px 8px;text-align:center;font-weight:700;color:var(--accent);" id="wkActualTotal">—</td>
+                  <td style="padding:6px 8px;text-align:center;" id="wkPctTotal">—</td>
+                </tr>
+              </tbody>
+            </table>
+            <div id="wkPctBadge" style="display:none;"></div>
+          </div>
+          <div id="wkNoCheckpoint" style="font-size:0.78rem;color:var(--yellow);padding:4px 0;">⏳ รอ Admin ตั้งเป้าหมายก่อนครับ</div>
+          <div style="display:flex;align-items:center;gap:10px;display:none;">
+            <input type="number" id="wkActual" min="0" class="form-input" style="width:80px;display:none;" placeholder="0">
+          </div>
+          <div>
+            <div style="font-size:0.72rem;color:var(--text3);margin-bottom:4px;">เลขคดีที่เคลียร์ (คั่นด้วย , หรือยิง QR)</div>
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <textarea id="wkActualIds" class="form-input" rows="2" placeholder="เช่น 1101/2569, 506/2569&#10;หรือกดปุ่มกล้องเพื่อ scan" style="font-size:0.78rem;resize:vertical;flex:1;"></textarea>
+              <button onclick="wkOpenScanner()" title="Scan QR สำนวน"
+                style="padding:10px 12px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:1.1rem;cursor:pointer;flex-shrink:0;">📷</button>
             </div>
+            <div id="wkIdBreakdown" style="font-size:0.7rem;color:var(--text3);margin-top:4px;"></div>
           </div>
-          <div id="wkPctBadge" style="display:none;margin-top:16px;"></div>
-        </div>
-        <div>
-          <div style="font-size:0.72rem;color:var(--text3);margin-bottom:4px;">เลขคดีที่เคลียร์ (คั่นด้วย , หรือยิง QR)</div>
-          <div style="display:flex;gap:8px;align-items:flex-start;">
-            <textarea id="wkActualIds" class="form-input" rows="2" placeholder="เช่น 1101/2569, 506/2569&#10;หรือกดปุ่มกล้องเพื่อ scan" style="font-size:0.78rem;resize:vertical;flex:1;"></textarea>
-            <button onclick="wkOpenScanner()" title="Scan QR สำนวน"
-              style="padding:10px 12px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:1.1rem;cursor:pointer;flex-shrink:0;">📷</button>
-          </div>
-          <div id="wkIdBreakdown" style="font-size:0.7rem;color:var(--text3);margin-top:4px;"></div>
         </div>
       </div>
     </div>
 
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
-      <button onclick="wkSaveCheckpoint()" style="padding:9px 20px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-family:'Sarabun',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;">💾 บันทึก Checkpoint</button>
-      <button onclick="closeWeeklyModal()" style="padding:9px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.85rem;cursor:pointer;">ยกเลิก</button>
+      <button id="wkSaveBtn" onclick="wkSaveCheckpoint()" style="padding:9px 20px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-family:'Sarabun',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">💾 บันทึก</button>
+      <button onclick="closeWeeklyModal()" style="padding:9px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.85rem;cursor:pointer;">ปิด</button>
     </div>
 
     <!-- ประวัติ -->
