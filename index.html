@@ -3996,6 +3996,7 @@ window.openWeeklyModal = async function(personId, personName) {
   _wkPersonName = personName;
   document.getElementById('wkPersonName').textContent = personName;
   document.getElementById('wkDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('wkDeadline').value = '';
   document.getElementById('wkNote').value = '';
   document.getElementById('wkTarget').value = '';
   document.getElementById('wkActual').value = '';
@@ -4069,6 +4070,7 @@ window.wkSaveCheckpoint = async function() {
 
   const obj = {
     checkpointDate: Timestamp.fromDate(new Date(dateVal)),
+    deadline: document.getElementById('wkDeadline').value || null,
     note: document.getElementById('wkNote').value.trim(),
     target,
     actual,
@@ -4088,6 +4090,7 @@ window.wkSaveCheckpoint = async function() {
     document.getElementById('wkActualIds').value = '';
     document.getElementById('wkIdBreakdown').textContent = '';
     document.getElementById('wkNote').value = '';
+    document.getElementById('wkDeadline').value = '';
     document.getElementById('wkPctBadge').style.display = 'none';
     await wkLoadHistory();
   } catch(e) { alert('บันทึกไม่สำเร็จ: ' + e.message); }
@@ -4118,7 +4121,10 @@ async function wkLoadHistory() {
       return `<div style="background:var(--surface2);border-radius:10px;padding:12px;border:1px solid var(--border);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
           <div style="font-family:'Kanit',sans-serif;font-size:0.85rem;color:var(--accent);">📅 ${dateStr}</div>
-          <div style="font-size:0.72rem;color:var(--text3);">ค้าง ณ วันนั้น: <b>${data.openCaseCount||'—'}</b></div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            ${data.deadline ? `<span style="font-size:0.7rem;background:#2d1f0a;color:#e3b341;border:1px solid #d29922;border-radius:4px;padding:2px 6px;">⏰ ส่งภายใน ${new Date(data.deadline).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'})}</span>` : ''}
+            <div style="font-size:0.72rem;color:var(--text3);">ค้าง ณ วันนั้น: <b>${data.openCaseCount||'—'}</b></div>
+          </div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
           <div style="font-size:0.78rem;">เป้า <b style="color:var(--yellow);font-family:'Kanit',sans-serif;">${target}</b> → ทำได้ <b style="color:${barColor};font-family:'Kanit',sans-serif;">${actual}</b> เรื่อง</div>
@@ -4203,6 +4209,47 @@ document.getElementById('weeklyReportOverlay').addEventListener('click', functio
   if (e.target === this) this.classList.remove('show');
 });
 
+// Weekly Checkpoint Scanner
+let _wkScanMode = false;
+
+window.wkOpenScanner = function() {
+  _wkScanMode = true;
+  document.getElementById('scannerModalOverlay').classList.add('show');
+  document.getElementById('manualCode').value = '';
+  document.getElementById('scannerResult').innerHTML = '📷 จ่อกล้องที่ QR บนปกสำนวน — เลขคดีจะถูกเพิ่มในช่องบันทึกอัตโนมัติ';
+  document.getElementById('qrCameraInput').click();
+};
+
+// Override handleScannedCode ให้รู้ว่าอยู่ใน wk mode
+const _origHandleScannedCode = window.handleScannedCode || function(){};
+window.handleScannedCode = function(code) {
+  if (_wkScanMode) {
+    // แปลง code เป็น caseId
+    let q = code;
+    const rcnum = q.match(/rcnum[\s:]*(\d+)/i);
+    const rcyr  = q.match(/rcyr[\s:]*(\d+)/i);
+    if (rcnum && rcyr) q = rcnum[1] + '/' + rcyr[1];
+    else if (q.includes('?case=')) {
+      const id = q.split('?case=')[1];
+      const found = cases.find(c => c.id === id);
+      if (found) q = found.caseId;
+    }
+
+    // Append เข้า textarea
+    const ta = document.getElementById('wkActualIds');
+    const current = ta.value.trim();
+    ta.value = current ? current + ', ' + q : q;
+    ta.dispatchEvent(new Event('input')); // trigger live preview
+
+    document.getElementById('scannerResult').innerHTML = `✅ เพิ่ม <b style="color:var(--accent);">${q}</b> แล้ว — จ่อ QR ต่อไปได้เลย หรือกดปิดเมื่อเสร็จ`;
+    // ไม่ปิด scanner อัตโนมัติ — ให้ scan ต่อได้
+  } else {
+    _origHandleScannedCode(code);
+  }
+};
+
+// เมื่อปิด scanner modal ให้ reset wk mode
+const _origCloseScanner = window.closeScanner;
 // ===== MIGRATE ASSIGNEE =====
 window.migrateAssignee = async function(oldId, newId) {
   if (!oldId || !newId) { alert('กรุณาระบุ ID'); return; }
@@ -5202,9 +5249,13 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
           <label style="font-size:0.72rem;color:var(--text3);">วันที่คุยกัน</label>
           <input type="date" id="wkDate" class="form-input" style="margin-top:4px;">
         </div>
+        <div style="flex:1;min-width:150px;">
+          <label style="font-size:0.72rem;color:var(--text3);">กำหนดส่งภายใน</label>
+          <input type="date" id="wkDeadline" class="form-input" style="margin-top:4px;">
+        </div>
         <div style="flex:2;min-width:200px;">
-          <label style="font-size:0.72rem;color:var(--text3);">บันทึก/ข้อตกลง</label>
-          <input type="text" id="wkNote" class="form-input" placeholder="เช่น รับปากจะเคลียร์ก่อนศุกร์หน้า" style="margin-top:4px;">
+          <label style="font-size:0.72rem;color:var(--text3);">หมายเหตุ</label>
+          <input type="text" id="wkNote" class="form-input" placeholder="บันทึกเพิ่มเติม" style="margin-top:4px;">
         </div>
       </div>
 
@@ -5234,8 +5285,12 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
           <div id="wkPctBadge" style="display:none;margin-top:16px;"></div>
         </div>
         <div>
-          <div style="font-size:0.72rem;color:var(--text3);margin-bottom:4px;">เลขคดีที่เคลียร์ (คั่นด้วย ,)</div>
-          <textarea id="wkActualIds" class="form-input" rows="2" placeholder="เช่น 1101/2569, 506/2569, 1923/2569" style="font-size:0.78rem;resize:vertical;"></textarea>
+          <div style="font-size:0.72rem;color:var(--text3);margin-bottom:4px;">เลขคดีที่เคลียร์ (คั่นด้วย , หรือยิง QR)</div>
+          <div style="display:flex;gap:8px;align-items:flex-start;">
+            <textarea id="wkActualIds" class="form-input" rows="2" placeholder="เช่น 1101/2569, 506/2569&#10;หรือกดปุ่มกล้องเพื่อ scan" style="font-size:0.78rem;resize:vertical;flex:1;"></textarea>
+            <button onclick="wkOpenScanner()" title="Scan QR สำนวน"
+              style="padding:10px 12px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:1.1rem;cursor:pointer;flex-shrink:0;">📷</button>
+          </div>
           <div id="wkIdBreakdown" style="font-size:0.7rem;color:var(--text3);margin-top:4px;"></div>
         </div>
       </div>
