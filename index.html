@@ -1756,7 +1756,7 @@ function renderPeople() {
 
     // Click to filter (not on handle or menu)
     el.onclick = function(e) {
-      if (e.target.closest('.drag-handle') || e.target.closest('[data-menu-pid]')) return;
+      if (e.target.closest('.drag-handle') || e.target.closest('[data-menu-pid]') || e.target.closest('[onclick*="openWeeklyModal"]')) return;
       filterPerson = filterPerson === p.id ? null : p.id;
       renderAll();
     };
@@ -5941,4 +5941,3 @@ document.getElementById('s1Modal').addEventListener('click', function(e) {
 </div>
 </body>
 </html>
-
