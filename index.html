@@ -1044,7 +1044,7 @@ onAuthStateChanged(auth, async (user) => {
 
   try {
     await loadPeople();
-    await loadCases();
+    await loadCases(); // renderAll() ถูกเรียกใน loadCases แล้ว
     await loadCustomCategories();
     await loadTeams();
   } catch(loadErr) {
@@ -1107,26 +1107,48 @@ window._loadTeams = loadTeams;
 window._people = people;
 let _casesCacheTime = 0;
 const CACHE_TTL = 300000; // 5 นาที
+let _allCasesLoaded = false;
+
+const DONE_ST = ['done','court','filing'];
 
 async function loadCases(force) {
   const now = Date.now();
   if (!force && cases.length > 0 && (now - _casesCacheTime) < CACHE_TTL) {
-    return; // ใช้ cache แทน ไม่ต้อง getDocs ใหม่
+    return;
   }
-  let snap;
-  snap = await getDocs(collection(db, 'cases'));
-  cases = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  // Clear date caches when cases reload
+
+  // โหลดทั้งหมดแต่แบ่งประมวลผล — pending ก่อน done หลัง
+  const snap = await getDocs(collection(db, 'cases'));
+  const allDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
   Object.keys(_parseDateCache).forEach(k => delete _parseDateCache[k]);
   Object.keys(_ymOfCache).forEach(k => delete _ymOfCache[k]);
-  cases.sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
-  // Pre-compute per case
-  cases.forEach(c => {
+
+  // แยก pending vs done
+  const pendingDocs = allDocs.filter(c => !DONE_ST.includes(c.status));
+  const doneDocs = allDocs.filter(c => DONE_ST.includes(c.status));
+
+  const precompute = arr => arr.forEach(c => {
     c._ym  = ymOf(c.date || c.createdAt);
     c._date = parseDate(c.date || c.createdAt);
     c._lastUpdatedYM = c.lastUpdated ? ymOf(c.lastUpdated.slice(0,10)) : '';
   });
+
+  // รอบที่ 1: แสดง pending ก่อนเลย
+  precompute(pendingDocs);
+  cases = pendingDocs.sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
   _casesCacheTime = Date.now();
+  _allCasesLoaded = false;
+
+  renderAll(); buildAlerts();
+
+  // รอบที่ 2: เพิ่ม done ในพื้นหลัง
+  setTimeout(() => {
+    precompute(doneDocs);
+    cases = [...cases, ...doneDocs].sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
+    _allCasesLoaded = true;
+    renderSummary(); renderPeople(); renderPendingAge(); renderCategoryStats();
+  }, 1500);
 }
 async function loadCustomCategories() {
   try {
@@ -3968,38 +3990,20 @@ window._statClick = function(type) {
 // ===== WEEKLY CHECKPOINT =====
 let _wkPersonId = null;
 let _wkPersonName = '';
-let _wkSelectedCases = new Set();
 
 window.openWeeklyModal = async function(personId, personName) {
   _wkPersonId = personId;
   _wkPersonName = personName;
-  _wkSelectedCases = new Set();
-
   document.getElementById('wkPersonName').textContent = personName;
-  // Set today
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('wkDate').value = today;
+  document.getElementById('wkDate').value = new Date().toISOString().split('T')[0];
   document.getElementById('wkNote').value = '';
-
-  // แสดงสำนวนค้างของคนนี้
-  const pending = cases.filter(c => c.assignee === personId && !['done','court','filing'].includes(c.status));
-  const list = document.getElementById('wkCaseList');
-  list.innerHTML = pending.length ? pending.map(c => `
-    <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border-radius:6px;cursor:pointer;font-size:0.78rem;">
-      <input type="checkbox" value="${c.id}" onchange="wkToggleCase(this)" style="flex-shrink:0;">
-      <span style="color:var(--accent);font-weight:600;white-space:nowrap;">${c.caseId}</span>
-      <span style="color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(c.name||'').substring(0,50)}</span>
-    </label>
-  `).join('') : '<div style="color:var(--text3);font-size:0.8rem;padding:10px;">ไม่มีสำนวนค้างในขณะนี้</div>';
-
-  // โหลดประวัติ
+  document.getElementById('wkTarget').value = '';
+  document.getElementById('wkActual').value = '';
+  document.getElementById('wkActualIds').value = '';
+  document.getElementById('wkIdBreakdown').textContent = '';
+  document.getElementById('wkPctBadge').style.display = 'none';
   await wkLoadHistory();
   document.getElementById('weeklyModalOverlay').classList.add('show');
-};
-
-window.wkToggleCase = function(cb) {
-  if (cb.checked) _wkSelectedCases.add(cb.value);
-  else _wkSelectedCases.delete(cb.value);
 };
 
 window.closeWeeklyModal = function() {
@@ -4009,18 +4013,69 @@ document.getElementById('weeklyModalOverlay').addEventListener('click', function
   if (e.target === this) closeWeeklyModal();
 });
 
+// แยก เก่า/ใหม่ จากเลขคดีที่กรอก
+function wkClassifyIds(idsText) {
+  const ids = idsText.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
+  const oldIds = [], newIds = [], notFound = [];
+  ids.forEach(cid => {
+    const c = cases.find(x => x.caseId === cid);
+    if (!c) notFound.push(cid);
+    else if (c.importedFrom === 'excel_batch') oldIds.push(cid);
+    else newIds.push(cid);
+  });
+  return { oldIds, newIds, notFound, total: ids.length };
+}
+
+// live preview เมื่อพิมพ์เลขคดี
+document.getElementById('wkActualIds').addEventListener('input', function() {
+  const { oldIds, newIds, notFound } = wkClassifyIds(this.value);
+  const breakdown = document.getElementById('wkIdBreakdown');
+  if (!this.value.trim()) { breakdown.textContent = ''; return; }
+  breakdown.innerHTML = `
+    📁 สำนวนเก่า: <b style="color:var(--yellow);">${oldIds.length}</b> เรื่อง &nbsp;|&nbsp;
+    🆕 สำนวนใหม่: <b style="color:var(--green);">${newIds.length}</b> เรื่อง
+    ${notFound.length ? `&nbsp;|&nbsp; ⚠️ ไม่พบในระบบ: <b style="color:var(--red);">${notFound.join(', ')}</b>` : ''}
+  `;
+  // อัปเดตช่อง actual อัตโนมัติ
+  const total = oldIds.length + newIds.length;
+  document.getElementById('wkActual').value = total || '';
+  wkUpdatePct();
+});
+
+document.getElementById('wkActual').addEventListener('input', wkUpdatePct);
+document.getElementById('wkTarget').addEventListener('input', wkUpdatePct);
+
+function wkUpdatePct() {
+  const target = parseInt(document.getElementById('wkTarget').value) || 0;
+  const actual = parseInt(document.getElementById('wkActual').value) || 0;
+  const badge = document.getElementById('wkPctBadge');
+  if (!target) { badge.style.display = 'none'; return; }
+  const pct = Math.round(actual/target*100);
+  const color = pct >= 100 ? '#3fb950' : pct >= 50 ? '#e3b341' : '#f85149';
+  badge.style.display = 'block';
+  badge.innerHTML = `<span style="font-family:'Kanit',sans-serif;font-size:1.2rem;font-weight:700;color:${color};">${pct}%</span><span style="font-size:0.7rem;color:var(--text3);margin-left:4px;">${actual}/${target}</span>`;
+}
+
 window.wkSaveCheckpoint = async function() {
   if (!_wkPersonId) return;
   const dateVal = document.getElementById('wkDate').value;
   if (!dateVal) { alert('กรุณาเลือกวันที่'); return; }
+  const target = parseInt(document.getElementById('wkTarget').value) || 0;
+  const actual = parseInt(document.getElementById('wkActual').value) || 0;
+  const idsText = document.getElementById('wkActualIds').value.trim();
+  const { oldIds, newIds } = wkClassifyIds(idsText);
 
-  const pending = cases.filter(c => c.assignee === _wkPersonId && !['done','court','filing'].includes(c.status));
+  const pendingNow = cases.filter(c => c.assignee === _wkPersonId && !['done','court','filing'].includes(c.status));
+
   const obj = {
     checkpointDate: Timestamp.fromDate(new Date(dateVal)),
-    openCaseCount: pending.length,
-    openCaseIds: pending.map(c => c.id),
-    committedToClose: [..._wkSelectedCases],
     note: document.getElementById('wkNote').value.trim(),
+    target,
+    actual,
+    actualCaseIds: idsText ? idsText.split(/[,\n]/).map(s=>s.trim()).filter(Boolean) : [],
+    oldCaseIds: oldIds,
+    newCaseIds: newIds,
+    openCaseCount: pendingNow.length,
     createdBy: auth.currentUser?.uid || '',
     createdAt: new Date().toISOString()
   };
@@ -4028,9 +4083,12 @@ window.wkSaveCheckpoint = async function() {
   try {
     await addDoc(collection(db, 'people', _wkPersonId, 'weeklyCheckpoints'), obj);
     alert('✅ บันทึก Checkpoint เรียบร้อยแล้วครับ');
-    _wkSelectedCases = new Set();
-    document.querySelectorAll('#wkCaseList input[type=checkbox]').forEach(cb => cb.checked = false);
+    document.getElementById('wkTarget').value = '';
+    document.getElementById('wkActual').value = '';
+    document.getElementById('wkActualIds').value = '';
+    document.getElementById('wkIdBreakdown').textContent = '';
     document.getElementById('wkNote').value = '';
+    document.getElementById('wkPctBadge').style.display = 'none';
     await wkLoadHistory();
   } catch(e) { alert('บันทึกไม่สำเร็จ: ' + e.message); }
 };
@@ -4042,37 +4100,38 @@ async function wkLoadHistory() {
     const snap = await getDocs(query(
       collection(db, 'people', _wkPersonId, 'weeklyCheckpoints'),
       orderBy('checkpointDate', 'desc'),
-      limit(5)
+      limit(6)
     ));
-    if (snap.empty) { histDiv.innerHTML = '<div style="color:var(--text3);font-size:0.78rem;">ยังไม่มีประวัติ</div>'; return; }
+    if (snap.empty) { histDiv.innerHTML = '<div style="color:var(--text3);font-size:0.78rem;padding:8px;">ยังไม่มีประวัติ</div>'; return; }
 
     histDiv.innerHTML = snap.docs.map(d => {
       const data = d.data();
       const date = data.checkpointDate?.toDate ? data.checkpointDate.toDate() : new Date(data.checkpointDate);
       const dateStr = `${date.getDate()}/${date.getMonth()+1}/${date.getFullYear()+543}`;
-      const committed = data.committedToClose || [];
-      // ตรวจว่าเคลียร์แล้วกี่อัน
-      const cleared = committed.filter(id => {
-        const c = cases.find(x => x.id === id);
-        return c && ['done','court','filing'].includes(c.status);
-      });
-      const pct = committed.length ? Math.round(cleared.length/committed.length*100) : null;
+      const target = data.target || 0;
+      const actual = data.actual || 0;
+      const pct = target ? Math.round(actual/target*100) : null;
       const barColor = pct === null ? '#8b949e' : pct >= 100 ? '#3fb950' : pct >= 50 ? '#e3b341' : '#f85149';
+      const oldC = (data.oldCaseIds||[]).length;
+      const newC = (data.newCaseIds||[]).length;
 
       return `<div style="background:var(--surface2);border-radius:10px;padding:12px;border:1px solid var(--border);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
           <div style="font-family:'Kanit',sans-serif;font-size:0.85rem;color:var(--accent);">📅 ${dateStr}</div>
-          <div style="font-size:0.75rem;color:var(--text3);">ค้าง ณ วันนั้น: <b style="color:var(--text2);">${data.openCaseCount}</b> เรื่อง</div>
+          <div style="font-size:0.72rem;color:var(--text3);">ค้าง ณ วันนั้น: <b>${data.openCaseCount||'—'}</b></div>
         </div>
-        ${committed.length ? `
-        <div style="font-size:0.75rem;color:var(--text3);margin-bottom:4px;">รับปากจะเคลียร์ ${committed.length} เรื่อง → เคลียร์แล้ว ${cleared.length} เรื่อง ${pct !== null ? `(${pct}%)` : ''}</div>
-        <div style="background:#21262d;border-radius:4px;height:6px;overflow:hidden;">
-          <div style="height:6px;width:${pct||0}%;background:${barColor};border-radius:4px;transition:width 0.3s;"></div>
-        </div>` : '<div style="font-size:0.75rem;color:var(--text3);">ไม่ได้รับปากสำนวนใด</div>'}
-        ${data.note ? `<div style="font-size:0.72rem;color:var(--text3);margin-top:6px;">📝 ${data.note}</div>` : ''}
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+          <div style="font-size:0.78rem;">เป้า <b style="color:var(--yellow);font-family:'Kanit',sans-serif;">${target}</b> → ทำได้ <b style="color:${barColor};font-family:'Kanit',sans-serif;">${actual}</b> เรื่อง</div>
+          ${pct !== null ? `<span style="font-family:'Kanit',sans-serif;font-size:0.9rem;font-weight:700;color:${barColor};">${pct}%</span>` : ''}
+        </div>
+        ${target ? `<div style="background:#21262d;border-radius:4px;height:5px;overflow:hidden;margin-bottom:6px;">
+          <div style="height:5px;width:${Math.min(pct||0,100)}%;background:${barColor};border-radius:4px;"></div>
+        </div>` : ''}
+        ${(oldC||newC) ? `<div style="font-size:0.7rem;color:var(--text3);">📁 เก่า ${oldC} เรื่อง &nbsp;|&nbsp; 🆕 ใหม่ ${newC} เรื่อง</div>` : ''}
+        ${data.note ? `<div style="font-size:0.72rem;color:var(--text3);margin-top:4px;">📝 ${data.note}</div>` : ''}
       </div>`;
     }).join('');
-  } catch(e) { histDiv.innerHTML = '<div style="color:var(--red);font-size:0.78rem;">โหลดไม่ได้: ' + e.message + '</div>'; }
+  } catch(e) { histDiv.innerHTML = `<div style="color:var(--red);font-size:0.78rem;">โหลดไม่ได้: ${e.message}</div>`; }
 }
 
 // ===== WEEKLY REPORT =====
@@ -4081,67 +4140,58 @@ window.openWeeklyReport = async function() {
   grid.innerHTML = '<div style="color:var(--text3);font-size:0.82rem;padding:10px;">กำลังโหลดข้อมูล...</div>';
   document.getElementById('weeklyReportOverlay').classList.add('show');
 
-  // header
   grid.innerHTML = `
-    <div style="display:grid;grid-template-columns:160px 100px 100px 100px 120px;gap:8px;padding:8px 12px;background:var(--surface2);border-radius:8px;font-size:0.72rem;color:var(--text3);font-weight:600;">
-      <div>อัยการ</div><div style="text-align:center;">ค้าง ณ วันคุย</div><div style="text-align:center;">ค้างตอนนี้</div><div style="text-align:center;">เคลียร์แล้ว</div><div style="text-align:center;">ตามที่รับปาก</div>
+    <div style="display:grid;grid-template-columns:160px 80px 80px 80px 80px 130px;gap:6px;padding:8px 12px;background:var(--surface2);border-radius:8px;font-size:0.7rem;color:var(--text3);font-weight:600;">
+      <div>อัยการ</div><div style="text-align:center;">ค้าง(วันคุย)</div><div style="text-align:center;">ค้างตอนนี้</div><div style="text-align:center;">เป้า</div><div style="text-align:center;">ทำได้</div><div style="text-align:center;">ผล (เก่า+ใหม่)</div>
     </div>`;
 
   const rows = await Promise.all(people.filter(p => p.role !== 'เจ้าหน้าที่').map(async p => {
-    // ดึง checkpoint ล่าสุด
-    let checkpoint = null;
+    let cp = null;
     try {
       const snap = await getDocs(query(
         collection(db, 'people', p.id, 'weeklyCheckpoints'),
-        orderBy('checkpointDate', 'desc'),
-        limit(1)
+        orderBy('checkpointDate', 'desc'), limit(1)
       ));
-      if (!snap.empty) checkpoint = snap.docs[0].data();
+      if (!snap.empty) cp = snap.docs[0].data();
     } catch(e) {}
 
-    const currentPending = cases.filter(c => c.assignee === p.id && !['done','court','filing'].includes(c.status));
-    const currentCount = currentPending.length;
+    const currentPending = cases.filter(c => c.assignee === p.id && !['done','court','filing'].includes(c.status)).length;
 
-    if (!checkpoint) {
-      return `<div style="display:grid;grid-template-columns:160px 100px 100px 100px 120px;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;align-items:center;">
-        <div style="font-size:0.82rem;font-weight:600;">${p.name}</div>
-        <div style="text-align:center;color:var(--text3);font-size:0.75rem;">ยังไม่มี</div>
-        <div style="text-align:center;color:var(--accent);font-weight:700;">${currentCount}</div>
-        <div style="text-align:center;color:var(--text3);">—</div>
-        <div style="text-align:center;color:var(--text3);">—</div>
-      </div>`;
-    }
+    if (!cp) return `<div style="display:grid;grid-template-columns:160px 80px 80px 80px 80px 130px;gap:6px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;align-items:center;font-size:0.78rem;">
+      <div style="font-weight:600;">${p.name}</div>
+      <div style="text-align:center;color:var(--text3);">—</div>
+      <div style="text-align:center;color:var(--accent);font-weight:700;">${currentPending}</div>
+      <div style="text-align:center;color:var(--text3);">—</div>
+      <div style="text-align:center;color:var(--text3);">—</div>
+      <div style="text-align:center;color:var(--text3);font-size:0.7rem;">ยังไม่มีบันทึก</div>
+    </div>`;
 
-    const checkDate = checkpoint.checkpointDate?.toDate ? checkpoint.checkpointDate.toDate() : new Date(checkpoint.checkpointDate);
-    const dateStr = `${checkDate.getDate()}/${checkDate.getMonth()+1}/${checkDate.getFullYear()+543}`;
-    const openCount = checkpoint.openCaseCount || 0;
-    const committed = checkpoint.committedToClose || [];
-    const cleared = (checkpoint.openCaseIds||[]).filter(id => {
-      const c = cases.find(x => x.id === id);
-      return c && ['done','court','filing'].includes(c.status);
-    });
-    const committedCleared = committed.filter(id => {
-      const c = cases.find(x => x.id === id);
-      return c && ['done','court','filing'].includes(c.status);
-    });
-    const diff = openCount - currentCount;
-    const diffColor = diff > 0 ? '#3fb950' : diff < 0 ? '#f85149' : '#8b949e';
-    const pct = committed.length ? Math.round(committedCleared.length/committed.length*100) : null;
+    const date = cp.checkpointDate?.toDate ? cp.checkpointDate.toDate() : new Date(cp.checkpointDate);
+    const dateStr = `${date.getDate()}/${date.getMonth()+1}/${date.getFullYear()+543}`;
+    const target = cp.target || 0;
+    const actual = cp.actual || 0;
+    const pct = target ? Math.round(actual/target*100) : null;
     const pctColor = pct === null ? '#8b949e' : pct >= 100 ? '#3fb950' : pct >= 50 ? '#e3b341' : '#f85149';
+    const diff = (cp.openCaseCount||0) - currentPending;
+    const diffColor = diff > 0 ? '#3fb950' : diff < 0 ? '#f85149' : '#8b949e';
+    const oldC = (cp.oldCaseIds||[]).length;
+    const newC = (cp.newCaseIds||[]).length;
 
-    return `<div style="display:grid;grid-template-columns:160px 100px 100px 100px 120px;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;align-items:center;">
+    return `<div style="display:grid;grid-template-columns:160px 80px 80px 80px 80px 130px;gap:6px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;align-items:center;font-size:0.78rem;">
       <div>
-        <div style="font-size:0.82rem;font-weight:600;">${p.name}</div>
-        <div style="font-size:0.68rem;color:var(--text3);">📅 ${dateStr}</div>
+        <div style="font-weight:600;">${p.name}</div>
+        <div style="font-size:0.65rem;color:var(--text3);">📅 ${dateStr}</div>
       </div>
-      <div style="text-align:center;font-size:1.1rem;font-family:'Kanit',sans-serif;font-weight:700;color:var(--yellow);">${openCount}</div>
+      <div style="text-align:center;font-family:'Kanit',sans-serif;font-weight:700;color:var(--yellow);">${cp.openCaseCount||'—'}</div>
       <div style="text-align:center;">
-        <span style="font-size:1.1rem;font-family:'Kanit',sans-serif;font-weight:700;color:var(--accent);">${currentCount}</span>
-        <span style="font-size:0.7rem;color:${diffColor};margin-left:4px;">${diff>0?'▼'+diff:diff<0?'▲'+Math.abs(diff):'—'}</span>
+        <span style="font-family:'Kanit',sans-serif;font-weight:700;color:var(--accent);">${currentPending}</span>
+        ${diff !== 0 ? `<span style="font-size:0.65rem;color:${diffColor};margin-left:2px;">${diff>0?'▼'+diff:'▲'+Math.abs(diff)}</span>` : ''}
       </div>
-      <div style="text-align:center;font-size:1.1rem;font-family:'Kanit',sans-serif;font-weight:700;color:#3fb950;">${cleared.length}</div>
+      <div style="text-align:center;font-family:'Kanit',sans-serif;font-weight:700;color:var(--text2);">${target||'—'}</div>
+      <div style="text-align:center;font-family:'Kanit',sans-serif;font-weight:700;color:${pctColor};">${actual||'—'}</div>
       <div style="text-align:center;">
-        ${committed.length ? `<span style="font-size:0.85rem;font-weight:700;color:${pctColor};">${committedCleared.length}/${committed.length} (${pct}%)</span>` : '<span style="color:var(--text3);font-size:0.75rem;">ไม่ได้รับปาก</span>'}
+        ${pct !== null ? `<span style="font-size:0.85rem;font-weight:700;color:${pctColor};">${pct}%</span>` : ''}
+        ${(oldC||newC) ? `<div style="font-size:0.65rem;color:var(--text3);">เก่า ${oldC} / ใหม่ ${newC}</div>` : ''}
       </div>
     </div>`;
   }));
@@ -5140,34 +5190,64 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
 
 <!-- ===== WEEKLY CHECKPOINT MODAL ===== -->
 <div class="modal-overlay" id="weeklyModalOverlay">
-  <div class="modal" style="width:720px;max-height:92vh;overflow-y:auto;">
+  <div class="modal" style="width:680px;max-height:92vh;overflow-y:auto;">
     <div class="modal-title" style="color:var(--accent);">📋 บันทึกรายสัปดาห์ — <span id="wkPersonName"></span></div>
 
-    <!-- ส่วนบันทึก checkpoint ใหม่ -->
-    <div id="wkNewSection">
-      <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:14px;">
-        <div style="font-size:0.82rem;color:var(--text2);font-weight:600;margin-bottom:10px;">📌 บันทึก ณ วันนี้</div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-          <div style="flex:1;min-width:160px;">
-            <label style="font-size:0.75rem;color:var(--text3);">วันที่คุยกัน</label>
-            <input type="date" id="wkDate" class="form-input" style="margin-top:4px;">
-          </div>
-          <div style="flex:2;min-width:200px;">
-            <label style="font-size:0.75rem;color:var(--text3);">บันทึก/ข้อตกลง (optional)</label>
-            <input type="text" id="wkNote" class="form-input" placeholder="เช่น รับปากจะเคลียร์ก่อนศุกร์หน้า" style="margin-top:4px;">
+    <!-- บันทึก checkpoint ใหม่ -->
+    <div style="background:var(--surface2);border-radius:10px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:0.82rem;color:var(--text2);font-weight:600;margin-bottom:12px;">📌 บันทึก ณ วันที่คุยกัน</div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+        <div style="flex:1;min-width:150px;">
+          <label style="font-size:0.72rem;color:var(--text3);">วันที่คุยกัน</label>
+          <input type="date" id="wkDate" class="form-input" style="margin-top:4px;">
+        </div>
+        <div style="flex:2;min-width:200px;">
+          <label style="font-size:0.72rem;color:var(--text3);">บันทึก/ข้อตกลง</label>
+          <input type="text" id="wkNote" class="form-input" placeholder="เช่น รับปากจะเคลียร์ก่อนศุกร์หน้า" style="margin-top:4px;">
+        </div>
+      </div>
+
+      <!-- เป้าหมาย -->
+      <div style="font-size:0.78rem;color:var(--text3);font-weight:600;margin-bottom:8px;">🎯 เป้าหมายที่รับปาก</div>
+      <div style="display:flex;gap:10px;margin-bottom:14px;">
+        <div style="flex:1;background:var(--surface);border-radius:8px;padding:12px;">
+          <div style="font-size:0.72rem;color:var(--text3);margin-bottom:6px;">สำนวนรวม (เก่า+ใหม่)</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="number" id="wkTarget" min="0" class="form-input" style="width:80px;text-align:center;font-size:1.1rem;font-family:'Kanit',sans-serif;" placeholder="0">
+            <span style="font-size:0.78rem;color:var(--text3);">เรื่อง</span>
           </div>
         </div>
-        <div style="font-size:0.78rem;color:var(--text3);margin-bottom:8px;">เลือกสำนวนที่รับปากว่าจะเคลียร์รอบนี้:</div>
-        <div id="wkCaseList" style="max-height:220px;overflow-y:auto;display:grid;gap:4px;"></div>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <button onclick="wkSaveCheckpoint()" style="padding:9px 20px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-family:'Sarabun',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;">💾 บันทึก Checkpoint</button>
-        <button onclick="closeWeeklyModal()" style="padding:9px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.85rem;cursor:pointer;">ยกเลิก</button>
+
+      <!-- ผลการดำเนินงาน (กรอกทีหลังได้) -->
+      <div style="font-size:0.78rem;color:var(--text3);font-weight:600;margin-bottom:8px;">✅ ผลการดำเนินงาน <span style="font-weight:400;color:var(--text3);">(กรอกหลังครบรอบ)</span></div>
+      <div style="background:var(--surface);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="flex:0 0 auto;">
+            <div style="font-size:0.72rem;color:var(--text3);margin-bottom:4px;">เคลียร์ได้จริง</div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <input type="number" id="wkActual" min="0" class="form-input" style="width:80px;text-align:center;font-size:1.1rem;font-family:'Kanit',sans-serif;" placeholder="0">
+              <span style="font-size:0.78rem;color:var(--text3);">เรื่อง</span>
+            </div>
+          </div>
+          <div id="wkPctBadge" style="display:none;margin-top:16px;"></div>
+        </div>
+        <div>
+          <div style="font-size:0.72rem;color:var(--text3);margin-bottom:4px;">เลขคดีที่เคลียร์ (คั่นด้วย ,)</div>
+          <textarea id="wkActualIds" class="form-input" rows="2" placeholder="เช่น 1101/2569, 506/2569, 1923/2569" style="font-size:0.78rem;resize:vertical;"></textarea>
+          <div id="wkIdBreakdown" style="font-size:0.7rem;color:var(--text3);margin-top:4px;"></div>
+        </div>
       </div>
     </div>
 
-    <!-- ส่วนแสดงประวัติ -->
-    <div style="margin-top:20px;">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+      <button onclick="wkSaveCheckpoint()" style="padding:9px 20px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-family:'Sarabun',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;">💾 บันทึก Checkpoint</button>
+      <button onclick="closeWeeklyModal()" style="padding:9px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.85rem;cursor:pointer;">ยกเลิก</button>
+    </div>
+
+    <!-- ประวัติ -->
+    <div>
       <div style="font-size:0.82rem;color:var(--text2);font-weight:600;margin-bottom:10px;">📊 ประวัติรายสัปดาห์</div>
       <div id="wkHistory" style="display:flex;flex-direction:column;gap:10px;"></div>
     </div>
