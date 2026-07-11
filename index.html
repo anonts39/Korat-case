@@ -1737,7 +1737,7 @@ function renderPeople() {
           <div class="person-name">${p.name}</div>
           <div class="person-role">${p.role||''}</div>
         </div>
-        <button type="button" onclick="event.stopPropagation();openWeeklyModal('${p.id}','${p.name}')" title="บันทึกรายสัปดาห์"
+        <button type="button" class="wk-btn" onclick="event.stopPropagation();openWeeklyModal('${p.id}','${p.name}')" title="บันทึกรายสัปดาห์"
           style="font-size:0.82rem;color:var(--accent);cursor:pointer;padding:5px 8px;border:1px solid var(--accent);border-radius:6px;background:transparent;font-family:'Sarabun',sans-serif;line-height:1;margin-right:4px;">📋</button>
         <button type="button" data-menu-pid="${p.id}"
           style="font-size:0.85rem;color:var(--text3);cursor:pointer;padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);font-family:'Sarabun',sans-serif;line-height:1;z-index:10;position:relative;">⋯</button>
@@ -1756,7 +1756,7 @@ function renderPeople() {
 
     // Click to filter (not on handle or menu)
     el.onclick = function(e) {
-      if (e.target.closest('.drag-handle') || e.target.closest('[data-menu-pid]') || e.target.closest('[onclick*="openWeeklyModal"]')) return;
+      if (e.target.closest('.drag-handle') || e.target.closest('[data-menu-pid]') || e.target.closest('.wk-btn')) return;
       filterPerson = filterPerson === p.id ? null : p.id;
       renderAll();
     };
