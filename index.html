@@ -1117,29 +1117,27 @@ async function loadCases(force) {
     return;
   }
 
-  // โหลดทั้งหมดแต่แบ่งประมวลผล — pending ก่อน done หลัง
-  const snap = await getDocs(collection(db, 'cases'));
-  const allDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-  Object.keys(_parseDateCache).forEach(k => delete _parseDateCache[k]);
-  Object.keys(_ymOfCache).forEach(k => delete _ymOfCache[k]);
-
-  // แยก pending vs done
-  const pendingDocs = allDocs.filter(c => !DONE_ST.includes(c.status));
-  const doneDocs = allDocs.filter(c => DONE_ST.includes(c.status));
-
   const precompute = arr => arr.forEach(c => {
     c._ym  = ymOf(c.date || c.createdAt);
     c._date = parseDate(c.date || c.createdAt);
     c._lastUpdatedYM = c.lastUpdated ? ymOf(c.lastUpdated.slice(0,10)) : '';
   });
 
-  // รอบที่ 1: แสดง pending ก่อนเลย
+  Object.keys(_parseDateCache).forEach(k => delete _parseDateCache[k]);
+  Object.keys(_ymOfCache).forEach(k => delete _ymOfCache[k]);
+
+  // ดึงทั้งหมด แล้วแบ่ง render ใน memory
+  const snap = await getDocs(collection(db, 'cases'));
+  const allDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  const pendingDocs = allDocs.filter(c => !DONE_ST.includes(c.status));
+  const doneDocs = allDocs.filter(c => DONE_ST.includes(c.status));
+
+  // รอบที่ 1: render pending ก่อนทันที
   precompute(pendingDocs);
   cases = pendingDocs.sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
   _casesCacheTime = Date.now();
   _allCasesLoaded = false;
-
   renderAll(); buildAlerts();
 
   // รอบที่ 2: เพิ่ม done ในพื้นหลัง
@@ -1148,7 +1146,7 @@ async function loadCases(force) {
     cases = [...cases, ...doneDocs].sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
     _allCasesLoaded = true;
     renderSummary(); renderPeople(); renderPendingAge(); renderCategoryStats();
-  }, 1500);
+  }, 1000);
 }
 async function loadCustomCategories() {
   try {
@@ -4020,7 +4018,7 @@ window.openWeeklyModal = async function(personId, personName) {
   // Live sum listeners
   ['wkTargetOld','wkTargetNew'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) { el.value = ''; el.oninput = wkUpdateTargetTotal; }
+    if (el) { el.value = ''; el.oninput = window.wkUpdateTargetTotal; }
   });
   document.getElementById('wkTargetTotal').textContent = '0';
 
@@ -4068,7 +4066,7 @@ document.getElementById('wkActualIds').addEventListener('input', function() {
   wkUpdatePct();
 });
 
-function wkUpdatePct() {
+window.wkUpdatePct = function() {
   const tOld = parseInt(document.getElementById('wkShowTargetOld')?.textContent)||0;
   const tNew = parseInt(document.getElementById('wkShowTargetNew')?.textContent)||0;
   const aOld = parseInt(document.getElementById('wkActualOld')?.value)||0;
