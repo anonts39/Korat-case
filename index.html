@@ -1056,11 +1056,13 @@ onAuthStateChanged(auth, async (user) => {
     _setLoading('กำลังโหลดข้อมูลบุคลากร...', 20);
     await loadPeople();
     _setLoading('กำลังโหลดสำนวนคดี...', 40, `พบ ${people.length} คน`);
-    await loadCases(); // renderAll() ถูกเรียกใน loadCases แล้ว
+    await loadCases(false, true); // skipRender=true
     _setLoading('กำลังโหลดประเภทคดี...', 80, `โหลดสำนวน ${cases.length} เรื่องแล้ว`);
     await loadCustomCategories();
     _setLoading('เกือบเสร็จแล้ว...', 95);
     await loadTeams();
+    // render ครั้งเดียวหลังข้อมูลครบ
+    renderAll(); buildAlerts();
   } catch(loadErr) {
     console.error('Load error:', loadErr);
   }
@@ -1125,7 +1127,7 @@ let _allCasesLoaded = false;
 
 const DONE_ST = ['done','court','filing'];
 
-async function loadCases(force) {
+async function loadCases(force, skipRender) {
   const now = Date.now();
   if (!force && cases.length > 0 && (now - _casesCacheTime) < CACHE_TTL) {
     return;
@@ -1153,19 +1155,21 @@ async function loadCases(force) {
   const pendingDocs = allDocs.filter(c => !DONE_ST.includes(c.status));
   const doneDocs = allDocs.filter(c => DONE_ST.includes(c.status));
 
-  // รอบที่ 1: render pending ก่อนทันที
+  // รอบที่ 1: เก็บ pending ก่อน
   precompute(pendingDocs);
   cases = pendingDocs.sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
   _casesCacheTime = Date.now();
   _allCasesLoaded = false;
-  renderAll(); buildAlerts();
+
+  // render เฉพาะเมื่อไม่ได้ skip (startup จะ skip แล้วให้ renderAll หลัง loadTeams)
+  if (!skipRender) { renderAll(); buildAlerts(); }
 
   // รอบที่ 2: เพิ่ม done ในพื้นหลัง
   setTimeout(() => {
     precompute(doneDocs);
     cases = [...cases, ...doneDocs].sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
     _allCasesLoaded = true;
-    renderSummary(); renderPeople(); renderPendingAge(); renderCategoryStats();
+    if (!skipRender) { renderSummary(); renderPeople(); renderPendingAge(); renderCategoryStats(); }
   }, 1000);
 }
 async function loadCustomCategories() {
