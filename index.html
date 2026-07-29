@@ -1181,6 +1181,7 @@ async function loadCases(force, skipRender) {
       _allCasesLoaded = true;
       if (_lc) _lc.textContent = '';
       renderSummary(); renderPeople(); renderPendingAge(); renderCategoryStats();
+      buildAlerts();
     } catch(e) { console.warn('Background old cases load:', e); }
   }, 500);
 }
