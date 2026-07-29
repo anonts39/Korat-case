@@ -375,11 +375,13 @@ font-weight: 700 !important;
 </header>
 
 <div id="loadingOverlay" style="position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
-  <div style="font-size:2rem">⚖️</div>
-  <div style="font-family:'Kanit',sans-serif;font-size:1rem;color:var(--accent)">กำลังโหลด...</div>
-  <div style="width:200px;height:3px;background:var(--surface2);border-radius:4px;overflow:hidden;">
-    <div style="width:40%;height:100%;background:var(--accent);border-radius:4px;animation:loadbar 1s ease infinite alternate;"></div>
+  <div style="font-size:2.5rem">⚖️</div>
+  <div style="font-family:'Kanit',sans-serif;font-size:1.1rem;color:var(--accent);">ระบบติดตามคดี สอจ.นม</div>
+  <div id="loadingMsg" style="font-size:0.82rem;color:var(--text3);">กำลังเชื่อมต่อระบบ...</div>
+  <div style="width:260px;height:4px;background:var(--surface2);border-radius:4px;overflow:hidden;">
+    <div id="loadingBar" style="width:10%;height:100%;background:var(--accent);border-radius:4px;transition:width 0.4s ease;"></div>
   </div>
+  <div id="loadingCount" style="font-size:0.75rem;color:var(--text3);min-height:18px;"></div>
 </div>
 
 <div class="alert-panel" id="alertPanel">
@@ -1043,9 +1045,21 @@ onAuthStateChanged(auth, async (user) => {
     signOut(auth).then(() => window.location.href = 'login.html');
 
   try {
+    const _setLoading = (msg, pct, count='') => {
+      const m = document.getElementById('loadingMsg');
+      const b = document.getElementById('loadingBar');
+      const c = document.getElementById('loadingCount');
+      if (m) m.textContent = msg;
+      if (b) b.style.width = pct + '%';
+      if (c) c.textContent = count;
+    };
+    _setLoading('กำลังโหลดข้อมูลบุคลากร...', 20);
     await loadPeople();
+    _setLoading('กำลังโหลดสำนวนคดี...', 40, `พบ ${people.length} คน`);
     await loadCases(); // renderAll() ถูกเรียกใน loadCases แล้ว
+    _setLoading('กำลังโหลดประเภทคดี...', 80, `โหลดสำนวน ${cases.length} เรื่องแล้ว`);
     await loadCustomCategories();
+    _setLoading('เกือบเสร็จแล้ว...', 95);
     await loadTeams();
   } catch(loadErr) {
     console.error('Load error:', loadErr);
@@ -1129,6 +1143,12 @@ async function loadCases(force) {
   // ดึงทั้งหมด แล้วแบ่ง render ใน memory
   const snap = await getDocs(collection(db, 'cases'));
   const allDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  // อัปเดต loading message
+  const _lc = document.getElementById('loadingCount');
+  if (_lc) _lc.textContent = `โหลดข้อมูล ${allDocs.length} เรื่องแล้ว กำลังประมวลผล...`;
+  const _lb = document.getElementById('loadingBar');
+  if (_lb) _lb.style.width = '70%';
 
   const pendingDocs = allDocs.filter(c => !DONE_ST.includes(c.status));
   const doneDocs = allDocs.filter(c => DONE_ST.includes(c.status));
