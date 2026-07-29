@@ -1142,35 +1142,47 @@ async function loadCases(force, skipRender) {
   Object.keys(_parseDateCache).forEach(k => delete _parseDateCache[k]);
   Object.keys(_ymOfCache).forEach(k => delete _ymOfCache[k]);
 
-  // ดึงทั้งหมด แล้วแบ่ง render ใน memory
-  const snap = await getDocs(collection(db, 'cases'));
-  const allDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  // หาวันแรกของเดือนปัจจุบัน
+  const _now = new Date();
+  const _startOfMonth = new Date(_now.getFullYear(), _now.getMonth(), 1).toISOString().split('T')[0];
 
-  // อัปเดต loading message
   const _lc = document.getElementById('loadingCount');
-  if (_lc) _lc.textContent = `โหลดข้อมูล ${allDocs.length} เรื่องแล้ว กำลังประมวลผล...`;
   const _lb = document.getElementById('loadingBar');
-  if (_lb) _lb.style.width = '70%';
 
-  const pendingDocs = allDocs.filter(c => !DONE_ST.includes(c.status));
-  const doneDocs = allDocs.filter(c => DONE_ST.includes(c.status));
-
-  // รอบที่ 1: เก็บ pending ก่อน
-  precompute(pendingDocs);
-  cases = pendingDocs.sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
+  // รอบที่ 1: โหลดเฉพาะเดือนปัจจุบันก่อน
+  const curSnap = await getDocs(query(
+    collection(db, 'cases'),
+    where('date', '>=', _startOfMonth)
+  ));
+  const curDocs = curSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  precompute(curDocs);
+  cases = curDocs.sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
   _casesCacheTime = Date.now();
   _allCasesLoaded = false;
 
-  // render เฉพาะเมื่อไม่ได้ skip (startup จะ skip แล้วให้ renderAll หลัง loadTeams)
+  if (_lc) _lc.textContent = `โหลดคดีเดือนนี้ ${curDocs.length} เรื่อง กำลังโหลดที่เหลือ...`;
+  if (_lb) _lb.style.width = '60%';
+
   if (!skipRender) { renderAll(); buildAlerts(); }
 
-  // รอบที่ 2: เพิ่ม done ในพื้นหลัง
-  setTimeout(() => {
-    precompute(doneDocs);
-    cases = [...cases, ...doneDocs].sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
-    _allCasesLoaded = true;
-    if (!skipRender) { renderSummary(); renderPeople(); renderPendingAge(); renderCategoryStats(); }
-  }, 1000);
+  // รอบที่ 2: โหลดคดีเก่าทันทีในพื้นหลัง
+  setTimeout(async () => {
+    try {
+      const oldSnap = await getDocs(query(
+        collection(db, 'cases'),
+        where('date', '<', _startOfMonth)
+      ));
+      const oldDocs = oldSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      precompute(oldDocs);
+      // merge — ไม่ซ้ำ
+      const existIds = new Set(cases.map(c => c.id));
+      const newOld = oldDocs.filter(c => !existIds.has(c.id));
+      cases = [...cases, ...newOld].sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
+      _allCasesLoaded = true;
+      if (_lc) _lc.textContent = '';
+      renderSummary(); renderPeople(); renderPendingAge(); renderCategoryStats();
+    } catch(e) { console.warn('Background old cases load:', e); }
+  }, 500);
 }
 async function loadCustomCategories() {
   try {
