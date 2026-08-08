@@ -859,7 +859,8 @@ font-weight: 700 !important;
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
 import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
-import { getFirestore, collection, addDoc, getDocs, getDoc,
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+         collection, addDoc, getDocs, getDoc,
          updateDoc, deleteDoc, doc, query, where, orderBy,
          Timestamp, limit }
   from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
@@ -876,7 +877,20 @@ const firebaseConfig = {
 
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db   = getFirestore(app);
+
+// เปิด Offline Persistence — โหลดจาก cache ก่อน sync ทีหลัง
+let db;
+try {
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
+    })
+  });
+} catch(e) {
+  // Fallback ถ้า browser ไม่รองรับ
+  db = getFirestore(app);
+}
+
 // Expose immediately for non-module scripts
 window._db = db;
 window._collection = collection;
@@ -1150,56 +1164,26 @@ async function loadCases(force, skipRender) {
   Object.keys(_parseDateCache).forEach(k => delete _parseDateCache[k]);
   Object.keys(_ymOfCache).forEach(k => delete _ymOfCache[k]);
 
-  // หาวันแรกของเดือนปัจจุบัน
-  const _now = new Date();
-  const _startOfMonth = new Date(_now.getFullYear(), _now.getMonth(), 1).toISOString().split('T')[0];
-
   const _lc = document.getElementById('loadingCount');
   const _lb = document.getElementById('loadingBar');
 
-  // รอบที่ 1: โหลดเฉพาะเดือนปัจจุบันก่อน
-  const curSnap = await getDocs(query(
-    collection(db, 'cases'),
-    where('date', '>=', _startOfMonth)
-  ));
-  const curDocs = curSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-  precompute(curDocs);
-  cases = curDocs.sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
-  _casesCacheTime = Date.now();
-  _allCasesLoaded = false;
+  // โหลดทั้งหมดพร้อมกัน — ครั้งแรกใช้ Firebase, ครั้งต่อไปใช้ cache
+  const snap = await getDocs(collection(db, 'cases'));
+  const allDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-  if (_lc) _lc.textContent = `โหลดคดีเดือนนี้ ${curDocs.length} เรื่อง กำลังโหลดที่เหลือ...`;
-  if (_lb) _lb.style.width = '60%';
+  if (_lc) _lc.textContent = `โหลด ${allDocs.length} เรื่องแล้ว กำลังประมวลผล...`;
+  if (_lb) _lb.style.width = '70%';
+
+  precompute(allDocs);
+  cases = allDocs.sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
+  _casesCacheTime = Date.now();
+  _allCasesLoaded = true;
+
+  if (_lc) _lc.textContent = '';
+  const badge = document.getElementById('bgLoadBadge');
+  if (badge) badge.style.visibility = 'hidden';
 
   if (!skipRender) { renderAll(); buildAlerts(); }
-
-  // รอบที่ 2: โหลดคดีเก่าทันทีในพื้นหลัง
-  setTimeout(async () => {
-    try {
-      const badge = document.getElementById('bgLoadBadge');
-      const pctEl = document.getElementById('bgLoadPct');
-      if (badge) badge.style.visibility = 'visible';
-      if (pctEl) pctEl.textContent = '0';
-
-      const oldSnap = await getDocs(query(
-        collection(db, 'cases'),
-        where('date', '<', _startOfMonth)
-      ));
-      if (pctEl) pctEl.textContent = '50';
-
-      const oldDocs = oldSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      precompute(oldDocs);
-      const existIds = new Set(cases.map(c => c.id));
-      const newOld = oldDocs.filter(c => !existIds.has(c.id));
-      cases = [...cases, ...newOld].sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
-      _allCasesLoaded = true;
-      if (pctEl) pctEl.textContent = '100';
-      if (_lc) _lc.textContent = '';
-      renderSummary(); renderPeople(); renderPendingAge(); renderCategoryStats();
-      renderTable(); buildAlerts();
-      setTimeout(() => { if (badge) badge.style.visibility = 'hidden'; }, 1500);
-    } catch(e) { console.warn('Background old cases load:', e); }
-  }, 500);
 }
 async function loadCustomCategories() {
   try {
