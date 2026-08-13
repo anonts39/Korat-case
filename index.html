@@ -973,14 +973,14 @@ onAuthStateChanged(auth, async (user) => {
       if (b) b.style.width = pct + '%';
       if (c) c.textContent = count;
     };
-    _setLoading('กำลังโหลดข้อมูล...', 30);
-    await Promise.all([
-      loadPeople(),
-      loadCases(false, true),
-      loadCustomCategories(),
-      loadTeams()
-    ]);
-    _setLoading('กำลังประมวลผล...', 90);
+    _setLoading('กำลังโหลดข้อมูลบุคลากร...', 20);
+    await loadPeople();
+    _setLoading('กำลังโหลดสำนวนคดี...', 40, `พบ ${people.length} คน`);
+    await loadCases(false, true); // skipRender=true
+    _setLoading('กำลังโหลดประเภทคดี...', 80, `โหลดสำนวน ${cases.length} เรื่องแล้ว`);
+    await loadCustomCategories();
+    _setLoading('เกือบเสร็จแล้ว...', 95);
+    await loadTeams();
     // render ครั้งเดียวหลังข้อมูลครบ
     renderAll(); buildAlerts();
   } catch(loadErr) {
@@ -4160,8 +4160,12 @@ window.wkSaveCheckpoint = async function() {
   if (isOwner) {
     const idsText = document.getElementById('wkActualIds').value.trim();
     const { oldIds, newIds } = wkClassifyIds(idsText);
-    const actualOld = oldIds.length;
-    const actualNew = newIds.length;
+
+    // อ่านจากช่องตัวเลขด้วย (ถ้าไม่ได้ใส่เลขคดี)
+    const inputOld = parseInt(document.getElementById('wkActualOld')?.value) || 0;
+    const inputNew = parseInt(document.getElementById('wkActualNew')?.value) || 0;
+    const actualOld = idsText ? oldIds.length : inputOld;
+    const actualNew = idsText ? newIds.length : inputNew;
 
     // หา checkpoint ล่าสุด
     const snap = await getDocs(query(
