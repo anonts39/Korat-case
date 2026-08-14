@@ -4358,7 +4358,7 @@ window.openWeeklyReport = async function() {
         ${(oldC||newC) ? `<div style="font-size:0.65rem;color:var(--text3);">เก่า ${oldC} / ใหม่ ${newC}</div>` : ''}
       </div>
       <div style="text-align:center;">
-        ${(cp.actualCaseIds||[]).length > 0 ? `<button onclick="wkShowDetail(${JSON.stringify(cp)},'${p.name}')" style="padding:4px 8px;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:'Sarabun',sans-serif;font-size:0.72rem;cursor:pointer;">📋 ดู</button>` : '<span style="color:var(--text3);font-size:0.7rem;">ไม่มีเลขคดี</span>'}
+        ${(cp.actualCaseIds||[]).length > 0 ? `<button onclick="wkShowDetailById('${p.id}','${p.name}')" style="padding:4px 8px;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:'Sarabun',sans-serif;font-size:0.72rem;cursor:pointer;">📋 ดู</button>` : '<span style="color:var(--text3);font-size:0.7rem;">ไม่มีเลขคดี</span>'}
       </div>
     </div>`;
   }));
@@ -4374,6 +4374,20 @@ document.getElementById('weeklyReportOverlay').addEventListener('click', functio
 document.getElementById('wkDetailOverlay').addEventListener('click', function(e) {
   if (e.target === this) this.classList.remove('show');
 });
+window.wkShowDetailById = async function(personId, name) {
+  document.getElementById('wkDetailContent').innerHTML = '<div style="color:var(--text3);padding:10px;">กำลังโหลด...</div>';
+  document.getElementById('wkDetailOverlay').classList.add('show');
+  try {
+    const snap = await getDocs(query(
+      collection(db, 'people', personId, 'weeklyCheckpoints'),
+      orderBy('checkpointDate', 'desc'), limit(1)
+    ));
+    if (snap.empty) { document.getElementById('wkDetailContent').innerHTML = '<div style="color:var(--text3);">ไม่มีข้อมูล</div>'; return; }
+    const cp = snap.docs[0].data();
+    wkShowDetail(cp, name);
+  } catch(e) { document.getElementById('wkDetailContent').innerHTML = '<div style="color:var(--red);">โหลดไม่ได้: ' + e.message + '</div>'; }
+};
+
 window.wkShowDetail = function(cp, name) {
   const ids = cp.actualCaseIds || [];
   const oldIds = new Set(cp.oldCaseIds || []);
