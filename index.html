@@ -377,7 +377,7 @@ font-weight: 700 !important;
 
 <div id="loadingOverlay" style="position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
   <div style="font-size:2.5rem">⚖️</div>
-  <div style="font-family:'Kanit',sans-serif;font-size:1.1rem;color:var(--accent);">ระบบติดตามคดี สอจ.นม</div>
+  <div style="font-family:'Kanit',sans-serif;font-size:1.1rem;color:#f0a500;">ระบบติดตามคดี สอจ.นม</div>
   <div id="loadingMsg" style="font-size:0.82rem;color:var(--text3);">กำลังเชื่อมต่อระบบ...</div>
   <div style="width:260px;height:4px;background:var(--surface2);border-radius:4px;overflow:hidden;">
     <div id="loadingBar" style="width:10%;height:100%;background:var(--accent);border-radius:4px;transition:width 0.4s ease;"></div>
@@ -4344,7 +4344,7 @@ window.openWeeklyReport = async function() {
     return `<div style="display:grid;grid-template-columns:160px 80px 80px 80px 80px 130px 80px;gap:6px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;align-items:center;font-size:0.78rem;">
       <div>
         <div style="font-weight:600;">${p.name}</div>
-        <div style="font-size:0.65rem;color:var(--text3);">📅 ${dateStr}</div>
+        <div style="font-size:0.65rem;color:#8b949e;">📅 ${dateStr}</div>
       </div>
       <div style="text-align:center;font-family:'Kanit',sans-serif;font-weight:700;color:var(--yellow);">${cp.openCaseCount||'—'}</div>
       <div style="text-align:center;">
@@ -4370,23 +4370,59 @@ document.getElementById('weeklyReportOverlay').addEventListener('click', functio
   if (e.target === this) this.classList.remove('show');
 });
 
-
-document.getElementById('wkDetailOverlay').addEventListener('click', function(e) {
-  if (e.target === this) this.classList.remove('show');
-});
-window.wkShowDetailById = async function(personId, name) {
-  document.getElementById('wkDetailContent').innerHTML = '<div style="color:var(--text3);padding:10px;">กำลังโหลด...</div>';
-  document.getElementById('wkDetailOverlay').classList.add('show');
+// ===== WEEKLY DETAIL MODAL =====
+window.wkShowDetailById = async function(personId, personName) {
   try {
     const snap = await getDocs(query(
       collection(db, 'people', personId, 'weeklyCheckpoints'),
       orderBy('checkpointDate', 'desc'), limit(1)
     ));
-    if (snap.empty) { document.getElementById('wkDetailContent').innerHTML = '<div style="color:var(--text3);">ไม่มีข้อมูล</div>'; return; }
+    if (snap.empty) { alert('ไม่พบข้อมูล'); return; }
     const cp = snap.docs[0].data();
-    wkShowDetail(cp, name);
-  } catch(e) { document.getElementById('wkDetailContent').innerHTML = '<div style="color:var(--red);">โหลดไม่ได้: ' + e.message + '</div>'; }
+    const date = cp.checkpointDate?.toDate ? cp.checkpointDate.toDate() : new Date(cp.checkpointDate);
+    const dateStr = `${date.getDate()}/${date.getMonth()+1}/${date.getFullYear()+543}`;
+    const actualIds = cp.actualCaseIds || [];
+    const oldIds = cp.oldCaseIds || [];
+    const newIds = cp.newCaseIds || [];
+
+    // สร้าง popup detail
+    const existing = document.getElementById('wkDetailPopup');
+    if (existing) existing.remove();
+
+    const popup = document.createElement('div');
+    popup.id = 'wkDetailPopup';
+    popup.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;';
+    popup.innerHTML = `
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:14px;padding:20px;width:480px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.5);color:#c9d1d9;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div>
+            <div style="font-family:'Kanit',sans-serif;font-size:1rem;font-weight:700;color:var(--accent);">${personName}</div>
+            <div style="font-size:0.72rem;color:var(--text3);">📅 บันทึก ${dateStr} | เป้า ${cp.target||0} เรื่อง | ทำได้ ${cp.actual||0} เรื่อง</div>
+          </div>
+          <button onclick="document.getElementById('wkDetailPopup').remove()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:#8b949e;cursor:pointer;font-size:0.85rem;">✕</button>
+        </div>
+        ${cp.note ? `<div style="font-size:0.78rem;color:#8b949e;margin-bottom:12px;background:#21262d;padding:8px 12px;border-radius:8px;">📝 ${cp.note}</div>` : ''}
+        ${oldIds.length > 0 ? `
+        <div style="margin-bottom:12px;">
+          <div style="font-size:0.78rem;font-weight:600;color:#e3b341;margin-bottom:6px;">📁 สำนวนเก่า (${oldIds.length} เรื่อง)</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            ${oldIds.map(id => `<span style="background:#2d1f0a;border:1px solid var(--yellow);border-radius:6px;padding:3px 8px;font-size:0.75rem;color:var(--yellow);">${id}</span>`).join('')}
+          </div>
+        </div>` : ''}
+        ${newIds.length > 0 ? `
+        <div style="margin-bottom:12px;">
+          <div style="font-size:0.78rem;font-weight:600;color:#3fb950;margin-bottom:6px;">🆕 สำนวนใหม่ (${newIds.length} เรื่อง)</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            ${newIds.map(id => `<span style="background:#1f2d1a;border:1px solid var(--green);border-radius:6px;padding:3px 8px;font-size:0.75rem;color:var(--green);">${id}</span>`).join('')}
+          </div>
+        </div>` : ''}
+        ${actualIds.length === 0 ? '<div style="color:var(--text3);font-size:0.8rem;">ไม่มีเลขคดีที่บันทึกไว้</div>' : ''}
+      </div>`;
+    popup.addEventListener('click', e => { if (e.target === popup) popup.remove(); });
+    document.body.appendChild(popup);
+  } catch(e) { alert('โหลดไม่สำเร็จ: ' + e.message); }
 };
+
 
 window.wkShowDetail = function(cp, name) {
   const ids = cp.actualCaseIds || [];
