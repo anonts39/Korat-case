@@ -4305,8 +4305,8 @@ window.openWeeklyReport = async function() {
   document.getElementById('weeklyReportOverlay').classList.add('show');
 
   grid.innerHTML = `
-    <div style="display:grid;grid-template-columns:160px 80px 80px 80px 80px 130px;gap:6px;padding:8px 12px;background:var(--surface2);border-radius:8px;font-size:0.7rem;color:var(--text3);font-weight:600;">
-      <div>อัยการ</div><div style="text-align:center;">ค้าง(วันคุย)</div><div style="text-align:center;">ค้างตอนนี้</div><div style="text-align:center;">เป้า</div><div style="text-align:center;">ทำได้</div><div style="text-align:center;">ผล (เก่า+ใหม่)</div>
+    <div style="display:grid;grid-template-columns:160px 80px 80px 80px 80px 130px 80px;gap:6px;padding:8px 12px;background:var(--surface2);border-radius:8px;font-size:0.7rem;color:var(--text3);font-weight:600;">
+      <div>อัยการ</div><div style="text-align:center;">ค้าง(วันคุย)</div><div style="text-align:center;">ค้างตอนนี้</div><div style="text-align:center;">เป้า</div><div style="text-align:center;">ทำได้</div><div style="text-align:center;">ผล (เก่า+ใหม่)</div><div style="text-align:center;">รายละเอียด</div>
     </div>`;
 
   const rows = await Promise.all(people.filter(p => p.role !== 'เจ้าหน้าที่').map(async p => {
@@ -4341,7 +4341,7 @@ window.openWeeklyReport = async function() {
     const oldC = (cp.oldCaseIds||[]).length;
     const newC = (cp.newCaseIds||[]).length;
 
-    return `<div style="display:grid;grid-template-columns:160px 80px 80px 80px 80px 130px;gap:6px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;align-items:center;font-size:0.78rem;">
+    return `<div style="display:grid;grid-template-columns:160px 80px 80px 80px 80px 130px 80px;gap:6px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;align-items:center;font-size:0.78rem;">
       <div>
         <div style="font-weight:600;">${p.name}</div>
         <div style="font-size:0.65rem;color:var(--text3);">📅 ${dateStr}</div>
@@ -4357,6 +4357,9 @@ window.openWeeklyReport = async function() {
         ${pct !== null ? `<span style="font-size:0.85rem;font-weight:700;color:${pctColor};">${pct}%</span>` : ''}
         ${(oldC||newC) ? `<div style="font-size:0.65rem;color:var(--text3);">เก่า ${oldC} / ใหม่ ${newC}</div>` : ''}
       </div>
+      <div style="text-align:center;">
+        ${(cp.actualCaseIds||[]).length > 0 ? `<button onclick="wkShowDetail(${JSON.stringify(cp)},'${p.name}')" style="padding:4px 8px;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:'Sarabun',sans-serif;font-size:0.72rem;cursor:pointer;">📋 ดู</button>` : '<span style="color:var(--text3);font-size:0.7rem;">ไม่มีเลขคดี</span>'}
+      </div>
     </div>`;
   }));
 
@@ -4366,6 +4369,42 @@ window.openWeeklyReport = async function() {
 document.getElementById('weeklyReportOverlay').addEventListener('click', function(e) {
   if (e.target === this) this.classList.remove('show');
 });
+
+
+document.getElementById('wkDetailOverlay').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('show');
+});
+window.wkShowDetail = function(cp, name) {
+  const ids = cp.actualCaseIds || [];
+  const oldIds = new Set(cp.oldCaseIds || []);
+  const newIds = new Set(cp.newCaseIds || []);
+
+  const rows = ids.map(cid => {
+    const isOld = oldIds.has(cid);
+    const isNew = newIds.has(cid);
+    const tag = isOld ? '<span style="font-size:0.65rem;background:#2d1f0a;color:#e3b341;border:1px solid #d29922;border-radius:4px;padding:1px 5px;">เก่า</span>'
+                      : isNew ? '<span style="font-size:0.65rem;background:#1f2d1a;color:#3fb950;border:1px solid #238636;border-radius:4px;padding:1px 5px;">ใหม่</span>' : '';
+    const c = cases.find(x => x.caseId === cid);
+    const cname = c ? (c.name||'').substring(0,40) : '';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--surface2);border-radius:6px;font-size:0.78rem;">
+      <span style="color:var(--accent);font-weight:600;white-space:nowrap;">${cid}</span>
+      ${tag}
+      <span style="color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cname}</span>
+    </div>`;
+  }).join('');
+
+  const note = cp.note ? `<div style="font-size:0.75rem;color:var(--text3);margin-bottom:12px;">📝 ${cp.note}</div>` : '';
+
+  document.getElementById('wkDetailContent').innerHTML = `
+    <div style="font-size:0.82rem;color:var(--text2);margin-bottom:12px;">
+      <b style="color:var(--accent);">${name}</b> — เคลียร์ <b>${ids.length}</b> เรื่อง
+      (เก่า ${(cp.oldCaseIds||[]).length} / ใหม่ ${(cp.newCaseIds||[]).length})
+    </div>
+    ${note}
+    <div style="display:flex;flex-direction:column;gap:6px;">${rows || '<div style="color:var(--text3);">ไม่มีเลขคดี</div>'}</div>
+  `;
+  document.getElementById('wkDetailOverlay').classList.add('show');
+};
 
 // Delete checkpoint (Admin only)
 window.wkDeleteCheckpoint = async function(docId) {
@@ -5311,6 +5350,18 @@ document.getElementById('personModalOverlay').addEventListener('click', e => { i
       <button class="btn-qr" onclick="downloadQR()">⬇️ บันทึกรูป</button>
       <button class="btn-qr" onclick="copyQRUrl()">📋 คัดลอก URL</button>
       <button class="btn-qr solid" onclick="closeQRModal()">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== WEEKLY DETAIL MODAL ===== -->
+<div class="modal-overlay" id="wkDetailOverlay">
+  <div class="modal" style="width:520px;max-height:80vh;overflow-y:auto;">
+    <div class="modal-title" style="color:var(--accent);">📋 รายละเอียดสำนวนที่เคลียร์</div>
+    <div id="wkDetailContent"></div>
+    <div style="margin-top:16px;">
+      <button onclick="document.getElementById('wkDetailOverlay').classList.remove('show')"
+        style="padding:9px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'Sarabun',sans-serif;font-size:0.85rem;cursor:pointer;">ปิด</button>
     </div>
   </div>
 </div>
