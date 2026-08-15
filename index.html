@@ -2357,7 +2357,7 @@ function renderTable() {
        (() => { const fp = people.find(x=>x.id===filterPerson); return fp && c.currentPerson===fp.name && !['done','court','filing'].includes(c.status); })()) &&
       (filterCategory === null || (c.category || 'ไม่ระบุ') === filterCategory) &&
       (!filterOverdue || (!['done','court','filing'].includes(c.status) && dlStatus(c.deadline,c.status) === 'overdue')) &&
-      (_ageFilter === null || (()=>{ const d=daysSince(c.date); const r=ageRanges[_ageFilter]; return r && d>=r.min && d<=r.max; })()) &&
+      (_ageFilter === null || (()=>{ const d=daysSince(c.date, c.caseId, c.importedFrom); const r=ageRanges[_ageFilter]; return r && d>=r.min && d<=r.max; })()) &&
       (!search || c.name.toLowerCase().includes(search) || 
        c.caseId.toLowerCase().includes(search) || 
        (c.category||'').toLowerCase().includes(search) ||
@@ -2394,7 +2394,7 @@ function renderTable() {
     const dls = dlStatus(c.deadline, c.status);
     const rowCls = dls==='overdue' ? 'row-overdue' : dls==='due-soon' ? 'row-due-soon' : '';
     // Age badge
-    const ageDays = daysSince(c.date);
+    const ageDays = daysSince(c.date, c.caseId, c.importedFrom);
     const ageRange = !['done','court','filing'].includes(c.status) ? ageRanges.find(r => ageDays>=r.min && ageDays<=r.max) : null;
     const ageBadge = ageRange ? '<span style="display:inline-flex;padding:2px 8px;border-radius:20px;font-size:0.65rem;font-weight:600;background:'+ageRange.color+'22;color:'+ageRange.color+';border:1px solid '+ageRange.color+'55;margin-left:4px;">⏳ '+ageDays+' วัน</span>' : '';
     const ownerLabel = isAdminUser && c.userEmail ? `<div style="font-size:0.68rem;color:var(--purple)">👤 ${c.userEmail}</div>` : '';
@@ -4544,13 +4544,24 @@ let rcvCurrentQR = '';
 
 // ===== PENDING AGE (สำนวนค้างตามอายุ) =====
 let ageRanges = JSON.parse(localStorage.getItem('ageRanges') || 'null') || [
-  { label:'ค้าง 1-30 วัน',   min:1,   max:30,  color:'#3fb950' },
-  { label:'ค้าง 31-60 วัน',  min:31,  max:60,  color:'#e3b341' },
-  { label:'ค้าง 61-90 วัน',  min:61,  max:90,  color:'#f0883e' },
-  { label:'ค้างเกิน 90 วัน', min:91,  max:9999,color:'#f85149' },
+  { label:'ค้างเกิน 1 เดือน',  min:31,  max:89,  color:'#e3b341' },
+  { label:'ค้างเกิน 3 เดือน',  min:90,  max:179, color:'#f0883e' },
+  { label:'ค้างเกิน 6 เดือน',  min:180, max:9999,color:'#f85149' },
 ];
 
-function daysSince(dateStr) {
+function daysSince(dateStr, caseId, importedFrom) {
+  // สำนวนที่ import มา ให้ดูปีจาก caseId แทน date ที่ถูก set เป็นวันที่ import
+  if (importedFrom === 'excel_batch' && caseId) {
+    const m = caseId.match(/\/(\d{4})$/);
+    if (m) {
+      const buddhistYear = parseInt(m[1]);
+      const christianYear = buddhistYear - 543;
+      // ใช้วันที่ 1 ม.ค. ของปีนั้นเป็นจุดเริ่มต้น
+      const d = new Date(christianYear, 0, 1);
+      d.setHours(0,0,0,0);
+      return Math.floor((NOW - d) / 86400000);
+    }
+  }
   if (!dateStr) return 0;
   const d = new Date(dateStr); d.setHours(0,0,0,0);
   return Math.floor((NOW - d) / 86400000);
@@ -4570,7 +4581,7 @@ function renderPendingAge() {
     else if (!isStaff && !isSecretary) { src = src.filter(c => c.assignee === currentPersonId); }
   }
   grid.innerHTML = ageRanges.map((r, ri) => {
-    const count = src.filter(c => { const d = daysSince(c.date); return d >= r.min && d <= r.max; }).length;
+    const count = src.filter(c => { const d = daysSince(c.date, c.caseId, c.importedFrom); return d >= r.min && d <= r.max; }).length;
     return '<div onclick="filterByAge('+ri+')" style="background:var(--surface);border:1px solid '+r.color+'44;border-radius:10px;padding:14px 16px;cursor:pointer;position:relative;overflow:hidden;" onmouseover="this.style.borderColor=\''+r.color+'\'" onmouseout="this.style.borderColor=\''+r.color+'44\'">'
       +'<div style="position:absolute;top:0;left:0;right:0;height:3px;background:'+r.color+';"></div>'
       +'<div style="font-size:0.72rem;color:var(--text3);margin-bottom:6px;">'+r.label+'</div>'
@@ -4681,7 +4692,7 @@ function showPendingAgeAlert() {
 
   // คำนวณตามช่วงที่ Admin กำหนดใน ageRanges
   const buckets = ageRanges.map(function(r) {
-    return { ...r, count: src.filter(function(c){ const d=daysSince(c.date); return d>=r.min&&d<=r.max; }).length };
+    return { ...r, count: src.filter(function(c){ const d=daysSince(c.date, c.caseId, c.importedFrom); return d>=r.min&&d<=r.max; }).length };
   });
   const total = src.length;
 
@@ -4689,7 +4700,7 @@ function showPendingAgeAlert() {
   let adminSection = '';
   if (isAdminUser && ageRanges.length > 0) {
     const topRange = ageRanges[ageRanges.length-1];
-    const topCases = src.filter(function(c){ return daysSince(c.date) >= topRange.min; });
+    const topCases = src.filter(function(c){ return daysSince(c.date, c.caseId, c.importedFrom) >= topRange.min; });
     if (topCases.length) {
       const byPerson = {};
       topCases.forEach(function(c) {
