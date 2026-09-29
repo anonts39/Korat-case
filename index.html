@@ -2568,6 +2568,28 @@ window.saveCase = async function() {
       relatedCases: (document.getElementById('fRelated').value.trim() || '').split(',').map(s=>s.trim()).filter(Boolean)
     };
     if (editingId) {
+      // === Transfer History: ตรวจสอบว่า assignee เปลี่ยนหรือไม่ ===
+      const oldCase = cases.find(c => c.id === editingId);
+      const oldAssignee = oldCase?.assignee || null;
+      const newAssignee = obj.assignee || null;
+      if (oldAssignee !== newAssignee) {
+        // บันทึก tracking โอนย้าย
+        const fromPerson = people.find(p => p.id === oldAssignee);
+        const toPerson   = people.find(p => p.id === newAssignee);
+        addDoc(collection(db, 'tracking'), {
+          caseId:      editingId,
+          caseCode:    obj.caseId,
+          dept:        'โอนย้ายเจ้าของสำนวน',
+          person:      toPerson?.name || newAssignee || '—',
+          note:        `โอนจาก ${fromPerson?.name || oldAssignee || '(ไม่มี)'} → ${toPerson?.name || newAssignee || '(ไม่มี)'}`,
+          action:      `📤 โอนเจ้าของสำนวน: ${fromPerson?.name || '(ไม่มี)'} → ${toPerson?.name || '(ไม่มี)'}`,
+          statusLabel: '🔄 โอนย้าย',
+          by:          currentUserEmail,
+          timestamp:   new Date(),
+          transferFrom: oldAssignee,
+          transferTo:   newAssignee,
+        }).catch(e => console.warn('transfer tracking:', e));
+      }
       await updateDoc(doc(db,'cases',editingId), obj);
       // อัปเดต local array แทน fetch ใหม่
       const idx = cases.findIndex(c => c.id === editingId);
@@ -3037,20 +3059,33 @@ async function renderTimeline(caseId) {
       const ts = item.timestamp?.toDate ? item.timestamp.toDate() : new Date(item.timestamp);
       const dateStr = ts.toLocaleDateString('th-TH', { day:'numeric', month:'short', year:'2-digit' });
       const timeStr = ts.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' });
-      return `<div class="tl-item">
+      const isTransfer = item.dept === 'โอนย้ายเจ้าของสำนวน' || item.transferFrom !== undefined;
+      // หาชื่อ from/to สำหรับ transfer
+      let transferHTML = '';
+      if (isTransfer && (item.transferFrom || item.transferTo)) {
+        const fromP = people.find(p => p.id === item.transferFrom);
+        const toP   = people.find(p => p.id === item.transferTo);
+        transferHTML = `<div style="margin:4px 0;padding:6px 10px;border-radius:6px;background:#1a1200;border:1px solid #f0a000;font-size:0.75rem;color:#f0c060;">
+          <span style="opacity:0.7">จาก:</span> <strong>${fromP?.name || item.transferFrom || '(ไม่มี)'}</strong>
+          &nbsp;→&nbsp;
+          <span style="opacity:0.7">ไป:</span> <strong>${toP?.name || item.transferTo || '(ไม่มี)'}</strong>
+        </div>`;
+      }
+      return `<div class="tl-item" ${isTransfer ? 'style="border-left:2px solid #f0a000;padding-left:4px;"' : ''}>
         <div class="tl-line">
           <div class="tl-dot ${isLast?'active':''}">
-            ${isLast ? '📍' : '✓'}
+            ${isTransfer ? '🔄' : isLast ? '📍' : '✓'}
           </div>
           ${!isLast ? '<div class="tl-connector"></div>' : ''}
         </div>
         <div class="tl-content">
-          ${item.action ? `<div style="font-size:0.72rem;font-weight:600;color:var(--accent);margin-bottom:2px;">${item.action}</div>` : ''}
-          <div class="tl-dept">${item.dept||'—'}</div>
-          <div class="tl-who">${item.person||'—'}</div>
-          ${item.statusLabel ? `<div style="display:inline-flex;padding:1px 8px;border-radius:20px;font-size:0.68rem;background:var(--surface2);color:var(--blue);border:1px solid var(--border);margin:2px 0;">${item.statusLabel}</div>` : ''}
+          ${item.action ? `<div style="font-size:0.72rem;font-weight:600;color:${isTransfer?'#f0a000':'var(--accent)'};margin-bottom:2px;">${item.action}</div>` : ''}
+          ${!isTransfer ? `<div class="tl-dept">${item.dept||'—'}</div>` : ''}
+          ${!isTransfer ? `<div class="tl-who">${item.person||'—'}</div>` : ''}
+          ${transferHTML}
+          ${item.statusLabel ? `<div style="display:inline-flex;padding:1px 8px;border-radius:20px;font-size:0.68rem;background:var(--surface2);color:${isTransfer?'#f0a000':'var(--blue)'};border:1px solid ${isTransfer?'#f0a000':'var(--border)'};margin:2px 0;">${item.statusLabel}</div>` : ''}
           <div class="tl-time">${dateStr} ${timeStr} • โดย ${item.by||'—'}</div>
-          ${item.note ? `<div class="tl-note-text">💬 ${item.note}</div>` : ''}
+          ${item.note && !isTransfer ? `<div class="tl-note-text">💬 ${item.note}</div>` : ''}
         </div>
       </div>`;
     }).join('');
@@ -3225,6 +3260,30 @@ window.saveTracking = async function(actionType) {
       lastAction:    actionLabel,
       lastUpdated:   new Date().toISOString()
     };
+
+    // === Transfer History: เมื่อส่งไปอัยการเจ้าของเรื่องและเปลี่ยนคน ===
+    if (actionType === 'send' && dept === 'อัยการเจ้าของเรื่อง' && person) {
+      const newOwner = people.find(p => p.name === person);
+      if (newOwner && newOwner.id !== c.assignee) {
+        const oldOwner = people.find(p => p.id === c.assignee);
+        // บันทึก tracking โอนย้าย (เพิ่มเติมจาก tracking ปกติ)
+        addDoc(collection(db, 'tracking'), {
+          caseId:      c.id,
+          caseCode:    c.caseId,
+          dept:        'โอนย้ายเจ้าของสำนวน',
+          person:      newOwner.name,
+          note:        `โอนจาก ${oldOwner?.name || '(ไม่มี)'} → ${newOwner.name}`,
+          action:      `📤 โอนเจ้าของสำนวน: ${oldOwner?.name || '(ไม่มี)'} → ${newOwner.name}`,
+          statusLabel: '🔄 โอนย้าย',
+          by:          currentUserEmail,
+          timestamp:   new Date(new Date().getTime() + 1000), // +1s เพื่อให้เรียงหลัง
+          transferFrom: c.assignee || null,
+          transferTo:   newOwner.id,
+        }).catch(e => console.warn('transfer tracking:', e));
+        updatePayload.assignee = newOwner.id;
+      }
+    }
+
     await updateDoc(doc(db, 'cases', c.id), updatePayload);
 
     // อัปเดต local array แทน fetch ใหม่
