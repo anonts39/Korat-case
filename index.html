@@ -628,9 +628,27 @@ font-weight: 700 !important;
       <span class="cat-filter-label">🗂 ประเภท:</span>
       <div id="catFilterBtns" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
     </div>
+    <!-- Bulk Action Toolbar (Admin only) -->
+    <div id="bulkToolbar" style="display:none;align-items:center;gap:8px;padding:8px 12px;background:#1a1f2d;border:1px solid var(--blue);border-radius:8px;margin-bottom:8px;flex-wrap:wrap;">
+      <span id="bulkCount" style="font-size:0.82rem;color:var(--blue);font-weight:600;">เลือก 0 คดี</span>
+      <span style="color:var(--border)">|</span>
+      <span style="font-size:0.8rem;color:var(--text2);">เปลี่ยนสถานะเป็น:</span>
+      <select id="bulkStatusSelect" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.82rem;">
+        <option value="">-- เลือกสถานะ --</option>
+        <option value="pending">🔍 สอบสวนเพิ่มเติม</option>
+        <option value="progress">🔵 เจ้าของสำนวน</option>
+        <option value="screening">🔍 รอกลั่นกรอง</option>
+        <option value="review">⚖️ อจ.พิจารณา</option>
+        <option value="filing">📁 งานพิมพ์สำนวน</option>
+        <option value="court">🏛 ดำเนินการทางศาล</option>
+        <option value="done">✅ เสร็จสิ้น</option>
+      </select>
+      <button onclick="bulkUpdateStatus()" style="padding:5px 14px;border-radius:6px;background:var(--blue);color:#fff;border:none;font-family:'Sarabun',sans-serif;font-size:0.82rem;cursor:pointer;font-weight:600;">✔ บันทึก</button>
+      <button onclick="bulkClearSelect()" style="padding:5px 14px;border-radius:6px;background:transparent;color:var(--text3);border:1px solid var(--border);font-family:'Sarabun',sans-serif;font-size:0.82rem;cursor:pointer;">ยกเลิก</button>
+    </div>
     <div class="cases-table">
       <table>
-        <thead><tr><th style="width:40px;text-align:center;">ลำดับ</th><th>เลขรับคดีที่</th><th>ชื่อคดี / สถานะผู้ต้องหา</th><th>ประเภท</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>Deadline</th><th>วันที่รับ</th><th></th></tr></thead>
+        <thead><tr><th style="width:32px;text-align:center;" id="bulkSelectAllTh"></th><th style="width:40px;text-align:center;">ลำดับ</th><th>เลขรับคดีที่</th><th>ชื่อคดี / สถานะผู้ต้องหา</th><th>ประเภท</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>Deadline</th><th>วันที่รับ</th><th></th></tr></thead>
         <tbody id="caseTableBody"></tbody>
       </table>
       <div class="empty-state" id="emptyState" style="display:none">ไม่มีรายการคดีในระบบ</div>
@@ -2427,8 +2445,9 @@ function renderTable() {
       const stepTxt = currentStep ? `${currentStep.icon} ${currentStep.label}` : '📋 ยังไม่เริ่ม';
       s1Label = `<div><span class="s1-badge" onclick="openS1Modal('${c.id}');event.stopPropagation();">${stepTxt} ▸ ดูไทม์ไลน์</span></div>`;
     }
+    const chkCell = isAdminUser ? `<td style="text-align:center;width:32px;"><input type="checkbox" class="bulk-chk" data-id="${c.id}" onchange="bulkToggle(this)" style="accent-color:var(--blue);width:16px;height:16px;cursor:pointer;"></td>` : '<td></td>';
     return `<tr class="${rowCls}" id="case-row-${c.id}">
-      <td style="text-align:center;color:var(--text3);font-size:0.75rem;width:40px;">${_rowIdx+1}</td><td><div class="case-id">${c.caseId}</div></td>
+      ${chkCell}<td style="text-align:center;color:var(--text3);font-size:0.75rem;width:40px;">${_rowIdx+1}</td><td><div class="case-id">${c.caseId}</div></td>
       <td>
         <div class="case-name">${c.name}${ageBadge}</div>
         ${ownerLabel}${noteLabel}${custodyLabel}${s1Label}
@@ -2449,6 +2468,104 @@ function renderTable() {
     </tr>`;
   }).join('');
 }
+window.renderTable = renderTable;
+
+// ===== BULK SELECT =====
+let _bulkSelected = new Set();
+
+function _bulkRefreshToolbar() {
+  const toolbar = document.getElementById('bulkToolbar');
+  const countEl = document.getElementById('bulkCount');
+  if (!toolbar) return;
+  if (_bulkSelected.size > 0) {
+    toolbar.style.display = 'flex';
+    countEl.textContent = `เลือก ${_bulkSelected.size} คดี`;
+  } else {
+    toolbar.style.display = 'none';
+  }
+}
+
+// เพิ่ม select-all checkbox ใน thead หลัง render
+function _bulkInitSelectAll() {
+  if (!isAdminUser) return;
+  const th = document.getElementById('bulkSelectAllTh');
+  if (!th) return;
+  th.innerHTML = `<input type="checkbox" id="bulkSelectAll" title="เลือกทั้งหมด" onchange="bulkToggleAll(this)" style="accent-color:var(--blue);width:16px;height:16px;cursor:pointer;">`;
+}
+
+window.bulkToggle = function(chk) {
+  if (chk.checked) _bulkSelected.add(chk.dataset.id);
+  else _bulkSelected.delete(chk.dataset.id);
+  // อัป select-all state
+  const all = document.querySelectorAll('.bulk-chk');
+  const selAll = document.getElementById('bulkSelectAll');
+  if (selAll) selAll.checked = all.length > 0 && [...all].every(c => c.checked);
+  _bulkRefreshToolbar();
+};
+
+window.bulkToggleAll = function(chk) {
+  const boxes = document.querySelectorAll('.bulk-chk');
+  boxes.forEach(b => {
+    b.checked = chk.checked;
+    if (chk.checked) _bulkSelected.add(b.dataset.id);
+    else _bulkSelected.delete(b.dataset.id);
+  });
+  _bulkRefreshToolbar();
+};
+
+window.bulkClearSelect = function() {
+  _bulkSelected.clear();
+  document.querySelectorAll('.bulk-chk').forEach(b => b.checked = false);
+  const selAll = document.getElementById('bulkSelectAll');
+  if (selAll) selAll.checked = false;
+  document.getElementById('bulkStatusSelect').value = '';
+  _bulkRefreshToolbar();
+};
+
+window.bulkUpdateStatus = async function() {
+  if (!_bulkSelected.size) { alert('กรุณาเลือกคดีก่อน'); return; }
+  const newStatus = document.getElementById('bulkStatusSelect').value;
+  if (!newStatus) { alert('กรุณาเลือกสถานะที่ต้องการ'); return; }
+  const sLabel = { pending:'สอบสวนเพิ่มเติม', progress:'เจ้าของสำนวน', screening:'รอกลั่นกรอง', review:'อจ.พิจารณา', filing:'งานพิมพ์สำนวน', court:'ดำเนินการทางศาล', done:'เสร็จสิ้น' };
+  const ids = [..._bulkSelected];
+  if (!confirm(`จะเปลี่ยน ${ids.length} คดี → "${sLabel[newStatus]||newStatus}"\nยืนยันหรือไม่?`)) return;
+
+  const btn = document.querySelector('#bulkToolbar button');
+  if (btn) { btn.textContent = '⏳ กำลังบันทึก...'; btn.disabled = true; }
+
+  try {
+    const now = new Date().toISOString();
+    await Promise.all(ids.map(id => {
+      const c = cases.find(x => x.id === id);
+      if (!c) return Promise.resolve();
+      const payload = { status: newStatus, lastAction: `🔄 Bulk: ${sLabel[newStatus]||newStatus}`, lastUpdated: now };
+      // อัป local array
+      const idx = cases.findIndex(x => x.id === id);
+      if (idx >= 0) cases[idx] = { ...cases[idx], ...payload };
+      return updateDoc(doc(db, 'cases', id), payload);
+    }));
+    const flash = document.createElement('div');
+    flash.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1a2d1a;border:1px solid var(--green);color:var(--green);padding:12px 28px;border-radius:8px;font-size:0.9rem;z-index:9999;font-family:"Sarabun",sans-serif;';
+    flash.textContent = `✅ อัปเดต ${ids.length} คดี → ${sLabel[newStatus]||newStatus} สำเร็จ`;
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 3000);
+    bulkClearSelect();
+    renderAll(); buildAlerts();
+  } catch(e) {
+    alert('เกิดข้อผิดพลาด: ' + e.message);
+  } finally {
+    if (btn) { btn.textContent = '✔ บันทึก'; btn.disabled = false; }
+  }
+};
+
+// Hook renderTable เพื่อ init select-all หลัง render
+const _origRenderTable = renderTable;
+renderTable = function() {
+  _bulkSelected.clear();
+  _origRenderTable();
+  _bulkInitSelectAll();
+  _bulkRefreshToolbar();
+};
 window.renderTable = renderTable;
 
 // ===== MODAL =====
