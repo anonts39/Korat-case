@@ -4512,9 +4512,12 @@ window.openWeeklyReport = async function() {
 
     const date = cp.checkpointDate?.toDate ? cp.checkpointDate.toDate() : new Date(cp.checkpointDate);
     const dateStr = `${date.getDate()}/${date.getMonth()+1}/${date.getFullYear()+543}`;
-    const target = cp.target || 0;
-    const actual = cp.actual || 0;
-    const pct = target ? Math.round(actual/target*100) : null;
+    // คำนวณ target จากทั้ง target รวมและ targetOld+targetNew (กัน edge case)
+    const target = cp.target || ((cp.targetOld||0) + (cp.targetNew||0)) || 0;
+    // คำนวณ actual จากทั้ง actual รวมและ actualOld+actualNew
+    const actual = (cp.actual !== null && cp.actual !== undefined) ? cp.actual : ((cp.actualOld||0) + (cp.actualNew||0));
+    const pct = target ? Math.round(actual/target*100) : (actual > 0 ? 100 : null);
+    console.log('[Weekly]', p.name, '| target:', target, '(raw:', cp.target, cp.targetOld, cp.targetNew, ')', '| actual:', actual, '(raw:', cp.actual, cp.actualOld, cp.actualNew, ')', '| pct:', pct);
     const pctColor = pct === null ? '#8b949e' : pct >= 100 ? '#3fb950' : pct >= 50 ? '#e3b341' : '#f85149';
     const diff = (cp.openCaseCount||0) - currentPending;
     const diffColor = diff > 0 ? '#3fb950' : diff < 0 ? '#f85149' : '#8b949e';
